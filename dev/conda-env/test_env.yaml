@@ -1,0 +1,30 @@
+name: serenityff-charge-test
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Base depends
+  - python
+  - pip
+  ## Testing
+  - pytest
+  - pytest-cov
+  - codecov
+  ## Meta
+  - typing
+  - pre-commit
+  - m2r
+  - sphinx
+  - nbsphinx
+  - sphinx_rtd_theme
+  - pandoc
+  - conda-build
+  # Science
+  - mpmath
+  - pandas
+  - pytables
+  - numpy
+  - sympy
+  - scipy
+  ## Chemie
+  - openff-toolkit = 0.10.0

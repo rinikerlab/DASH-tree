@@ -1,8 +1,8 @@
 """
-Serenity Force Field. 
+Serenity Force Field.
 """
 
-from setuptools import setup, find_namespace_packages
+from setuptools import find_packages, setup
 import sys
 import versioneer
 
@@ -18,7 +18,7 @@ except IOError:
     long_description = "\n".join(short_description[2:])
 
 setup(
-    name="SerenityFF",
+    name="serenityff",
     author="rinikerlab",
     author_email="mlehner@ethz.ch",
     description=short_description[0],
@@ -29,7 +29,8 @@ setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     license="MIT",
-    packages=find_namespace_packages(include=["serenityff/charge/*"]),
+    packages=find_packages(),
+    # packages=find_namespace_packages(include=["serenityff/charge/*"]),
     include_package_data=True,
     keywords="molecular dynamics, force field, parametrization, nonbonded parameters, explainable md",
     python_requires=">=3.7",

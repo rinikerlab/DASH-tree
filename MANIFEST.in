@@ -2,4 +2,3 @@ include LICENSE
 include MANIFEST.in
 include versioneer.py
 include serenityff/_version.py
-

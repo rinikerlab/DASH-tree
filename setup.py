@@ -18,7 +18,7 @@ except IOError:
     long_description = "\n".join(short_description[2:])
 
 setup(
-    name="SerenityFF",
+    name="serenityff",
     author="rinikerlab",
     author_email="mlehner@ethz.ch",
     description=short_description[0],

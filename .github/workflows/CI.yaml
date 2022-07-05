@@ -59,7 +59,7 @@ jobs:
       shell: bash -l {0}
 
       run: |
-        pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff-charge-test --cov-report=xml
+        pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
 
     - name: CodeCov
       uses: codecov/codecov-action@v1

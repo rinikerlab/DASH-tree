@@ -1,5 +1,5 @@
 """
-Serenity Force Field. 
+Serenity Force Field.
 """
 
 from setuptools import setup, find_namespace_packages

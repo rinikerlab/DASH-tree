@@ -29,9 +29,8 @@ setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     license="MIT",
-    packages=find_namespace_packages(include=["serenityff.*"]),
+    packages=find_namespace_packages(include=["serenityff/charge/*"]),
     include_package_data=True,
     keywords="molecular dynamics, force field, parametrization, nonbonded parameters, explainable md",
     python_requires=">=3.7",
 )
-

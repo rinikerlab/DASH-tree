@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macOS-latest, ubuntu-latest] #, windows-latest
+        os: [ubuntu-latest] #, macOS-latest, windows-latest
         python-version: [3.7, 3.9.4] #
 
     steps:
@@ -41,7 +41,7 @@ jobs:
 
         activate-environment: serenityff-charge-test
         auto-update-conda: true
-        auto-activate-base: false
+        auto-activate-base: true
         show-channel-urls: true
 
     - name: Install package
@@ -59,7 +59,7 @@ jobs:
       shell: bash -l {0}
 
       run: |
-        pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
+        pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff-charge-test --cov-report=xml
 
     - name: CodeCov
       uses: codecov/codecov-action@v1

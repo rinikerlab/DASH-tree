@@ -9,6 +9,12 @@ def test_test():
     assert True
 
 
+def test_sernityff_module_in_sys():
+    import sys
+
+    assert "serenityff" in sys.modules
+
+
 def test_serenityff_importable():
     import serenityff
 
@@ -16,9 +22,3 @@ def test_serenityff_importable():
         assert True
     else:
         assert False
-
-
-def test_sernityff_module_in_sys():
-    import sys
-
-    assert "serenityff" in sys.modules

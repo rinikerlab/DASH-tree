@@ -1,3 +1,4 @@
+# typing tools for the use of rdkit
 from rdkit import Chem
 
 Molecule = Chem.rdchem.Mol

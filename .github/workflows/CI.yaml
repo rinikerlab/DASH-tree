@@ -36,7 +36,7 @@ jobs:
     - uses: mamba-org/provision-with-micromamba@main
       with:
         python-version: ${{ matrix.python-version }}
-        environment-file:  .github/workflows/test_env.yaml
+        environment-file:  dev/conda-env/test_env.yaml
         channels: conda-forge,defaults
 
         activate-environment: serenityff-charge-test

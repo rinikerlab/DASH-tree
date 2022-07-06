@@ -6,12 +6,12 @@ https://github.com/deepchem/deepchem/tree/master/deepchem/feat
 
 
 from typing import Iterable, Any, List, Tuple, Union
-from rdkit_typing import Molecule, Atom, Bond
+from serenityff.charge.utils.custom_data import CustomGraphData
+from serenityff.charge.utils import Molecule, Atom, Bond
 import numpy as np
 import inspect
 import os
 from rdkit.Chem.rdPartialCharges import ComputeGasteigerCharges
-from custom_data import CustomGraphData
 
 DEFAULT_HYBRIDIZATION_SET = ["SP", "SP2", "SP3"]
 DEFAULT_TOTAL_DEGREE_SET = [0, 1, 2, 3, 4, 5]
@@ -30,7 +30,9 @@ class Featurizer(object):
     new datatype.
     """
 
-    def featurize(self, datapoints: Iterable[Any], log_every_n: int = 1000, **kwargs) -> np.ndarray:
+    def featurize(
+        self, datapoints: Iterable[Any], log_every_n: int = 1000, **kwargs
+    ) -> np.ndarray:
         """Calculate features for datapoints.
 
         Parameters
@@ -200,7 +202,9 @@ class MolecularFeaturizer(Featurizer):
 
         if "molecules" in kwargs:
             datapoints = kwargs.get("molecules")
-            raise DeprecationWarning('Molecules is being phased out as a parameter, please pass "datapoints" instead.')
+            raise DeprecationWarning(
+                'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
+            )
 
         # Special case handling of single molecule
         if isinstance(datapoints, str) or isinstance(datapoints, Mol):
@@ -288,7 +292,9 @@ def one_hot_encode(
     return one_hot
 
 
-def get_atom_hydrogen_bonding_one_hot(atom: Atom, hydrogen_bonding: List[Tuple[int, str]]) -> List[float]:
+def get_atom_hydrogen_bonding_one_hot(
+    atom: Atom, hydrogen_bonding: List[Tuple[int, str]]
+) -> List[float]:
     """Get an one-hot feat about whether an atom accepts electrons or donates electrons.
 
     Parameters
@@ -391,7 +397,9 @@ def _construct_atom_feature(
     """
     atom_type = one_hot_encode(atom.GetSymbol(), allowable_set, True)
     formal_charge = [float(atom.GetFormalCharge())]
-    hybridization = one_hot_encode(str(atom.GetHybridization()), DEFAULT_HYBRIDIZATION_SET, False)
+    hybridization = one_hot_encode(
+        str(atom.GetHybridization()), DEFAULT_HYBRIDIZATION_SET, False
+    )
     acceptor_donor = get_atom_hydrogen_bonding_one_hot(atom, h_bond_infos)
     aromatic = [float(atom.GetIsAromatic())]
     degree = one_hot_encode(atom.GetTotalDegree(), DEFAULT_TOTAL_DEGREE_SET, True)
@@ -470,7 +478,7 @@ def construct_hydrogen_bonding_info(mol: Molecule) -> List[Tuple[int, str]]:
     return hydrogen_bonding
 
 
-class MolGraphConvFeaturizerIncludingHydrogen(MolecularFeaturizer):
+class MolGraphConvFeaturizer(MolecularFeaturizer):
     """
     Same as original by deepchem, excyept, that you now can give an allowable set,
     that determines for which atom types a feature in the one hot vector is created.
@@ -540,7 +548,9 @@ class MolGraphConvFeaturizerIncludingHydrogen(MolecularFeaturizer):
         self.use_edges = use_edges
         self.use_partial_charge = use_partial_charge
 
-    def _featurize(self, datapoint: Molecule, allowable_set: List[str], **kwargs) -> CustomGraphData:
+    def _featurize(
+        self, datapoint: Molecule, allowable_set: List[str], **kwargs
+    ) -> CustomGraphData:
         """Calculate molecule graph features from RDKit mol object.
         Parameters
         ----------
@@ -558,7 +568,9 @@ class MolGraphConvFeaturizerIncludingHydrogen(MolecularFeaturizer):
         ), "More than one atom should be present in the molecule for this featurizer to work."
         if "mol" in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning('Mol is being phased out as a parameter, please pass "datapoint" instead.')
+            raise DeprecationWarning(
+                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
+            )
 
         if self.use_partial_charge:
             try:

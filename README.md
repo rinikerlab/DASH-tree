@@ -4,7 +4,7 @@ Welcome to Serenityff-Charge
 [//]: # (Badges)
 [![CI](https://github.com/MTLehner/serenityff-charge/actions/workflows/CI.yaml/badge.svg)](https://github.com/MTLehner/serenityff-charge/actions/workflows/CI.yaml)
 [![pre-commit](https://github.com/MTLehner/serenityff-charge/actions/workflows/pre-commit.yml/badge.svg?branch=main)](https://github.com/MTLehner/serenityff-charge/actions/workflows/pre-commit.yml)
-[![codecov](https://github.com/MTLehner/serenityff-charge/branch/main/graph/badge.svg?token=R36KJCEKEC)](https://codecov.io/gh/MTLehner/serenityff-charge)
+[![codecov](https://codecov.io/gh/MTLehner/serenityff-charge/branch/main/graph/badge.svg?token=8pBnMMfYIg)](https://codecov.io/gh/MTLehner/serenityff-charge)
 [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/MTLehner/serenityff-charge.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/MTLehner/serenityff-charge/context:python)
 
 

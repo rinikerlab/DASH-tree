@@ -23,7 +23,7 @@ jobs:
         python-version: [3.7, 3.9.4] #
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@master
 
     - name: Additional info about the build
       shell: bash
@@ -61,8 +61,10 @@ jobs:
       run: |
         pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
 
-    - name: CodeCov
-      run: |
-        curl -Os https://uploader.codecov.io/latest/linux/codecov
-        chmod +x codecov
-        ./codecov -t ${CODECOV_TOKEN}
+    - uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+        flags: unittests # optional
+        name: codecov-umbrella # optional
+        fail_ci_if_error: true # optional (default = false)
+        verbose: true # optional (default = false)

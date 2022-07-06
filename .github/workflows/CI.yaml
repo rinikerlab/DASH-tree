@@ -62,8 +62,7 @@ jobs:
         pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
 
     - name: CodeCov
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-${{ matrix.os }}-py${{ matrix.python-version }}
+      run: |
+        curl -Os https://uploader.codecov.io/latest/linux/codecov
+        chmod +x codecov
+        ./codecov -t ${CODECOV_TOKEN}

@@ -32,9 +32,5 @@ dependencies:
   - openff-toolkit = 0.10.0
   - rdkit
   ## Machine Learning
-  - cudatoolkit=11.3
-  - clang
   - pytorch
-  - torchvision
-  - torchaudio
   - pyg

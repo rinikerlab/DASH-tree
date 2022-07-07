@@ -34,4 +34,5 @@ dependencies:
   ## Machine Learning
   - pytorch
   - torch-sparse
+  - cpuonly
   - pyg

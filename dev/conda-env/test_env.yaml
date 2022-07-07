@@ -33,4 +33,5 @@ dependencies:
   - rdkit
   ## Machine Learning
   - pytorch
+  - torch-sparse
   - pyg

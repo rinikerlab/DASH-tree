@@ -30,3 +30,7 @@ dependencies:
   - scipy
   ## Chemie
   - openff-toolkit = 0.10.0
+  - rdkit
+  ## Machine Learning
+  - pytorch
+  - pyg

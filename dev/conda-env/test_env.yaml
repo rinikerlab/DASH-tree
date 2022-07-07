@@ -30,4 +30,4 @@ dependencies:
   ## Chemie
   - openff-toolkit = 0.10.0
   - rdkit
-  - pyg
+  - pytoch_geometric

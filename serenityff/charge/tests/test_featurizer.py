@@ -40,12 +40,8 @@ def test_initialization():
 
 def test_one_hot_encode():
     assert one_hot_encode(ATOMS[0].GetSymbol(), ALLOWABLE_SET) == [1.0, 0.0, 0.0]
-    assert one_hot_encode(
-        ATOMS[0].GetSymbol(), ALLOWABLE_SET, include_unknown_set=True
-    ) == [1.0, 0.0, 0.0, 0.0]
-    assert one_hot_encode(
-        ATOMS[9].GetSymbol(), ALLOWABLE_SET, include_unknown_set=False
-    ) == [0.0, 0.0, 0.0]
+    assert one_hot_encode(ATOMS[0].GetSymbol(), ALLOWABLE_SET, include_unknown_set=True) == [1.0, 0.0, 0.0, 0.0]
+    assert one_hot_encode(ATOMS[9].GetSymbol(), ALLOWABLE_SET, include_unknown_set=False) == [0.0, 0.0, 0.0]
 
 
 def test_hbond_constructor():
@@ -53,16 +49,10 @@ def test_hbond_constructor():
     from rdkit import RDConfig
     import os
 
-    ownfactory = Chem.ChemicalFeatures.BuildFeatureFactory(
-        os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef")
-    )
+    ownfactory = Chem.ChemicalFeatures.BuildFeatureFactory(os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef"))
 
-    assert [
-        (feat.GetAtomIds()[0], feat.GetFamily())
-        for feat in factory.GetFeaturesForMol(MOL)
-    ] == [
-        (feat.GetAtomIds()[0], feat.GetFamily())
-        for feat in ownfactory.GetFeaturesForMol(MOL)
+    assert [(feat.GetAtomIds()[0], feat.GetFamily()) for feat in factory.GetFeaturesForMol(MOL)] == [
+        (feat.GetAtomIds()[0], feat.GetFamily()) for feat in ownfactory.GetFeaturesForMol(MOL)
     ]
 
 
@@ -90,18 +80,10 @@ def test_atom_feature():
 
 
 def test_bond_feat():
-    np.testing.assert_array_equal(
-        np.where(_construct_bond_feature(BONDS[0])), np.array([[3, 4, 5, 6]])
-    )
-    np.testing.assert_array_equal(
-        np.where(_construct_bond_feature(BONDS[6])), np.array([[0, 4, 6]])
-    )
-    np.testing.assert_array_equal(
-        np.where(_construct_bond_feature(BONDS[8])), np.array([[1, 5, 9]])
-    )
-    np.testing.assert_array_equal(
-        np.where(_construct_bond_feature(BONDS[11])), np.array([[1, 5, 8]])
-    )
+    np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[0])), np.array([[3, 4, 5, 6]]))
+    np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[6])), np.array([[0, 4, 6]]))
+    np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[8])), np.array([[1, 5, 9]]))
+    np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[11])), np.array([[1, 5, 8]]))
 
 
 def test_feature_vector_generation():
@@ -110,12 +92,8 @@ def test_feature_vector_generation():
     with pytest.raises(AttributeError):
         featurizer._featurize(SMILES, allowable_set=ALLOWABLE_SET)
 
-    graph = featurizer._featurize(
-        datapoint=MOL, allowable_set=ALLOWABLE_SET
-    ).to_pyg_graph()
-    empty_graph = featurizer._featurize(
-        datapoint=MOL, allowable_set=EMPTY_SET
-    ).to_pyg_graph()
+    graph = featurizer._featurize(datapoint=MOL, allowable_set=ALLOWABLE_SET).to_pyg_graph()
+    empty_graph = featurizer._featurize(datapoint=MOL, allowable_set=EMPTY_SET).to_pyg_graph()
 
     for vec in empty_graph.x:
         assert vec[0].item() == 1

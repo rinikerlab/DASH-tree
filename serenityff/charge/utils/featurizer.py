@@ -30,9 +30,7 @@ class Featurizer(object):
     new datatype.
     """
 
-    def featurize(
-        self, datapoints: Iterable[Any], log_every_n: int = 1000, **kwargs
-    ) -> np.ndarray:
+    def featurize(self, datapoints: Iterable[Any], log_every_n: int = 1000, **kwargs) -> np.ndarray:
         """Calculate features for datapoints.
 
         Parameters
@@ -202,9 +200,7 @@ class MolecularFeaturizer(Featurizer):
 
         if "molecules" in kwargs:
             datapoints = kwargs.get("molecules")
-            raise DeprecationWarning(
-                'Molecules is being phased out as a parameter, please pass "datapoints" instead.'
-            )
+            raise DeprecationWarning('Molecules is being phased out as a parameter, please pass "datapoints" instead.')
 
         # Special case handling of single molecule
         if isinstance(datapoints, str) or isinstance(datapoints, Mol):
@@ -292,9 +288,7 @@ def one_hot_encode(
     return one_hot
 
 
-def get_atom_hydrogen_bonding_one_hot(
-    atom: Atom, hydrogen_bonding: List[Tuple[int, str]]
-) -> List[float]:
+def get_atom_hydrogen_bonding_one_hot(atom: Atom, hydrogen_bonding: List[Tuple[int, str]]) -> List[float]:
     """Get an one-hot feat about whether an atom accepts electrons or donates electrons.
 
     Parameters
@@ -397,9 +391,7 @@ def _construct_atom_feature(
     """
     atom_type = one_hot_encode(atom.GetSymbol(), allowable_set, True)
     formal_charge = [float(atom.GetFormalCharge())]
-    hybridization = one_hot_encode(
-        str(atom.GetHybridization()), DEFAULT_HYBRIDIZATION_SET, False
-    )
+    hybridization = one_hot_encode(str(atom.GetHybridization()), DEFAULT_HYBRIDIZATION_SET, False)
     acceptor_donor = get_atom_hydrogen_bonding_one_hot(atom, h_bond_infos)
     aromatic = [float(atom.GetIsAromatic())]
     degree = one_hot_encode(atom.GetTotalDegree(), DEFAULT_TOTAL_DEGREE_SET, True)
@@ -548,9 +540,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         self.use_edges = use_edges
         self.use_partial_charge = use_partial_charge
 
-    def _featurize(
-        self, datapoint: Molecule, allowable_set: List[str], **kwargs
-    ) -> CustomGraphData:
+    def _featurize(self, datapoint: Molecule, allowable_set: List[str], **kwargs) -> CustomGraphData:
         """Calculate molecule graph features from RDKit mol object.
         Parameters
         ----------
@@ -568,9 +558,7 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
         ), "More than one atom should be present in the molecule for this featurizer to work."
         if "mol" in kwargs:
             datapoint = kwargs.get("mol")
-            raise DeprecationWarning(
-                'Mol is being phased out as a parameter, please pass "datapoint" instead.'
-            )
+            raise DeprecationWarning('Mol is being phased out as a parameter, please pass "datapoint" instead.')
 
         if self.use_partial_charge:
             try:

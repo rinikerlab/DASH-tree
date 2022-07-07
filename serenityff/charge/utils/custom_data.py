@@ -29,7 +29,8 @@ class GraphData:
     """GraphData class
 
     This data class is almost same as `torch_geometric.data.Data
-    <https://pytorch-geometric.readthedocs.io/en/latest/modules/data.html#torch_geometric.data.Data>`_.
+    <https://pytorch-geometric.readthedocs.io/en/\
+        latest/modules/data.html#torch_geometric.data.Data>`_.
 
     Attributes
     ----------
@@ -133,7 +134,9 @@ class GraphData:
             import torch
             from torch_geometric.data import Data
         except ModuleNotFoundError:
-            raise ImportError("This function requires PyTorch Geometric to be installed.")
+            raise ImportError(
+                "This function requires PyTorch Geometric to be installed."
+            )
 
         edge_features = self.edge_features
         if edge_features is not None:

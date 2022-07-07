@@ -33,6 +33,7 @@ dependencies:
   - rdkit
   ## Machine Learning
   - cudatoolkit=11.3
+  - clang
   - pytorch
   - torchvision
   - torchaudio

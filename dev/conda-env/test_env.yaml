@@ -33,6 +33,7 @@ dependencies:
   - rdkit
   ## Machine Learning
   - pytorch
-  - torch-sparse
+  - torchvision
+  - torchaudio
   - cpuonly
   - pyg

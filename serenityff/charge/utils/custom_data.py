@@ -29,7 +29,8 @@ class GraphData:
     """GraphData class
 
     This data class is almost same as `torch_geometric.data.Data
-    <https://pytorch-geometric.readthedocs.io/en/latest/modules/data.html#torch_geometric.data.Data>`_.
+    <https://pytorch-geometric.readthedocs.io/en/\
+        latest/modules/data.html#torch_geometric.data.Data>`_.
 
     Attributes
     ----------

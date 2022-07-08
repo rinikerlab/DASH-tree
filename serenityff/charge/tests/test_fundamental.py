@@ -4,9 +4,12 @@ Unit and regression dev for the serenityff package.
 Test most fundamental functionality of package
 """
 
+import pytest
+
 
 def test_test():
-    assert True
+    with pytest.raises(AssertionError):
+        assert False
 
 
 def test_sernityff_module_in_sys():

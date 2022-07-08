@@ -1,5 +1,7 @@
 name: serenityff-charge-test
 channels:
+  - pytorch
+  - pyg
   - conda-forge
   - defaults
 dependencies:
@@ -28,3 +30,7 @@ dependencies:
   - scipy
   ## Chemie
   - openff-toolkit = 0.10.0
+  - rdkit
+  ## Machine Learning
+  - pytorch
+  - pyg

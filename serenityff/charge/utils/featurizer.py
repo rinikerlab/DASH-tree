@@ -6,12 +6,12 @@ https://github.com/deepchem/deepchem/tree/master/deepchem/feat
 
 
 from typing import Iterable, Any, List, Tuple, Union
-from rdkit_typing import Molecule, Atom, Bond
+from serenityff.charge.utils.custom_data import CustomGraphData
+from serenityff.charge.utils import Molecule, Atom, Bond
 import numpy as np
 import inspect
 import os
 from rdkit.Chem.rdPartialCharges import ComputeGasteigerCharges
-from custom_data import CustomGraphData
 
 DEFAULT_HYBRIDIZATION_SET = ["SP", "SP2", "SP3"]
 DEFAULT_TOTAL_DEGREE_SET = [0, 1, 2, 3, 4, 5]
@@ -470,7 +470,7 @@ def construct_hydrogen_bonding_info(mol: Molecule) -> List[Tuple[int, str]]:
     return hydrogen_bonding
 
 
-class MolGraphConvFeaturizerIncludingHydrogen(MolecularFeaturizer):
+class MolGraphConvFeaturizer(MolecularFeaturizer):
     """
     Same as original by deepchem, excyept, that you now can give an allowable set,
     that determines for which atom types a feature in the one hot vector is created.

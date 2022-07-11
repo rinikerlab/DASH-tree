@@ -1,6 +1,6 @@
 from torch_geometric.data import Data
 from torch_geometric.typing import OptTensor
-from typing import Optional
+from typing import Optional, Union
 import numpy as np
 import torch
 
@@ -14,6 +14,7 @@ class CustomData(Data):
         y: OptTensor = None,
         pos: OptTensor = None,
         smiles: str = None,
+        molecule_charge: int = None,
     ):
         super().__init__(
             x=x,
@@ -23,6 +24,30 @@ class CustomData(Data):
             pos=pos,
         )
         self.smiles = smiles
+        self.molecule_charge = molecule_charge
+
+    @property
+    def smiles(self) -> Union[str, None]:
+        return self._smiles
+
+    @smiles.setter
+    def smiles(self, value: str) -> None:
+        if not isinstance(value, str):
+            raise TypeError("Attribute .smiles has to be of type string")
+
+    @property
+    def charge(self) -> Union[int, None]:
+        return self._charge
+
+    @charge.setter
+    def molecule_charge(self, value: int) -> None:
+        if not isinstance(value, int):
+            try:
+                self._molecule_charge = int(value)
+            except Exception:
+                raise TypeError("Value for charge has to be convertable to int!")
+        else:
+            self._molecule_charge = value
 
 
 class GraphData:

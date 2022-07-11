@@ -2,8 +2,6 @@
 
 from .exceptions import ExtractionError
 from .rdkit_typing import Atom, Molecule, Bond
-from .custom_data import CustomData
-from .featurizer import MolGraphConvFeaturizer
 
 __all__ = [
     "ExtractionError",

@@ -4,8 +4,8 @@ Unit and regression dev for the serenityff package.
 Test featurizer in utils.py
 """
 
-from serenityff.charge.utils import MolGraphConvFeaturizer
-from serenityff.charge.utils.featurizer import (
+from serenityff.charge.gnn import MolGraphConvFeaturizer
+from serenityff.charge.gnn.utils.featurizer import (
     Featurizer,
     MolecularFeaturizer,
     one_hot_encode,
@@ -17,7 +17,6 @@ from serenityff.charge.utils.featurizer import (
     construct_hydrogen_bonding_info,
 )
 from rdkit import Chem
-
 import pytest
 import numpy as np
 

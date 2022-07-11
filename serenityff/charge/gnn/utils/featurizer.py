@@ -6,7 +6,7 @@ https://github.com/deepchem/deepchem/tree/master/deepchem/feat
 
 
 from typing import Iterable, Any, List, Tuple, Union
-from serenityff.charge.utils.custom_data import CustomGraphData
+from .custom_data import CustomGraphData
 from serenityff.charge.utils import Molecule, Atom, Bond
 import numpy as np
 import inspect

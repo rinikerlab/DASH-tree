@@ -6,6 +6,12 @@ import torch
 
 
 class CustomData(Data):
+    """
+    Data Class holding the pyorch geometric molecule graphs.
+    Similar to pyg's data class but with two extra attributes,
+    being smiles and molecule_charge.
+    """
+
     def __init__(
         self,
         x: OptTensor = None,
@@ -53,9 +59,9 @@ class CustomData(Data):
 class GraphData:
     """GraphData class
 
-    This data class is almost same as `torch_geometric.data.Data
-    <https://pytorch-geometric.readthedocs.io/en/\
-        latest/modules/data.html#torch_geometric.data.Data>`_.
+    This data class is almost same as `deepchems graphdata
+    <https://github.com/deepchem/deepchem/blob/master/\
+        deepchem/feat/graph_data.py>`_.
 
     Attributes
     ----------

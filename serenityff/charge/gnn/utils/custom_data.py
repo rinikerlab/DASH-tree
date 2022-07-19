@@ -111,12 +111,12 @@ class GraphData:
         """
         # validate params
         if isinstance(node_features, np.ndarray) is False:
-            raise ValueError("node_features must be np.ndarray.")
+            raise TypeError("node_features must be np.ndarray.")
 
         if isinstance(edge_index, np.ndarray) is False:
-            raise ValueError("edge_index must be np.ndarray.")
+            raise TypeError("edge_index must be np.ndarray.")
         elif issubclass(edge_index.dtype.type, np.integer) is False:
-            raise ValueError("edge_index.dtype must contains integers.")
+            raise TypeError("edge_index.dtype must contains integers.")
         elif edge_index.shape[0] != 2:
             raise ValueError("The shape of edge_index is [2, num_edges].")
         elif np.max(edge_index) >= len(node_features):
@@ -124,7 +124,7 @@ class GraphData:
 
         if edge_features is not None:
             if isinstance(edge_features, np.ndarray) is False:
-                raise ValueError("edge_features must be np.ndarray or None.")
+                raise TypeError("edge_features must be np.ndarray or None.")
             elif edge_index.shape[1] != edge_features.shape[0]:
                 raise ValueError(
                     "The first dimension of edge_features must be the \
@@ -133,7 +133,7 @@ class GraphData:
 
         if node_pos_features is not None:
             if isinstance(node_pos_features, np.ndarray) is False:
-                raise ValueError("node_pos_features must be np.ndarray or None.")
+                raise TypeError("node_pos_features must be np.ndarray or None.")
             elif node_pos_features.shape[0] != node_features.shape[0]:
                 raise ValueError(
                     "The length of node_pos_features must be the same as the \
@@ -148,38 +148,6 @@ class GraphData:
         self.num_edges = edge_index.shape[1]
         if self.edge_features is not None:
             self.num_edge_features = self.edge_features.shape[1]
-
-    def to_pyg_graph(self):
-        """Convert to PyTorch Geometric graph data instance
-
-        Returns
-        -------
-        torch_geometric.data.Data
-          Graph data for PyTorch Geometric
-
-        Note
-        ----
-        This method requires PyTorch Geometric to be installed.
-        """
-        try:
-            import torch
-            from torch_geometric.data import Data
-        except ModuleNotFoundError:
-            raise ImportError("This function requires PyTorch Geometric to be installed.")
-
-        edge_features = self.edge_features
-        if edge_features is not None:
-            edge_features = torch.from_numpy(self.edge_features).float()
-        node_pos_features = self.node_pos_features
-        if node_pos_features is not None:
-            node_pos_features = torch.from_numpy(self.node_pos_features).float()
-
-        return Data(
-            x=torch.from_numpy(self.node_features).float(),
-            edge_index=torch.from_numpy(self.edge_index).long(),
-            edge_attr=edge_features,
-            pos=node_pos_features,
-        )
 
 
 class CustomGraphData(GraphData):

@@ -21,12 +21,34 @@ import pytest
 import numpy as np
 
 
-SMILES = r"c1ccccc1C2CC/2=N\C(O)=C\F"
-ALLOWABLE_SET = ["C", "H", "O"]
-EMPTY_SET = []
-MOL = Chem.AddHs(Chem.MolFromSmiles(SMILES))
-ATOMS = MOL.GetAtoms()
-BONDS = MOL.GetBonds()
+@pytest.fixture
+def SMILES():
+    return r"c1ccccc1C2CC/2=N\C(O)=C\F"
+
+
+@pytest.fixture
+def ALLOWABLE_SET():
+    return ["C", "H", "O"]
+
+
+@pytest.fixture
+def EMPTY_SET():
+    return []
+
+
+@pytest.fixture
+def MOL(SMILES):
+    return Chem.AddHs(Chem.MolFromSmiles(SMILES))
+
+
+@pytest.fixture
+def ATOMS(MOL):
+    return MOL.GetAtoms()
+
+
+@pytest.fixture
+def BONDS(MOL):
+    return MOL.GetBonds()
 
 
 def test_initialization():
@@ -36,13 +58,13 @@ def test_initialization():
     del featurizer
 
 
-def test_one_hot_encode():
+def test_one_hot_encode(ATOMS, ALLOWABLE_SET):
     assert one_hot_encode(ATOMS[0].GetSymbol(), ALLOWABLE_SET) == [1.0, 0.0, 0.0]
     assert one_hot_encode(ATOMS[0].GetSymbol(), ALLOWABLE_SET, include_unknown_set=True) == [1.0, 0.0, 0.0, 0.0]
     assert one_hot_encode(ATOMS[9].GetSymbol(), ALLOWABLE_SET, include_unknown_set=False) == [0.0, 0.0, 0.0]
 
 
-def test_hbond_constructor():
+def test_hbond_constructor(MOL):
     factory = _ChemicalFeaturesFactory.get_instance()
     from rdkit import RDConfig
     import os
@@ -54,19 +76,19 @@ def test_hbond_constructor():
     ]
 
 
-def test_H_bonding():
+def test_H_bonding(MOL, ATOMS):
     hbond_infos = construct_hydrogen_bonding_info(MOL)
     assert get_atom_hydrogen_bonding_one_hot(ATOMS[11], hbond_infos) == [1.0, 1.0]
 
 
-def test_degree():
+def test_degree(ATOMS):
     assert np.where(get_atom_total_degree_one_hot(ATOMS[20])) == np.array([[1]])
     assert np.where(get_atom_total_degree_one_hot(ATOMS[11])) == np.array([[2]])
     assert np.where(get_atom_total_degree_one_hot(ATOMS[10])) == np.array([[3]])
     assert np.where(get_atom_total_degree_one_hot(ATOMS[7])) == np.array([[4]])
 
 
-def test_atom_feature():
+def test_atom_feature(MOL, ATOMS, ALLOWABLE_SET):
     hbond_infos = construct_hydrogen_bonding_info(MOL)
     feat = _construct_atom_feature(
         ATOMS[9],
@@ -77,14 +99,14 @@ def test_atom_feature():
     np.testing.assert_array_equal(np.where(feat), np.array([[3, 6, 13]]))
 
 
-def test_bond_feat():
+def test_bond_feat(BONDS):
     np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[0])), np.array([[3, 4, 5, 6]]))
     np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[6])), np.array([[0, 4, 6]]))
     np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[8])), np.array([[1, 5, 9]]))
     np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[11])), np.array([[1, 5, 8]]))
 
 
-def test_feature_vector_generation():
+def test_feature_vector_generation(SMILES, MOL, ALLOWABLE_SET, EMPTY_SET):
     featurizer = MolGraphConvFeaturizer(use_edges=True)
 
     with pytest.raises(AttributeError):

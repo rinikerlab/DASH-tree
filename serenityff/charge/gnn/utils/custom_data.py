@@ -49,19 +49,16 @@ class CustomData(Data):
             return super().__setattr__(key, value)
 
     def _set_smiles(self, value: str):
-        if isinstance(value, (str, None)):
+        if isinstance(value, str) or value is None:
             return super().__setattr__("smiles", value)
         else:
             raise TypeError("Attribute smiles has to be of type string")
 
     def _set_molecule_charge(self, value: int):
-        try:
-            if isinstance(value, (int, None)) or value.is_integer():
-                return super().__setattr__("molecule_charge", value)
-            elif not value.is_integer():
-                raise ValueError("Molecule charge has to be integer.")
-        except AttributeError:
-            raise TypeError("Value for charge has to be convertable to int!")
+        if isinstance(value, int) or value is None:
+            return super().__setattr__("molecule_charge", value)
+        elif isinstance(value, float) and value.is_integer():
+            return super().__setattr__("molecule_charge", int(value))
         else:
             raise TypeError("Value for charge has to be an int!")
 

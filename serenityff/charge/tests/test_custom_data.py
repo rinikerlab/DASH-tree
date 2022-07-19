@@ -138,7 +138,7 @@ def test_custom_data_attributes(CUSTOM_DATA):
         data.molecule_charge = "a"
     with pytest.raises(TypeError):
         data.molecule_charge = [2, 3]
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         data.molecule_charge = 2.1
     data.smiles = "C@@@"
     assert data.smiles == "C@@@"

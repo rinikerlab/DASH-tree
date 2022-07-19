@@ -1,6 +1,6 @@
 from torch_geometric.data import Data
 from torch_geometric.typing import OptTensor
-from typing import Optional, Union
+from typing import Optional, Union, Any
 import numpy as np
 import torch
 
@@ -28,32 +28,42 @@ class CustomData(Data):
             edge_attr=edge_attr,
             y=y,
             pos=pos,
+            smiles=smiles,
+            molecule_charge=molecule_charge,
         )
-        self.smiles = smiles
-        self.molecule_charge = molecule_charge
 
     @property
     def smiles(self) -> Union[str, None]:
-        return self._smiles
-
-    @smiles.setter
-    def smiles(self, value: str) -> None:
-        if not isinstance(value, str):
-            raise TypeError("Attribute .smiles has to be of type string")
+        return self["smiles"] if "smiles" in self._store else None
 
     @property
-    def charge(self) -> Union[int, None]:
-        return self._charge
+    def molecule_charge(self) -> Union[int, None]:
+        return self["molecule_charge"] if "molecule_charge" in self._store else None
 
-    @charge.setter
-    def molecule_charge(self, value: int) -> None:
-        if not isinstance(value, int):
-            try:
-                self._molecule_charge = int(value)
-            except Exception:
-                raise TypeError("Value for charge has to be convertable to int!")
+    def __setattr__(self, key: str, value: Any):
+        if key == "smiles":
+            return self._set_smiles(value)
+        elif key == "molecule_charge":
+            return self._set_molecule_charge(value)
         else:
-            self._molecule_charge = value
+            return super().__setattr__(key, value)
+
+    def _set_smiles(self, value: str):
+        if isinstance(value, str):
+            return super().__setattr__("smiles", value)
+        else:
+            raise TypeError("Attribute smiles has to be of type string")
+
+    def _set_molecule_charge(self, value: int):
+        try:
+            if isinstance(value, int) or value.is_integer():
+                return super().__setattr__("molecule_charge", value)
+            elif not value.is_integer():
+                raise ValueError("Molecule charge has to be integer.")
+        except AttributeError:
+            raise TypeError("Value for charge has to be convertable to int!")
+        else:
+            raise TypeError("Value for charge has to be an int!")
 
 
 class GraphData:

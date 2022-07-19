@@ -38,7 +38,7 @@ def NODE_POS_FEATURES():
 
 @pytest.fixture
 def CUSTOM_DATA():
-    return CustomData()
+    return CustomData(smiles="abc", molecule_charge=-2)
 
 
 @pytest.fixture
@@ -126,3 +126,22 @@ def test_to_pyg(
     np.array_equal(pyg_graph.edge_index.tolist(), EDGE_INDEX.tolist())
     np.array_equal(pyg_graph.edge_attr.tolist(), EDGE_FEATURES.tolist())
     np.array_equal(pyg_graph.pos.tolist(), NODE_POS_FEATURES.tolist())
+
+
+def test_custom_data_attributes(CUSTOM_DATA):
+    data = CUSTOM_DATA
+    assert data.smiles == "abc"
+    assert data.molecule_charge == -2
+    with pytest.raises(TypeError):
+        data.smiles = 3
+    with pytest.raises(TypeError):
+        data.molecule_charge = "a"
+    with pytest.raises(TypeError):
+        data.molecule_charge = [2, 3]
+    with pytest.raises(ValueError):
+        data.molecule_charge = 2.1
+    data.smiles = "C@@@"
+    assert data.smiles == "C@@@"
+    data.molecule_charge = 25
+    data.molecule_charge = 25.0000
+    assert data.molecule_charge == 25

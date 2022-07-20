@@ -1,4 +1,4 @@
-from typing import Optional, List, Union, Tuple
+from typing import Optional, List, Union, Tuple, Sequence
 from rdkit import Chem
 from math import ceil
 from shutil import make_archive
@@ -223,7 +223,7 @@ class Extractor:
             [at.GetPropsAsDict()["molFileAlias"] for at in mol.GetAtoms()],
             dtype=torch.float,
         )
-        graph.charge = torch.tensor([Chem.GetFormalCharge(mol)], dtype=int)
+        graph.molecule_charge = Chem.GetFormalCharge(mol)
         graph.smiles = Chem.MolToSmiles(mol, canonical=False)
         return graph
 
@@ -307,7 +307,7 @@ class Extractor:
         return
 
     @staticmethod
-    def _parse_filenames() -> argparse.Namespace:
+    def _parse_filenames(args: Sequence[str]) -> argparse.Namespace:
         """
         Higly specific, only use as in run_extraction_*.py files.
 
@@ -322,7 +322,7 @@ class Extractor:
         parser = argparse.ArgumentParser()
         parser.add_argument("-m", "--mlmodel", type=str, required=True)
         parser.add_argument("-s", "--sdffile", type=str, required=True)
-        return parser.parse_args()
+        return parser.parse_args(args)
 
     @staticmethod
     def _extract(
@@ -349,34 +349,36 @@ class Extractor:
         return
 
     @staticmethod
-    def _write_worker() -> None:
+    def _write_worker(directory: Optional[str] = None) -> None:
         """
         Writes a bash script called worker.sh, that is then again submitted to the lsf queue.
         This worker script, does the actual attention extraction on the lsf hpc cluster.
         """
+        file = "worker.sh" if not directory else f"{directory}/worker.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
         text += r"import extractor as e; e.Extractor._extract(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
         text += '"\n'
         text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
-        with open("worker.sh", "w") as f:
+        with open(file, "w") as f:
             f.write(text)
-        os.system("chmod u+x worker.sh")
+        os.system(f"chmod u+x {file}")
         return
 
     @staticmethod
-    def _write_cleaner() -> None:
+    def _write_cleaner(directory: Optional[str] = None) -> None:
         """
         Writes a basch script called cleaner.sh, that cleans all the mess created by the extractionprocess.
         it runs the Extractor._clean_up() function.
         """
+        file = "cleaner.sh" if not directory else f"{directory}/cleaner.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
         text += r"import extractor as e; e.Extractor._clean_up(model=${1}, sdf_index=int(${2}), scratch='${3}')"
         text += '"\n'
-        with open("worker.sh", "w") as f:
+        with open(file, "w") as f:
             f.write(text)
-        os.system("chmod u+x worker.sh")
+        os.system(f"chmod u+x {file}")
         return
 
     @staticmethod
@@ -421,7 +423,7 @@ class Extractor:
         return
 
     @staticmethod
-    def run_extraction_local() -> None:
+    def run_extraction_local(args: Sequence[str]) -> None:
         """
         Use this function if you want to run the feature extraction on your local machine.
         Depending on the number of files, this can take up to hours!!!
@@ -434,7 +436,7 @@ class Extractor:
             > -m:   path to the ml model .pt file
             > -s:   path to the .sdf file containing the molecules.
         """
-        files = Extractor._parse_filenames()
+        files = Extractor._parse_filenames(args)
         num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
         for file in range(num_files):
             Extractor._extract(
@@ -453,7 +455,7 @@ class Extractor:
         return
 
     @staticmethod
-    def run_extraction_lsf() -> None:
+    def run_extraction_lsf(args: Sequence[str]) -> None:
         """
         Use this function if you want to run the feature extraction on a lsf cluster.
 
@@ -466,7 +468,7 @@ class Extractor:
             > -s:   path to the .sdf file containing the molecules.
 
         """
-        files = Extractor._parse_filenames()
+        files = Extractor._parse_filenames(args)
         num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
         Extractor._write_worker()
         os.mkdir("logfiles")

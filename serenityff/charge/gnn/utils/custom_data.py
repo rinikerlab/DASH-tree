@@ -55,10 +55,12 @@ class CustomData(Data):
             raise TypeError("Attribute smiles has to be of type string")
 
     def _set_molecule_charge(self, value: int):
-        if isinstance(value, int) or value is None:
-            return super().__setattr__("molecule_charge", value)
+        if isinstance(value, int):
+            return super().__setattr__("molecule_charge", torch.tensor([value], dtype=int))
+        elif value is None:
+            return super().__setattr__("molecule_charge", None)
         elif isinstance(value, float) and value.is_integer():
-            return super().__setattr__("molecule_charge", int(value))
+            return super().__setattr__("molecule_charge", torch.tensor([int(value)], dtype=int))
         else:
             raise TypeError("Value for charge has to be an int!")
 

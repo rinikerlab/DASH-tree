@@ -144,4 +144,4 @@ def test_custom_data_attributes(CUSTOM_DATA):
     assert data.smiles == "C@@@"
     data.molecule_charge = 25
     data.molecule_charge = 25.0000
-    assert data.molecule_charge == 25
+    assert data.molecule_charge.item() == 25

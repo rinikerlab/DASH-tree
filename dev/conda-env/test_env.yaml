@@ -16,13 +16,9 @@ dependencies:
   - typing
   - pre-commit
   - m2r
-  - sphinx
-  - nbsphinx
-  - sphinx_rtd_theme
   - pandoc
   - conda-build
   # Science
-  - mpmath
   - pandas
   - pytables
   - numpy

@@ -65,7 +65,7 @@ class Explainer:
     def _explain_atom(
         self,
         node_idx: int,
-        data: CustomData,
+        graph: CustomData,
     ) -> Tuple[Tensor, Tensor]:
         """
         Explains a given node in an Graph object.
@@ -79,17 +79,17 @@ class Explainer:
         """
         node, edge = self._explain(
             node_idx=node_idx,
-            x=data.x,
-            edge_index=data.edge_index,
-            edge_attr=data.edge_attr,
-            batch=data.batch,
-            molecule_charge=data.molecule_charge,
+            x=graph.x,
+            edge_index=graph.edge_index,
+            edge_attr=graph.edge_attr,
+            batch=graph.batch,
+            molecule_charge=graph.molecule_charge,
         )
         return node, edge
 
     def explain_molecule(
         self,
-        data: CustomData,
+        graph: CustomData,
     ) -> Tuple[List[Tensor]]:
         """
         Explains all Atom Predictions in a Molecule
@@ -102,8 +102,8 @@ class Explainer:
         """
         nodes: List[Tensor] = []
         edges: List[Tensor] = []
-        for i in range(data.num_nodes):
-            node, edge = self._explain_atom(node_idx=i, data=data)
+        for i in range(graph.num_nodes):
+            node, edge = self._explain_atom(node_idx=i, graph=graph)
             nodes.append(node)
             edges.append(edge)
         return nodes, edges

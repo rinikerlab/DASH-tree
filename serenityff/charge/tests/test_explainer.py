@@ -56,15 +56,15 @@ def test_load(model, statedict) -> None:
 
 def test_explain_atom(explainer, graph) -> None:
     an, ae = explainer._explain(
-        0,
+        node_idx=0,
         x=graph.x,
         edge_index=graph.edge_index,
         edge_attr=graph.edge_attr,
         batch=graph.batch,
         molecule_charge=graph.molecule_charge,
     )
-    bn, be = explainer._explain_atom(0, graph)
-    cn, ce = explainer.explain_molecule(graph)
+    bn, be = explainer._explain_atom(node_idx=0, graph=graph)
+    cn, ce = explainer.explain_molecule(graph=graph)
     np.array_equal(an, bn)
     np.array_equal(ae, be)
     np.array_equal(an, cn[0])

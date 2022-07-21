@@ -1,7 +1,7 @@
 name: serenityff-charge-test
 channels:
-  - pytorch
   - pyg
+  - pytorch
   - conda-forge
   - defaults
 dependencies:

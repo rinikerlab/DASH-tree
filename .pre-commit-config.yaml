@@ -16,12 +16,13 @@ repos:
     hooks:
       - id: trailing-whitespace
         exclude:  docs
+      - id: check-added-large-files
+        args: ['--maxkb=10000']
       - id: end-of-file-fixer
         exclude: docs
       - id: check-yaml
         args: ["--unsafe"]
-      - id: check-added-large-files
-        exclude: docs
+
 
   - repo: https://github.com/psf/black
     rev: 22.3.0
@@ -43,8 +44,6 @@ repos:
           "--per-file-ignores=
             */__init__.py:F401,setup.py:E121
             versioneer.py:W605
-            */sphinx*/conf.py:E402
-            pygromos/analysis/free_energy_calculation.py:W605
             ",
           # ignore long comments (E501), as long lines are formatted by black
           # ignore Whitespace before ':' (E203)

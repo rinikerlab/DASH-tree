@@ -8,7 +8,7 @@ import pytest
 
 
 @pytest.fixture
-def NODE_FEATURES():
+def NODE_FEATURES() -> np.ndarray:
     return np.array(
         [
             [1, 0, 0],
@@ -22,27 +22,27 @@ def NODE_FEATURES():
 
 
 @pytest.fixture
-def EDGE_INDEX():
+def EDGE_INDEX() -> np.ndarray:
     return np.array([[0, 1, 2, 3, 4], [1, 2, 3, 4, 0]], dtype=np.int64)
 
 
 @pytest.fixture
-def EDGE_FEATURES():
+def EDGE_FEATURES() -> np.ndarray:
     return np.array([[0, 1], [1, 0], [0, 1], [1, 0], [0, 1]])
 
 
 @pytest.fixture
-def NODE_POS_FEATURES():
+def NODE_POS_FEATURES() -> np.ndarray:
     return np.array([[0, 1], [1, 0], [0, 1], [1, 0], [0, 1]])
 
 
 @pytest.fixture
-def CUSTOM_DATA():
+def CUSTOM_DATA() -> CustomData:
     return CustomData(smiles="abc", molecule_charge=-2)
 
 
 @pytest.fixture
-def GRAPH_DATA(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURES):
+def GRAPH_DATA(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURES) -> GraphData:
     return GraphData(
         node_features=NODE_FEATURES,
         edge_index=EDGE_INDEX,
@@ -52,7 +52,7 @@ def GRAPH_DATA(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURES):
 
 
 @pytest.fixture
-def CUSTOM_GRAPH_DATA(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURES):
+def CUSTOM_GRAPH_DATA(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURES) -> CustomGraphData:
     return CustomGraphData(
         node_features=NODE_FEATURES,
         edge_index=EDGE_INDEX,
@@ -61,7 +61,7 @@ def CUSTOM_GRAPH_DATA(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURE
     )
 
 
-def test_graph_data_basics(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURES):
+def test_graph_data_basics(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURES) -> None:
     # Trigger all __init__() failures.
     with pytest.raises(TypeError):
         GraphData(11, 2)
@@ -82,6 +82,7 @@ def test_graph_data_basics(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FE
     with pytest.raises(ValueError):
         GraphData(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, np.array([[1], [2], [3], [5]]))
     GraphData(NODE_FEATURES, EDGE_INDEX, EDGE_FEATURES, NODE_POS_FEATURES)
+    return
 
 
 def test_getters(
@@ -91,7 +92,7 @@ def test_getters(
     EDGE_INDEX,
     EDGE_FEATURES,
     NODE_POS_FEATURES,
-):
+) -> None:
     graph = GRAPH_DATA
     np.array_equal(graph.node_features, NODE_FEATURES)
     np.array_equal(graph.edge_index, EDGE_INDEX)
@@ -111,6 +112,7 @@ def test_getters(
     assert graph.num_node_features == 3
     assert graph.num_edges == 5
     assert graph.num_edge_features == 2
+    return
 
 
 def test_to_pyg(
@@ -119,16 +121,17 @@ def test_to_pyg(
     EDGE_INDEX,
     EDGE_FEATURES,
     NODE_POS_FEATURES,
-):
+) -> None:
     pyg_graph = CUSTOM_GRAPH_DATA.to_pyg_graph()
     assert isinstance(pyg_graph, CustomData)
     np.array_equal(pyg_graph.x.tolist(), NODE_FEATURES.tolist())
     np.array_equal(pyg_graph.edge_index.tolist(), EDGE_INDEX.tolist())
     np.array_equal(pyg_graph.edge_attr.tolist(), EDGE_FEATURES.tolist())
     np.array_equal(pyg_graph.pos.tolist(), NODE_POS_FEATURES.tolist())
+    return
 
 
-def test_custom_data_attributes(CUSTOM_DATA):
+def test_custom_data_attributes(CUSTOM_DATA) -> None:
     data = CUSTOM_DATA
     assert data.smiles == "abc"
     assert data.molecule_charge == -2
@@ -145,3 +148,4 @@ def test_custom_data_attributes(CUSTOM_DATA):
     data.molecule_charge = 25
     data.molecule_charge = 25.0000
     assert data.molecule_charge.item() == 25
+    return

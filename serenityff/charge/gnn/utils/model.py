@@ -1,6 +1,7 @@
 from torch_geometric.nn import AttentiveFP
 from torch.nn import functional as F
 from torch import nn
+from typing import Optional
 import torch
 
 
@@ -13,7 +14,7 @@ class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
         edge_dim: int,
         num_layers: int,
         num_timesteps: int,
-        dropout: float = 0.0,
+        dropout: Optional[float] = 0.0,
     ):
         super().__init__(
             in_channels,

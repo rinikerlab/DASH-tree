@@ -223,6 +223,7 @@ class Extractor:
             [at.GetPropsAsDict()["molFileAlias"] for at in mol.GetAtoms()],
             dtype=torch.float,
         )
+        graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)
         graph.molecule_charge = Chem.GetFormalCharge(mol)
         graph.smiles = Chem.MolToSmiles(mol, canonical=False)
         return graph
@@ -262,7 +263,6 @@ class Extractor:
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
         for mol_iterator, mol in enumerate(suppl):
             graph = Extractor._get_graph_from_mol(mol=mol)
-            graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)
             graph.to(device="cpu")
             prediction = self.model(
                 graph.x,

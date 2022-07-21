@@ -16,55 +16,59 @@ from serenityff.charge.gnn.utils.featurizer import (
     _construct_bond_feature,
     construct_hydrogen_bonding_info,
 )
+from serenityff.charge.utils import Molecule, Atom, Bond
+from typing import List, Sequence
 from rdkit import Chem
 import pytest
 import numpy as np
 
 
 @pytest.fixture
-def SMILES():
+def SMILES() -> str:
     return r"c1ccccc1C2CC/2=N\C(O)=C\F"
 
 
 @pytest.fixture
-def ALLOWABLE_SET():
+def ALLOWABLE_SET() -> List[str]:
     return ["C", "H", "O"]
 
 
 @pytest.fixture
-def EMPTY_SET():
+def EMPTY_SET() -> List:
     return []
 
 
 @pytest.fixture
-def MOL(SMILES):
+def MOL(SMILES) -> Molecule:
     return Chem.AddHs(Chem.MolFromSmiles(SMILES))
 
 
 @pytest.fixture
-def ATOMS(MOL):
+def ATOMS(MOL) -> Sequence[Atom]:
     return MOL.GetAtoms()
 
 
 @pytest.fixture
-def BONDS(MOL):
+def BONDS(MOL) -> Sequence[Bond]:
     return MOL.GetBonds()
 
 
-def test_initialization():
+def test_initialization() -> None:
     featurizer = Featurizer()
     featurizer = MolecularFeaturizer()
     featurizer = MolGraphConvFeaturizer()
     del featurizer
+    return
 
 
-def test_one_hot_encode(ATOMS, ALLOWABLE_SET):
+def test_one_hot_encode(ATOMS, ALLOWABLE_SET) -> None:
     assert one_hot_encode(ATOMS[0].GetSymbol(), ALLOWABLE_SET) == [1.0, 0.0, 0.0]
     assert one_hot_encode(ATOMS[0].GetSymbol(), ALLOWABLE_SET, include_unknown_set=True) == [1.0, 0.0, 0.0, 0.0]
     assert one_hot_encode(ATOMS[9].GetSymbol(), ALLOWABLE_SET, include_unknown_set=False) == [0.0, 0.0, 0.0]
+    return
 
 
-def test_hbond_constructor(MOL):
+def test_hbond_constructor(MOL) -> None:
     factory = _ChemicalFeaturesFactory.get_instance()
     from rdkit import RDConfig
     import os
@@ -74,21 +78,24 @@ def test_hbond_constructor(MOL):
     assert [(feat.GetAtomIds()[0], feat.GetFamily()) for feat in factory.GetFeaturesForMol(MOL)] == [
         (feat.GetAtomIds()[0], feat.GetFamily()) for feat in ownfactory.GetFeaturesForMol(MOL)
     ]
+    return
 
 
-def test_H_bonding(MOL, ATOMS):
+def test_H_bonding(MOL, ATOMS) -> None:
     hbond_infos = construct_hydrogen_bonding_info(MOL)
     assert get_atom_hydrogen_bonding_one_hot(ATOMS[11], hbond_infos) == [1.0, 1.0]
+    return
 
 
-def test_degree(ATOMS):
+def test_degree(ATOMS) -> None:
     assert np.where(get_atom_total_degree_one_hot(ATOMS[20])) == np.array([[1]])
     assert np.where(get_atom_total_degree_one_hot(ATOMS[11])) == np.array([[2]])
     assert np.where(get_atom_total_degree_one_hot(ATOMS[10])) == np.array([[3]])
     assert np.where(get_atom_total_degree_one_hot(ATOMS[7])) == np.array([[4]])
+    return
 
 
-def test_atom_feature(MOL, ATOMS, ALLOWABLE_SET):
+def test_atom_feature(MOL, ATOMS, ALLOWABLE_SET) -> None:
     hbond_infos = construct_hydrogen_bonding_info(MOL)
     feat = _construct_atom_feature(
         ATOMS[9],
@@ -97,16 +104,18 @@ def test_atom_feature(MOL, ATOMS, ALLOWABLE_SET):
         use_partial_charge=False,
     )
     np.testing.assert_array_equal(np.where(feat), np.array([[3, 6, 13]]))
+    return
 
 
-def test_bond_feat(BONDS):
+def test_bond_feat(BONDS) -> None:
     np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[0])), np.array([[3, 4, 5, 6]]))
     np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[6])), np.array([[0, 4, 6]]))
     np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[8])), np.array([[1, 5, 9]]))
     np.testing.assert_array_equal(np.where(_construct_bond_feature(BONDS[11])), np.array([[1, 5, 8]]))
+    return
 
 
-def test_feature_vector_generation(SMILES, MOL, ALLOWABLE_SET, EMPTY_SET):
+def test_feature_vector_generation(SMILES, MOL, ALLOWABLE_SET, EMPTY_SET) -> None:
     featurizer = MolGraphConvFeaturizer(use_edges=True)
 
     with pytest.raises(AttributeError):
@@ -125,3 +134,4 @@ def test_feature_vector_generation(SMILES, MOL, ALLOWABLE_SET, EMPTY_SET):
 
     np.testing.assert_array_equal(np.where(graph.edge_attr[22]), np.array([[1, 5, 8]]))
     np.testing.assert_array_equal(np.where(graph.edge_attr[23]), np.array([[1, 5, 8]]))
+    return

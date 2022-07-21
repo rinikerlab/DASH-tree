@@ -23,7 +23,7 @@ class Explainer:
             epochs (Optional[int], optional): _description_. Defaults to 2000.
             verbose (Optional[bool], optional): _description_. Defaults to False.
         """
-        self._gnn_explainer = GNNExplainer(
+        self.gnn_explainer = GNNExplainer(
             model=model,
             epochs=epochs,
             log=verbose,
@@ -83,7 +83,7 @@ class Explainer:
             data.edge_index,
             edge_attr=data.edge_attr,
             batch=data.batch,
-            charge=data.charge,
+            molecule_charge=data.molecule_charge,
         )
         return node, edge
 

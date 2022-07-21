@@ -56,9 +56,9 @@ def test_load(model, statedict) -> None:
 
 def test_explain_atom(explainer, graph) -> None:
     an, ae = explainer._explain(
-        node_idx=0,
-        x=graph.x,
-        edge_index=graph.edge_index,
+        0,
+        graph.x,
+        graph.edge_index,
         edge_attr=graph.edge_attr,
         batch=graph.batch,
         molecule_charge=graph.molecule_charge,

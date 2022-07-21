@@ -78,9 +78,9 @@ class Explainer:
             Tuple[Tensor, Tensor]: Node and Edge Attentions for node in graph.
         """
         node, edge = self._explain(
-            node_idx=node_idx,
-            x=graph.x,
-            edge_index=graph.edge_index,
+            node_idx,
+            graph.x,
+            graph.edge_index,
             edge_attr=graph.edge_attr,
             batch=graph.batch,
             molecule_charge=graph.molecule_charge,

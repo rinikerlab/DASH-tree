@@ -115,10 +115,10 @@ def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> Non
     return
 
 
-def test_arg_parser(args, sdf_path) -> None:
+def test_arg_parser(args, sdf_path, statedict_path) -> None:
     args = Extractor._parse_filenames(args)
     assert args.sdffile == sdf_path
-    assert args.mlmodel == "asdf.pt"
+    assert args.mlmodel == statedict_path
     return
 
 

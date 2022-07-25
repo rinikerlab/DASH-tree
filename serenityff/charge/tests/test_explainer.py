@@ -64,27 +64,26 @@ def test_explain_atom(explainer, graph) -> None:
         batch=graph.batch,
         molecule_charge=graph.molecule_charge,
     )
-
-    # an, ae = explainer._explain(
-    #     node_idx=0,
-    #     x=graph.x,
-    #     edge_index=graph.edge_index,
-    #     edge_attr=graph.edge_attr,
-    #     batch=graph.batch,
-    #     molecule_charge=graph.molecule_charge,
-    # )
-    # bn, be = explainer._explain_atom(node_idx=0, graph=graph)
-    # cn, ce = explainer.explain_molecule(graph=graph)
-    # np.array_equal(an, bn)
-    # np.array_equal(ae, be)
-    # np.array_equal(an, cn[0])
-    # np.array_equal(ae, ce[0])
-    # explainer.gnn_explainer.explain_node(
-    #     0,
-    #     graph.x,
-    #     graph.edge_index,
-    #     edge_attr=graph.edge_attr,
-    #     batch=graph.batch,
-    #     molecule_charge=graph.molecule_charge,
-    # )
+    an, ae = explainer._explain(
+        node_idx=0,
+        x=graph.x,
+        edge_index=graph.edge_index,
+        edge_attr=graph.edge_attr,
+        batch=graph.batch,
+        molecule_charge=graph.molecule_charge,
+    )
+    bn, be = explainer._explain_atom(node_idx=0, graph=graph)
+    cn, ce = explainer.explain_molecule(graph=graph)
+    np.array_equal(an, bn)
+    np.array_equal(ae, be)
+    np.array_equal(an, cn[0])
+    np.array_equal(ae, ce[0])
+    explainer.gnn_explainer.explain_node(
+        0,
+        graph.x,
+        graph.edge_index,
+        edge_attr=graph.edge_attr,
+        batch=graph.batch,
+        molecule_charge=graph.molecule_charge,
+    )
     return

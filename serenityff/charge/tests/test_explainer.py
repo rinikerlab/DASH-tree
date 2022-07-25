@@ -1,7 +1,7 @@
 from serenityff.charge.gnn.attention_extraction import Explainer
 from serenityff.charge.gnn.utils.model import ChargeCorrectedNodeWiseAttentiveFP
 from serenityff.charge.gnn.utils import CustomData
-from serenityff.charge.gnn import Extractor
+from serenityff.charge.gnn import get_graph_from_mol
 from torch_geometric.nn import GNNExplainer
 from typing import OrderedDict
 from rdkit import Chem
@@ -36,7 +36,7 @@ def explainer(model) -> Explainer:
 
 @pytest.fixture
 def graph() -> CustomData:
-    return Extractor._get_graph_from_mol(Chem.SDMolSupplier("serenityff/charge/data/example.sdf", removeHs=False)[0])
+    return get_graph_from_mol(Chem.SDMolSupplier("serenityff/charge/data/example.sdf", removeHs=False)[0])
 
 
 def test_getter_setter(explainer) -> None:
@@ -55,18 +55,36 @@ def test_load(model, statedict) -> None:
 
 
 def test_explain_atom(explainer, graph) -> None:
-    an, ae = explainer._explain(
-        0,
-        graph.x,
-        graph.edge_index,
+    print(graph.x.shape, graph.edge_index.shape, graph.edge_attr.shape)
+    explainer.gnn_explainer.explain_node(
+        node_idx=0,
+        x=graph.x,
+        edge_index=graph.edge_index,
         edge_attr=graph.edge_attr,
         batch=graph.batch,
         molecule_charge=graph.molecule_charge,
     )
-    bn, be = explainer._explain_atom(node_idx=0, graph=graph)
-    cn, ce = explainer.explain_molecule(graph=graph)
-    np.array_equal(an, bn)
-    np.array_equal(ae, be)
-    np.array_equal(an, cn[0])
-    np.array_equal(ae, ce[0])
+
+    # an, ae = explainer._explain(
+    #     node_idx=0,
+    #     x=graph.x,
+    #     edge_index=graph.edge_index,
+    #     edge_attr=graph.edge_attr,
+    #     batch=graph.batch,
+    #     molecule_charge=graph.molecule_charge,
+    # )
+    # bn, be = explainer._explain_atom(node_idx=0, graph=graph)
+    # cn, ce = explainer.explain_molecule(graph=graph)
+    # np.array_equal(an, bn)
+    # np.array_equal(ae, be)
+    # np.array_equal(an, cn[0])
+    # np.array_equal(ae, ce[0])
+    # explainer.gnn_explainer.explain_node(
+    #     0,
+    #     graph.x,
+    #     graph.edge_index,
+    #     edge_attr=graph.edge_attr,
+    #     batch=graph.batch,
+    #     molecule_charge=graph.molecule_charge,
+    # )
     return

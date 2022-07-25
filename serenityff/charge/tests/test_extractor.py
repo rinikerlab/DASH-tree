@@ -1,4 +1,8 @@
-from serenityff.charge.gnn import Extractor, ChargeCorrectedNodeWiseAttentiveFP
+from serenityff.charge.gnn import (
+    Extractor,
+    ChargeCorrectedNodeWiseAttentiveFP,
+    get_graph_from_mol,
+)
 from serenityff.charge.utils.rdkit_typing import Molecule
 from typing import OrderedDict, Sequence
 from rdkit import Chem
@@ -94,9 +98,10 @@ def test_job_id(cwd) -> None:
 
 
 def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> None:
-    graph = Extractor._get_graph_from_mol(mol=mol)
+    graph = get_graph_from_mol(mol=mol)
     assert graph.num_nodes == num_atoms
     assert graph.num_edges == num_bonds * 2
+    assert graph.edge_attr.shape == torch.Size([84, 11])
     assert graph.molecule_charge.item() == formal_charge
     assert graph.smiles == smiles
     assert graph.x.shape[0] == num_atoms

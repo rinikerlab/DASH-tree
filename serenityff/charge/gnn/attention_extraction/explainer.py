@@ -1,8 +1,48 @@
 from typing import List, Optional, Tuple
 from torch_geometric.nn import GNNExplainer
-from torch import Tensor
+from torch_geometric.utils import k_hop_subgraph
+from torch import Tensor, is_tensor
 from torch.nn import Module
 from serenityff.charge.gnn.utils import CustomData
+
+
+class FixedGNNExplainer(GNNExplainer):
+    def subgraph(self, node_idx: int, x: Tensor, edge_index: Tensor, **kwargs):
+        """
+        Overloading the torch_geometric.nn.models.Explainer function. It is
+        already fixed in the github with commit 7526c8b but not yet updated
+        in the version distributed by conda. This will be unecessary from
+        the next pyg conda release on.
+
+        Args:
+            node_idx (int): The node to explain.
+            x (Tensor): The node feature matrix.
+            edge_index (Tensor): The edge indices.
+            **kwargs (optional): Additional arguments passed to the GNN module.
+
+        Returns:
+            (Tensor, Tensor, LongTensor, LongTensor, LongTensor, dict)
+        """
+        num_nodes, num_edges = x.size(0), edge_index.size(1)
+        subset, edge_index, mapping, edge_mask = k_hop_subgraph(
+            node_idx,
+            self.num_hops,
+            edge_index,
+            relabel_nodes=True,
+            num_nodes=num_nodes,
+            flow=self._flow(),
+        )
+
+        x = x[subset]
+        kwargs_new = {}
+        for key, value in kwargs.items():
+            if is_tensor(value) and value.size(0) == num_nodes:
+                kwargs_new[key] = value[subset]
+            elif is_tensor(value) and value.size(0) == num_edges:
+                kwargs_new[key] = value[edge_mask]
+            else:
+                kwargs_new[key] = value  # TODO: this is not in PGExplainer
+        return x, edge_index, mapping, edge_mask, subset, kwargs_new
 
 
 class Explainer:
@@ -23,7 +63,7 @@ class Explainer:
             epochs (Optional[int], optional): _description_. Defaults to 2000.
             verbose (Optional[bool], optional): _description_. Defaults to False.
         """
-        self.gnn_explainer = GNNExplainer(
+        self.gnn_explainer = FixedGNNExplainer(
             model=model,
             epochs=epochs,
             log=verbose,
@@ -33,12 +73,12 @@ class Explainer:
         self.gnnverbose = verbose
 
     @property
-    def gnn_explainer(self) -> GNNExplainer:
+    def gnn_explainer(self) -> FixedGNNExplainer:
         return self._gnn_explainer
 
     @gnn_explainer.setter
     def gnn_explainer(self, value) -> None:
-        if not isinstance(value, GNNExplainer):
+        if not isinstance(value, FixedGNNExplainer):
             raise TypeError("explainer needs to be of type GNNExplainer")
         else:
             self._gnn_explainer = value

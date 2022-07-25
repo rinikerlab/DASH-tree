@@ -30,7 +30,7 @@ class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
         self._adalin2 = nn.Linear(hidden_channels, hidden_channels)
         self._adalin3 = nn.Linear(hidden_channels, out_channels)
 
-    def forward(self, x, edge_index, edge_attr, batch, molecule_charge):
+    def forward(self, x, edge_index, batch, edge_attr, molecule_charge):
         # Atom Embedding:
         x = F.leaky_relu_(self.lin1(x))
         h = F.elu_(self.atom_convs[0](x, edge_index, edge_attr))

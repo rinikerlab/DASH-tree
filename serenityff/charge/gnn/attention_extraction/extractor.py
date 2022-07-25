@@ -1,10 +1,9 @@
-from typing import Optional, List, Union, Tuple, Sequence
+from typing import Optional, Union, Tuple, Sequence
 from rdkit import Chem
 from math import ceil
 from shutil import make_archive
 from .explainer import Explainer
-from serenityff.charge.utils import Molecule
-from serenityff.charge.gnn.utils import CustomData, MolGraphConvFeaturizer
+from serenityff.charge.gnn.utils import get_graph_from_mol
 from tqdm import tqdm
 
 
@@ -177,57 +176,6 @@ class Extractor:
             csv_iterator += mol.GetNumAtoms()
         return is_healthy
 
-    @staticmethod
-    def _get_graph_from_mol(
-        mol: Molecule,
-        allowable_set: Optional[List[str]] = [
-            "C",
-            "N",
-            "O",
-            "F",
-            "P",
-            "S",
-            "Cl",
-            "Br",
-            "I",
-            "H",
-        ],
-    ) -> CustomData:
-        """
-        Creates an pytorch_geometric Graph from an rdkit molecule.
-        The graph contains following features:
-            > Node Features:
-                > Atom Type (as specified in allowable set)
-                > formal_charge
-                > hybridization
-                > H acceptor_donor
-                > aromaticity
-                > degree
-            > Edge Features:
-                > Bond type
-                > is in ring
-                > is conjugated
-                > stereo
-        Args:
-            mol (Molecule): rdkit molecule
-            allowable_set (Optional[List[str]], optional): List of atoms to be \
-                included in the feature vector. Defaults to \
-                    [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
-
-        Returns:
-            CustomData: pytorch geometric Data with .smiles as an extra attribute.
-        """
-        grapher = MolGraphConvFeaturizer(use_edges=True)
-        graph = grapher._featurize(mol, allowable_set).to_pyg_graph()
-        graph.y = torch.tensor(
-            [at.GetPropsAsDict()["molFileAlias"] for at in mol.GetAtoms()],
-            dtype=torch.float,
-        )
-        graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)
-        graph.molecule_charge = Chem.GetFormalCharge(mol)
-        graph.smiles = Chem.MolToSmiles(mol, canonical=False)
-        return graph
-
     def _initialize_expaliner(
         self,
         model: torch.nn.Module,
@@ -262,14 +210,14 @@ class Extractor:
         dataframe = []
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
         for mol_iterator, mol in enumerate(suppl):
-            graph = Extractor._get_graph_from_mol(mol=mol)
+            graph = get_graph_from_mol(mol=mol)
             graph.to(device="cpu")
             prediction = self.model(
                 graph.x,
                 graph.edge_index,
-                graph.edge_attr,
-                graph.batch,
-                graph.charge,
+                edge_attr=graph.edge_attr,
+                batch=graph.batch,
+                molecule_charge=graph.molecule_charge,
             )
             node_attentions, edge_attentions = self.explainer.explain_molecule(graph)
             for atom_iterator, atom in enumerate(mol.GetAtoms()):

@@ -3,7 +3,8 @@ from serenityff.charge.gnn import (
     ChargeCorrectedNodeWiseAttentiveFP,
     get_graph_from_mol,
 )
-from serenityff.charge.utils.rdkit_typing import Molecule
+from serenityff.charge.utils import Molecule, command_to_shell_file
+from serenityff.charge.utils.io import _split_sdf, _get_job_id
 from typing import OrderedDict, Sequence
 from rdkit import Chem
 import os
@@ -76,7 +77,7 @@ def args(sdf_path) -> Sequence[str]:
 
 
 def test_split_sdf(cwd, sdf_path) -> None:
-    Extractor._split_sdf(
+    _split_sdf(
         sdf_file=sdf_path,
         directory=f"{cwd}/sdftest",
     )
@@ -91,7 +92,7 @@ def test_split_sdf(cwd, sdf_path) -> None:
 def test_job_id(cwd) -> None:
     with open(f"{cwd}/id.txt", "w") as f:
         f.write("sdcep ab ein \n sdf <12345> saoeb <sd>")
-    id = Extractor._get_job_id(file=f"{cwd}/id.txt")
+    id = _get_job_id(file=f"{cwd}/id.txt")
     assert id == "12345"
     os.remove(f"{cwd}/id.txt")
     return
@@ -131,7 +132,7 @@ def test_explainer_initialization(extractor, model) -> None:
 
 
 def test_command_to_shell_file(cwd) -> None:
-    Extractor._command_to_shell_file("echo Hello World", f"{cwd}/test.sh")
+    command_to_shell_file("echo Hello World", f"{cwd}/test.sh")
     os.path.isfile(f"{cwd}/test.sh")
     with open(f"{cwd}/test.sh", "r") as f:
         text = f.read()

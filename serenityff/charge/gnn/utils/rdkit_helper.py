@@ -9,10 +9,6 @@ def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[M
     return Chem.SDMolSupplier(sdf_file, removeHs=removeHs)
 
 
-def pyg_graph_from_mol(mol: Molecule):
-    pass
-
-
 def get_graph_from_mol(
     mol: Molecule,
     allowable_set: Optional[List[str]] = [

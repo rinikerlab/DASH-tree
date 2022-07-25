@@ -3,6 +3,7 @@ from serenityff.charge.gnn import (
     ChargeCorrectedNodeWiseAttentiveFP,
     get_graph_from_mol,
 )
+from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
 from serenityff.charge.utils import Molecule, command_to_shell_file
 from serenityff.charge.utils.io import _split_sdf, _get_job_id
 from typing import OrderedDict, Sequence
@@ -101,6 +102,12 @@ def test_job_id(cwd) -> None:
     assert id == "12345"
     os.remove(f"{cwd}/id.txt")
     return
+
+
+def test_mol_from_sdf(sdf_path):
+    mol = mols_from_sdf(sdf_file=sdf_path)[0]
+    assert mol.GetNumBonds() == 42
+    assert mol.GetNumAtoms() == 41
 
 
 def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> None:

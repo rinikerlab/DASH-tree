@@ -53,8 +53,13 @@ def smiles(mol) -> str:
 
 
 @pytest.fixture
-def statedict() -> OrderedDict:
-    return torch.load("serenityff/charge/data/example_state_dict.pt")
+def statedict_path() -> str:
+    return "serenityff/charge/data/example_state_dict.pt"
+
+
+@pytest.fixture
+def statedict(statedict_path) -> OrderedDict:
+    return torch.load(statedict_path)
 
 
 @pytest.fixture
@@ -72,8 +77,8 @@ def model(statedict) -> ChargeCorrectedNodeWiseAttentiveFP:
 
 
 @pytest.fixture
-def args(sdf_path) -> Sequence[str]:
-    return ["-s", sdf_path, "-m", "asdf.pt"]
+def args(sdf_path, statedict_path) -> Sequence[str]:
+    return ["-s", sdf_path, "-m", statedict_path]
 
 
 def test_split_sdf(cwd, sdf_path) -> None:
@@ -140,6 +145,8 @@ def test_command_to_shell_file(cwd) -> None:
     os.remove(f"{cwd}/test.sh")
 
 
-# def test_run_extraction_local(extractor, args) -> None:
-#     extractor.run_extraction_local(args)
-#     return
+def test_run_extraction_local(extractor, args, cwd) -> None:
+    extractor.run_extraction_local(args, working_dir=cwd, epochs=1)
+    os.remove(f"{cwd}/sdf_data.zip")
+    os.remove(f"{cwd}/combined.csv")
+    return

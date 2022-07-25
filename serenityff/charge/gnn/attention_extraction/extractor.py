@@ -1,12 +1,21 @@
 from typing import Optional, Union, Sequence
 from rdkit import Chem
-from shutil import make_archive
+from shutil import make_archive, rmtree
 from .explainer import Explainer
-from serenityff.charge.gnn.utils import get_graph_from_mol
-from serenityff.charge.utils.io import _get_job_id, _split_sdf, _summarize_csvs
+from serenityff.charge.gnn.utils import (
+    get_graph_from_mol,
+    ChargeCorrectedNodeWiseAttentiveFP,
+)
+from serenityff.charge.utils.io import (
+    _get_job_id,
+    _split_sdf,
+    _summarize_csvs,
+    command_to_shell_file,
+)
 from tqdm import tqdm
 import argparse
 import torch
+import socket
 import os
 import pandas as pd
 import numpy as np
@@ -27,7 +36,20 @@ class Extractor:
     @model.setter
     def model(self, value: Union[str, torch.nn.Module]) -> None:
         if isinstance(value, str):
-            self._model = torch.load(value, map_location=torch.device("cpu"))
+            load = torch.load(value, map_location=torch.device("cpu"))
+            try:
+                load.state_dict()
+                self._model = value
+            except AttributeError:
+                self._model = ChargeCorrectedNodeWiseAttentiveFP(
+                    in_channels=25,
+                    hidden_channels=200,
+                    out_channels=1,
+                    edge_dim=11,
+                    num_layers=5,
+                    num_timesteps=2,
+                )
+                self._model.load_state_dict(load)
         else:
             self._model = value
         return
@@ -155,7 +177,7 @@ class Extractor:
             ],
         )
         df.to_csv(
-            path_or_buf=f'{scratch}/{sdf_file.split(".")[0].split("/")[1] + ".csv"}',
+            path_or_buf=f'{scratch}/{sdf_file.split(".")[0].split("/")[-1] + ".csv"}',
             index=False,
         )
         return
@@ -184,6 +206,7 @@ class Extractor:
         sdf_index: int,
         scratch: str,
         epochs: Optional[int] = 2000,
+        working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
     ) -> None:
         """
@@ -197,9 +220,11 @@ class Extractor:
             epochs (Optional[int], optional): number of epochs per prediction. Defaults to 2000.
             verbose (Optional[bool], optional): wheter to show tqdm update bar. Defaults to False.
         """
+        sdf_file = f"sdf_data/{sdf_index}.sdf" if not working_dir else f"{working_dir.rstrip('/')}/{sdf_index}.sdf"
+        print(scratch, working_dir)
         extractor = Extractor()
         extractor._initialize_expaliner(model=model, epochs=epochs, verbose=verbose)
-        extractor._explain_molecules_in_sdf(sdf_file=f"sdf_data/{sdf_index}.sdf", scratch=scratch)
+        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, scratch=scratch)
         return
 
     @staticmethod
@@ -236,7 +261,13 @@ class Extractor:
         return
 
     @staticmethod
-    def _clean_up(num_files: int, batch_size: int, sdf_file: str, local: Optional[bool] = False) -> None:
+    def _clean_up(
+        num_files: int,
+        batch_size: int,
+        sdf_file: str,
+        local: Optional[bool] = False,
+        working_dir: Optional[str] = None,
+    ) -> None:
         """
         Cleans up all the messy files after the feature extraction worked flawlessly.
 
@@ -250,20 +281,32 @@ class Extractor:
         Raises:
             Exception: Thrown if the generated.csv file is not matching the original .sdf file
         """
-        _summarize_csvs(num_files=num_files, batch_size=batch_size)
-        if Extractor._check_final_csv(sdf_file=sdf_file, csv_file="combined.csv"):
+        combined_filename = "combined" if not working_dir else f"{working_dir.rstrip('/')}/combined"
+        _summarize_csvs(
+            num_files=num_files,
+            batch_size=batch_size,
+            directory=working_dir + "/sdf_data",
+            combined_filename=combined_filename,
+        )
+        if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):
             if not local:
                 os.remove("id.txt")
-            make_archive("sdf_data.zip", "zip", "sdf_data")
-            os.remove("worker.sh")
-            os.remove("run_cleanup.sh")
-            os.remove("run_extraction.sh")
+                os.remove("worker.sh")
+                os.remove("run_cleanup.sh")
+                os.remove("run_extraction.sh")
+                os.remove("cleaner.sh")
+            make_archive(working_dir + "/sdf_data", "zip", working_dir + "/sdf_data")
+            rmtree(working_dir + "/sdf_data/")
         else:
             raise Exception
         return
 
     @staticmethod
-    def run_extraction_local(args: Sequence[str]) -> None:
+    def run_extraction_local(
+        args: Sequence[str],
+        working_dir: Optional[str] = None,
+        epochs: Optional[int] = 2000,
+    ) -> None:
         """
         Use this function if you want to run the feature extraction on your local machine.
         Depending on the number of files, this can take up to hours!!!
@@ -277,20 +320,23 @@ class Extractor:
             > -s:   path to the .sdf file containing the molecules.
         """
         files = Extractor._parse_filenames(args)
-        num_files, batch_size = _split_sdf(sdf_file=files.sdffile)
+        scratch = "sdf_data" if not working_dir else f"{working_dir.rstrip('/')}/sdf_data"
+        num_files, batch_size = _split_sdf(sdf_file=files.sdffile, directory=scratch)
         for file in range(num_files):
             Extractor._extract(
                 model=files.mlmodel,
                 sdf_index=file + 1,
-                scratch="sdf_data",
+                working_dir=scratch,
+                scratch=scratch,
                 verbose=True,
-                epochs=10,
+                epochs=epochs,
             )
         Extractor._clean_up(
             num_files=num_files,
             batch_size=batch_size,
             sdf_file=files.sdffile,
             local=True,
+            working_dir=working_dir,
         )
         return
 
@@ -313,10 +359,24 @@ class Extractor:
         Extractor._write_worker()
         os.mkdir("logfiles")
         lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 12:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
-        Extractor._command_to_shell_file(lsf_command, "run_extraction.sh")
+        command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
         id = _get_job_id("id.txt")
         lsf_command = f"bsub -n 1 -J 'clean_up' -o logfiles/cleanup.out -e logfiles/cleanup.err -w 'done({id})' './cleaner.sh {num_files} {batch_size} {files.sdffile}'"
         os.system(lsf_command)
-        Extractor._command_to_shell_file(lsf_command, "run_cleanup.sh")
+        command_to_shell_file(lsf_command, "run_cleanup.sh")
         return
+
+
+def main() -> None:
+    args = Extractor._parse_filenames()
+    host = socket.gethostname()
+    if "eu" in host:
+        Extractor.run_extraction_lsf(args=args)
+    else:
+        Extractor.run_extraction_local(args=args, epochs=2000)
+    return
+
+
+if __name__ == "__main__":
+    main()

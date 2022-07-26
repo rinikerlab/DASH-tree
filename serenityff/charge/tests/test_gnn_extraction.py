@@ -1,11 +1,15 @@
 import os
 from typing import OrderedDict, Sequence
 
+import numpy as np
 import pytest
 import torch
 from rdkit import Chem
+from torch_geometric.nn import GNNExplainer
 
 from serenityff.charge.gnn import ChargeCorrectedNodeWiseAttentiveFP, Extractor, get_graph_from_mol
+from serenityff.charge.gnn.attention_extraction import Explainer
+from serenityff.charge.gnn.utils import CustomData
 from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
 from serenityff.charge.utils import Molecule, command_to_shell_file
 from serenityff.charge.utils.io import _get_job_id, _split_sdf
@@ -78,6 +82,66 @@ def model(statedict) -> ChargeCorrectedNodeWiseAttentiveFP:
 @pytest.fixture
 def args(sdf_path, statedict_path) -> Sequence[str]:
     return ["-s", sdf_path, "-m", statedict_path]
+
+
+@pytest.fixture
+def explainer(model) -> Explainer:
+    return Explainer(model=model, epochs=1, verbose=True)
+
+
+@pytest.fixture
+def graph() -> CustomData:
+    return get_graph_from_mol(Chem.SDMolSupplier("serenityff/charge/data/example.sdf", removeHs=False)[0])
+
+
+def test_getter_setter(explainer) -> None:
+    with pytest.raises(TypeError):
+        explainer.gnn_explainer = "asdf"
+    assert isinstance(explainer.gnn_explainer, GNNExplainer)
+    assert explainer.gnnverbose
+    explainer.gnnverbose = False
+    assert not explainer.gnnverbose
+    return
+
+
+def test_load(model, statedict) -> None:
+    np.array_equal(model.state_dict(), statedict)
+    return
+
+
+def test_explain_atom(explainer, graph) -> None:
+    print(graph.x.shape, graph.edge_index.shape, graph.edge_attr.shape)
+    explainer.gnn_explainer.explain_node(
+        node_idx=0,
+        x=graph.x,
+        edge_index=graph.edge_index,
+        edge_attr=graph.edge_attr,
+        batch=graph.batch,
+        molecule_charge=graph.molecule_charge,
+    )
+    an, ae = explainer._explain(
+        node_idx=0,
+        x=graph.x,
+        edge_index=graph.edge_index,
+        edge_attr=graph.edge_attr,
+        batch=graph.batch,
+        molecule_charge=graph.molecule_charge,
+    )
+    bn, be = explainer._explain_atom(node_idx=0, graph=graph)
+    cn, ce = explainer.explain_molecule(graph=graph)
+    np.array_equal(an, bn)
+    np.array_equal(ae, be)
+    np.array_equal(an, cn[0])
+    np.array_equal(ae, ce[0])
+    explainer.gnn_explainer.explain_node(
+        0,
+        graph.x,
+        graph.edge_index,
+        edge_attr=graph.edge_attr,
+        batch=graph.batch,
+        molecule_charge=graph.molecule_charge,
+    )
+    return
 
 
 def test_split_sdf(cwd, sdf_path) -> None:

@@ -1,4 +1,6 @@
 import pytest
+
+# from numpy import array_equal
 from rdkit import Chem
 from torch import device
 from torch.nn.functional import mse_loss
@@ -11,6 +13,11 @@ from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, Cust
 @pytest.fixture
 def sdf_path() -> str:
     return "serenityff/charge/data/example.sdf"
+
+
+@pytest.fixture
+def graphs_path() -> str:
+    return "serenityff/charge/data/example_graphs.pt"
 
 
 @pytest.fixture
@@ -59,7 +66,7 @@ def test_init_and_forward_model(model, graph) -> None:
     return
 
 
-def test_initialize_trainer(trainer, model, optimizer, lossfunction, sdf_path) -> None:
+def test_initialize_trainer(trainer, model, optimizer, lossfunction, sdf_path, graphs_path) -> None:
     # test init
     assert trainer.device == device("cpu")
 
@@ -83,3 +90,16 @@ def test_initialize_trainer(trainer, model, optimizer, lossfunction, sdf_path) -
     # test graph creation
     trainer.gen_graphs_from_sdf(sdf_path)
     assert len(trainer.data) == 3
+    a = trainer.data
+    trainer.load_graphs_from_pt(graphs_path)
+    assert len(trainer.data) == 3
+    b = trainer.data
+
+    for x, y in zip(a, b):
+        assert x.x == y.x
+        assert x.batch == y.batch
+        assert x.edge_index == y.edge_index
+        assert x.edge_attr == y.edge_attr
+        assert x.y == y.y
+        assert x.smiles == y.smiles
+        assert x.molecule_charge == y.molecule_charge

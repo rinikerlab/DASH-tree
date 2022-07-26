@@ -1,3 +1,4 @@
+from math import ceil
 from typing import List, Optional, Sequence, Tuple
 
 import torch
@@ -17,8 +18,8 @@ def get_split_numbers(N: int, train_ratio: Optional[float] = 0.8) -> List[float]
     Returns:
         List[float]: numbers to split the data set.
     """
-    train = int(N * train_ratio)
-    test = int(N - train)
+    train = ceil(N * train_ratio)
+    test = N - train
     while train + test != N:
         if train + test > N:
             test -= 1
@@ -28,7 +29,9 @@ def get_split_numbers(N: int, train_ratio: Optional[float] = 0.8) -> List[float]
 
 
 def split_data_random(
-    data_list: List[CustomData], train_ratio: Optional[float] = 0.8, seed: Optional[int] = 13
+    data_list: List[CustomData],
+    train_ratio: Optional[float] = 0.8,
+    seed: Optional[int] = 13,
 ) -> Tuple[torch.utils.data.Subset]:
     """
     Splits a List of CustomData in two Subsets, having a ration of train_ratio.
@@ -69,12 +72,10 @@ def split_data_Kfold(data_list: Sequence[CustomData], n_splits: int, split: int)
     """
     kfold_split = KFold(n_splits, shuffle=True, random_state=5)
     train_idx_list, val_idx_list = [], []
-    for split, (train_idx, val_idx) in enumerate(kfold_split.split(data_list)):
+    for train_idx, val_idx in kfold_split.split(data_list):
         train_idx_list.append(train_idx)
         val_idx_list.append(val_idx)
-    val_idx_split = val_idx_list[split]
-    train_idx_split = train_idx_list[split]
-    test_data = [data_list[molecule_idx] for molecule_idx in val_idx_split]
-    train_data = [data_list[molecule_idx] for molecule_idx in train_idx_split]
+    test_data = [data_list[molecule_idx] for molecule_idx in val_idx_list[split]]
+    train_data = [data_list[molecule_idx] for molecule_idx in train_idx_list[split]]
 
     return train_data, test_data

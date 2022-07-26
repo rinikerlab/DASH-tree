@@ -1,8 +1,10 @@
-from rdkit import Chem
-from typing import Optional, Sequence, List
-from serenityff.charge.utils import Molecule
-from serenityff.charge.gnn.utils import CustomData, MolGraphConvFeaturizer
+from typing import List, Optional, Sequence
+
 import torch
+from rdkit import Chem
+
+from serenityff.charge.gnn.utils import CustomData, MolGraphConvFeaturizer
+from serenityff.charge.utils import Molecule
 
 
 def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[Molecule]:

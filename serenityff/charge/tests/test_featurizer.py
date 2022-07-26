@@ -4,23 +4,25 @@ Unit and regression dev for the serenityff package.
 Test featurizer in utils.py
 """
 
+from typing import List, Sequence
+
+import numpy as np
+import pytest
+from rdkit import Chem
+
 from serenityff.charge.gnn import MolGraphConvFeaturizer
 from serenityff.charge.gnn.utils.featurizer import (
     Featurizer,
     MolecularFeaturizer,
-    one_hot_encode,
-    get_atom_hydrogen_bonding_one_hot,
-    get_atom_total_degree_one_hot,
     _ChemicalFeaturesFactory,
     _construct_atom_feature,
     _construct_bond_feature,
     construct_hydrogen_bonding_info,
+    get_atom_hydrogen_bonding_one_hot,
+    get_atom_total_degree_one_hot,
+    one_hot_encode,
 )
-from serenityff.charge.utils import Molecule, Atom, Bond
-from typing import List, Sequence
-from rdkit import Chem
-import pytest
-import numpy as np
+from serenityff.charge.utils import Atom, Bond, Molecule
 
 
 @pytest.fixture
@@ -70,8 +72,9 @@ def test_one_hot_encode(ATOMS, ALLOWABLE_SET) -> None:
 
 def test_hbond_constructor(MOL) -> None:
     factory = _ChemicalFeaturesFactory.get_instance()
-    from rdkit import RDConfig
     import os
+
+    from rdkit import RDConfig
 
     ownfactory = Chem.ChemicalFeatures.BuildFeatureFactory(os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef"))
 

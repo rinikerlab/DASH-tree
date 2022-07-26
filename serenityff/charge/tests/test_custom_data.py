@@ -1,10 +1,7 @@
-from serenityff.charge.gnn.utils.custom_data import (
-    CustomData,
-    GraphData,
-    CustomGraphData,
-)
 import numpy as np
 import pytest
+
+from serenityff.charge.gnn.utils.custom_data import CustomData, CustomGraphData, GraphData
 
 
 @pytest.fixture

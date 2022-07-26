@@ -3,9 +3,11 @@ Unit and regression dev for the serenityff package.
 
 Test most fundamental functionality of package
 """
-import serenityff
-import pytest
 import sys
+
+import pytest
+
+import serenityff
 
 
 def test_test() -> None:

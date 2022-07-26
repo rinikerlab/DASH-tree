@@ -1,8 +1,9 @@
-from torch_geometric.data import Data
-from torch_geometric.typing import OptTensor
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
+
 import numpy as np
 import torch
+from torch_geometric.data import Data
+from torch_geometric.typing import OptTensor
 
 
 class CustomData(Data):

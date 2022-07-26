@@ -1,8 +1,7 @@
 from .custom_data import CustomData
 from .featurizer import MolGraphConvFeaturizer
 from .model import ChargeCorrectedNodeWiseAttentiveFP
-from .rdkit_helper import get_graph_from_mol
-from .rdkit_helper import mols_from_sdf
+from .rdkit_helper import get_graph_from_mol, mols_from_sdf
 
 __all__ = [
     CustomData,

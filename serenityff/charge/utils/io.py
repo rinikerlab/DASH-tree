@@ -1,9 +1,10 @@
-from rdkit import Chem
 import os
-from typing import Optional, Tuple
 from math import ceil
+from typing import Optional, Tuple
+
+from pandas import concat, read_csv
+from rdkit import Chem
 from tqdm import tqdm
-from pandas import read_csv, concat
 
 
 def command_to_shell_file(command: str, filename: str) -> None:

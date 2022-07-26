@@ -1,5 +1,7 @@
 from typing import Optional, Sequence
+
 import torch
+
 from serenityff.charge.gnn.utils import CustomData
 
 

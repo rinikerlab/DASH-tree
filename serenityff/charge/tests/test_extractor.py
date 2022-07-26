@@ -1,16 +1,14 @@
-from serenityff.charge.gnn import (
-    Extractor,
-    ChargeCorrectedNodeWiseAttentiveFP,
-    get_graph_from_mol,
-)
-from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
-from serenityff.charge.utils import Molecule, command_to_shell_file
-from serenityff.charge.utils.io import _split_sdf, _get_job_id
-from typing import OrderedDict, Sequence
-from rdkit import Chem
 import os
+from typing import OrderedDict, Sequence
+
 import pytest
 import torch
+from rdkit import Chem
+
+from serenityff.charge.gnn import ChargeCorrectedNodeWiseAttentiveFP, Extractor, get_graph_from_mol
+from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
+from serenityff.charge.utils import Molecule, command_to_shell_file
+from serenityff.charge.utils.io import _get_job_id, _split_sdf
 
 
 @pytest.fixture

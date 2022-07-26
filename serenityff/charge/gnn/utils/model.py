@@ -1,8 +1,9 @@
-from torch_geometric.nn import AttentiveFP
-from torch.nn import functional as F
-from torch import nn
 from typing import Optional
+
 import torch
+from torch import nn
+from torch.nn import functional as F
+from torch_geometric.nn import AttentiveFP
 
 
 class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):

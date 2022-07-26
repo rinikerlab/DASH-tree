@@ -1,24 +1,19 @@
-from typing import Optional, Union, Sequence
-from rdkit import Chem
-from shutil import make_archive, rmtree
-from .explainer import Explainer
-from serenityff.charge.gnn.utils import (
-    get_graph_from_mol,
-    ChargeCorrectedNodeWiseAttentiveFP,
-)
-from serenityff.charge.utils.io import (
-    _get_job_id,
-    _split_sdf,
-    _summarize_csvs,
-    command_to_shell_file,
-)
-from tqdm import tqdm
 import argparse
-import torch
-import socket
 import os
-import pandas as pd
+import socket
+from shutil import make_archive, rmtree
+from typing import Optional, Sequence, Union
+
 import numpy as np
+import pandas as pd
+import torch
+from rdkit import Chem
+from tqdm import tqdm
+
+from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
+from serenityff.charge.utils.io import _get_job_id, _split_sdf, _summarize_csvs, command_to_shell_file
+
+from .explainer import Explainer
 
 
 class Extractor:

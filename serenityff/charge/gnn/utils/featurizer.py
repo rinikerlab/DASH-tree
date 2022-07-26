@@ -5,13 +5,16 @@ https://github.com/deepchem/deepchem/tree/master/deepchem/feat
 """
 
 
-from typing import Iterable, Any, List, Tuple, Union
-from .custom_data import CustomGraphData
-from serenityff.charge.utils import Molecule, Atom, Bond
-import numpy as np
 import inspect
 import os
+from typing import Any, Iterable, List, Tuple, Union
+
+import numpy as np
 from rdkit.Chem.rdPartialCharges import ComputeGasteigerCharges
+
+from serenityff.charge.utils import Atom, Bond, Molecule
+
+from .custom_data import CustomGraphData
 
 DEFAULT_HYBRIDIZATION_SET = ["SP", "SP2", "SP3"]
 DEFAULT_TOTAL_DEGREE_SET = [0, 1, 2, 3, 4, 5]
@@ -192,8 +195,7 @@ class MolecularFeaturizer(Featurizer):
         """
         try:
             from rdkit import Chem
-            from rdkit.Chem import rdmolfiles
-            from rdkit.Chem import rdmolops
+            from rdkit.Chem import rdmolfiles, rdmolops
             from rdkit.Chem.rdchem import Mol
         except ModuleNotFoundError:
             raise ImportError("This class requires RDKit to be installed.")

@@ -1,13 +1,15 @@
-from serenityff.charge.gnn.attention_extraction import Explainer
-from serenityff.charge.gnn.utils.model import ChargeCorrectedNodeWiseAttentiveFP
-from serenityff.charge.gnn.utils import CustomData
-from serenityff.charge.gnn import get_graph_from_mol
-from torch_geometric.nn import GNNExplainer
 from typing import OrderedDict
-from rdkit import Chem
+
 import numpy as np
 import pytest
 import torch
+from rdkit import Chem
+from torch_geometric.nn import GNNExplainer
+
+from serenityff.charge.gnn import get_graph_from_mol
+from serenityff.charge.gnn.attention_extraction import Explainer
+from serenityff.charge.gnn.utils import CustomData
+from serenityff.charge.gnn.utils.model import ChargeCorrectedNodeWiseAttentiveFP
 
 
 @pytest.fixture

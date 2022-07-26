@@ -1,8 +1,10 @@
 from typing import List, Optional, Tuple
-from torch_geometric.nn import GNNExplainer
-from torch_geometric.utils import k_hop_subgraph
+
 from torch import Tensor, is_tensor
 from torch.nn import Module
+from torch_geometric.nn import GNNExplainer
+from torch_geometric.utils import k_hop_subgraph
+
 from serenityff.charge.gnn.utils import CustomData
 
 

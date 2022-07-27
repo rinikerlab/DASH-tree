@@ -18,6 +18,7 @@ from serenityff.charge.gnn.utils import (
     split_data_Kfold,
     split_data_random,
 )
+from serenityff.charge.utils import Molecule, NotInitializedError
 
 
 class Trainer:
@@ -195,9 +196,30 @@ class Trainer:
         else:
             raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
+    def _save_training_data(self, loss: Sequence[float], eval_loss: Sequence[float], batch_size: int) -> None:
+        np.save(arr=loss, file=f"{self.save_prefix}_train_loss")
+        np.save(arr=eval_loss, file=f"{self.save_prefix}_eval_loss")
+
+    def _is_initialized(self):
+        try:
+            self.train_data
+            self.eval_data
+            self.optimizer
+            self.loss_function
+            return True
+        except AttributeError:
+            raise NotInitializedError(
+                "Make sure, train data has been prepared and that an optimizer\
+                     and a loss_function have been set in this instance!"
+            )
+
+    def _on_gpu(self) -> bool:
+        return self.device == torch.device("cuda")
+
     def validate_model(self) -> List[float]:
+        if self._is_initialized():
+            pass
         self.model.eval()
-        on_gpu = self.device == torch.device("cuda")
         val_loss = []
         loader = DataLoader(self.eval_data, batch_size=32)
         for data in loader:
@@ -212,30 +234,17 @@ class Trainer:
             loss = self.loss_function(prediction, data.y)
             val_loss.append(np.mean(loss.to("cpu").tolist()))
             del data, prediction, loss
-            if on_gpu:
+            if self._on_gpu:
                 torch.cuda.empty_cache()
         return np.mean(val_loss)
-
-    def _save_training_data(self, loss: Sequence[float], eval_loss: Sequence[float], batch_size: int) -> None:
-        np.save(arr=loss, file=f"{self.save_prefix}_train_loss")
-        np.save(arr=eval_loss, file=f"{self.save_prefix}_eval_loss")
 
     def train_model(
         self,
         epochs: int,
         batch_size: Optional[int] = 64,
     ):
-        try:
-            self.train_data
-            self.eval_data
-            self.optimizer
-            self.loss_function
-        except AttributeError as e:
-            raise e(
-                "Make sure, train data has been prepared and that an optimizer\
-                     and a loss_function have been set in this instance!"
-            )
-        on_gpu = self.device == torch.device("cuda")
+        if self._is_initialized():
+            pass
         losses = []
         eval_losses = []
 
@@ -260,10 +269,48 @@ class Trainer:
 
                 losses.append(np.mean(loss.to("cpu").tolist()))
                 train_loss.append(np.mean(loss.to("cpu").tolist()))
-                if on_gpu:
+                del data, prediction, loss
+                if self._on_gpu:
                     torch.cuda.empty_cache()
             eval_losses.append(self.validate_model())
 
         self._save_training_data(losses, eval_losses, batch_size)
         torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")
         return losses, eval_losses
+
+    def predict(
+        self,
+        data: Union[Molecule, Sequence[Molecule], CustomData, Sequence[CustomData]],
+    ) -> Sequence[Sequence[float]]:
+        try:
+            self.model
+        except AttributeError:
+            raise NotInitializedError("load a model before predicting!")
+        if not isinstance(data, list):
+            data = [data]
+        if isinstance(data[0], Molecule):
+            graphs = [get_graph_from_mol(mol) for mol in data]
+        elif isinstance(data[0], CustomData):
+            graphs = data
+        else:
+            raise TypeError("Input has to be a Sequence or single rdkit molecule or a CustomData graph.")
+        loader = DataLoader(graphs, batch_size=1, shuffle=False)
+        predictions = []
+        self.model.eval()
+        for data in loader:
+            data.to(self.device)
+            predictions.append(
+                self.model(
+                    data.x,
+                    data.edge_index,
+                    data.batch,
+                    data.edge_attr,
+                    data.molecule_charge,
+                )
+                .to("cpu")
+                .tolist()
+            )
+            del data
+            if self._on_gpu:
+                torch.cuda.empty_cache()
+        return predictions

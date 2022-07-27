@@ -9,16 +9,9 @@ import torch
 from rdkit import Chem
 from tqdm import tqdm
 
-from serenityff.charge.gnn.utils import (
-    ChargeCorrectedNodeWiseAttentiveFP,
-    get_graph_from_mol,
-)
-from serenityff.charge.utils.io import (
-    _get_job_id,
-    _split_sdf,
-    _summarize_csvs,
-    command_to_shell_file,
-)
+from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
+from serenityff.charge.utils.exceptions import ExtractionError
+from serenityff.charge.utils.io import _get_job_id, _split_sdf, _summarize_csvs, command_to_shell_file
 
 from .explainer import Explainer
 
@@ -318,7 +311,10 @@ class Extractor:
             make_archive(working_dir + "/sdf_data", "zip", working_dir + "/sdf_data")
             rmtree(working_dir + "/sdf_data/")
         else:
-            raise Exception
+            raise ExtractionError(
+                "Oops Something went wrong with the extraction. \
+                Make sure, all paths provided are correct."
+            )
         return
 
     @staticmethod

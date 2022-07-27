@@ -22,8 +22,13 @@ def pt_path() -> str:
 
 
 @pytest.fixture
-def graph(sdf_path) -> CustomData:
-    return get_graph_from_mol(Chem.SDMolSupplier(sdf_path, removeHs=False)[0])
+def molecule(sdf_path) -> CustomData:
+    return Chem.SDMolSupplier(sdf_path, removeHs=False)[0]
+
+
+@pytest.fixture
+def graph(molecule) -> CustomData:
+    return get_graph_from_mol(molecule)
 
 
 @pytest.fixture
@@ -110,6 +115,7 @@ def test_initialize_trainer(trainer, sdf_path, pt_path) -> None:
         assert array_equal(x.y, y.y)
         assert x.smiles == y.smiles
         assert x.molecule_charge == y.molecule_charge
+    return
 
 
 def test_prepare_train_data(trainer, sdf_path):
@@ -134,3 +140,16 @@ def test_train_model(trainer, sdf_path) -> None:
     ]:
         assert os.path.isfile(file)
         os.remove(file)
+    return
+
+
+def test_predictioin(trainer, graph, molecule) -> None:
+    a = trainer.predict(graph)
+    b = trainer.predict(molecule)
+    c = trainer.predict([graph])
+    d = trainer.predict([molecule])
+    with pytest.raises(TypeError):
+        trainer.predict(2)
+    array_equal(a, b)
+    array_equal(a, c)
+    array_equal(a, d)

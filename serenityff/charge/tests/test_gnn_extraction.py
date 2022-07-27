@@ -148,7 +148,7 @@ def test_explain_atom(explainer, graph) -> None:
     return
 
 
-def test_extractor_properties(extractor, model, statedict_path, statedict) -> None:
+def test_extractor_properties(extractor, model, statedict_path, statedict, explainer) -> None:
     extractor.model = model
     extractor.model = statedict_path
     extractor.model = statedict
@@ -156,6 +156,9 @@ def test_extractor_properties(extractor, model, statedict_path, statedict) -> No
         extractor.model = 2
     with pytest.raises(FileNotFoundError):
         extractor.model = "faulty.py"
+    with pytest.raises(TypeError):
+        extractor.explainer = 2
+    extractor.explainer = explainer
 
 
 def test_split_sdf(cwd, sdf_path) -> None:

@@ -7,7 +7,11 @@ import torch
 from rdkit import Chem
 from torch_geometric.nn import GNNExplainer
 
-from serenityff.charge.gnn import ChargeCorrectedNodeWiseAttentiveFP, Extractor, get_graph_from_mol
+from serenityff.charge.gnn import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    Extractor,
+    get_graph_from_mol,
+)
 from serenityff.charge.gnn.attention_extraction import Explainer
 from serenityff.charge.gnn.utils import CustomData
 from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
@@ -142,6 +146,16 @@ def test_explain_atom(explainer, graph) -> None:
         molecule_charge=graph.molecule_charge,
     )
     return
+
+
+def test_extractor_properties(extractor, model, statedict_path, statedict) -> None:
+    extractor.model = model
+    extractor.model = statedict_path
+    extractor.model = statedict
+    with pytest.raises(TypeError):
+        extractor.model = 2
+    with pytest.raises(FileNotFoundError):
+        extractor.model = "faulty.py"
 
 
 def test_split_sdf(cwd, sdf_path) -> None:

@@ -2,7 +2,7 @@ import argparse
 import os
 import socket
 from shutil import make_archive, rmtree
-from typing import Optional, Sequence, Union
+from typing import Optional, OrderedDict, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -10,8 +10,16 @@ import torch
 from rdkit import Chem
 from tqdm import tqdm
 
-from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
-from serenityff.charge.utils.io import _get_job_id, _split_sdf, _summarize_csvs, command_to_shell_file
+from serenityff.charge.gnn.utils import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    get_graph_from_mol,
+)
+from serenityff.charge.utils.io import (
+    _get_job_id,
+    _split_sdf,
+    _summarize_csvs,
+    command_to_shell_file,
+)
 
 from .explainer import Explainer
 
@@ -35,6 +43,7 @@ class Extractor:
             try:
                 load.state_dict()
                 self._model = value
+                return
             except AttributeError:
                 self._model = ChargeCorrectedNodeWiseAttentiveFP(
                     in_channels=25,
@@ -45,9 +54,26 @@ class Extractor:
                     num_timesteps=2,
                 )
                 self._model.load_state_dict(load)
-        else:
+                return
+        elif isinstance(value, torch.nn.Module):
             self._model = value
-        return
+            return
+        elif isinstance(value, OrderedDict):
+            self._model = ChargeCorrectedNodeWiseAttentiveFP(
+                in_channels=25,
+                hidden_channels=200,
+                out_channels=1,
+                edge_dim=11,
+                num_layers=5,
+                num_timesteps=2,
+            )
+            self._model.load_state_dict(value)
+            return
+        else:
+            raise TypeError(
+                "model has to be either of type torch.nn.Module, OrderedDict, \
+                    or the str path to a .pt model holding either of the aforementioned types."
+            )
 
     @property
     def explainer(self) -> Explainer:

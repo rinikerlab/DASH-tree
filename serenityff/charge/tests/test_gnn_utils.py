@@ -305,3 +305,22 @@ def test_custom_data_attributes(custom_data) -> None:
     data.molecule_charge = 25.0000
     assert data.molecule_charge.item() == 25
     return
+
+
+def test_base_featurizer():
+    featurizer = Featurizer()
+    datapoints = [1]
+    assert str(featurizer) == "Featurizer"
+    assert repr(featurizer) == "Featurizer[]"
+    with pytest.raises(NotImplementedError):
+        featurizer._featurize(datapoints)
+    features = featurizer.featurize(datapoints, log_every_n=1)
+    assert np.array_equal(features, np.asarray([np.array([])]))
+
+
+def test_molecular_featurizer(mol, smiles):
+    featurizer = MolecularFeaturizer()
+    featurizer.featurize([mol])
+    featurizer.featurize(mol)
+    featurizer.featurize([smiles])
+    featurizer.featurize(smiles)

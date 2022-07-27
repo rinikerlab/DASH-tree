@@ -1,6 +1,5 @@
 import argparse
 import os
-import socket
 from shutil import make_archive, rmtree
 from typing import Optional, OrderedDict, Sequence, Union
 
@@ -387,17 +386,3 @@ class Extractor:
         os.system(lsf_command)
         command_to_shell_file(lsf_command, "run_cleanup.sh")
         return
-
-
-def main() -> None:
-    args = Extractor._parse_filenames()
-    host = socket.gethostname()
-    if "eu" in host:
-        Extractor.run_extraction_lsf(args=args)
-    else:
-        Extractor.run_extraction_local(args=args, epochs=2000)
-    return
-
-
-if __name__ == "__main__":
-    main()

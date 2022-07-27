@@ -89,6 +89,11 @@ def test_initialize_trainer(trainer, sdf_path, pt_path) -> None:
     with pytest.raises(TypeError):
         trainer.device = 2
 
+    trainer.save_prefix = os.path.dirname(__file__)
+    trainer.save_prefix = os.path.dirname(__file__) + "/test/testprefix"
+    assert os.path.isdir(os.path.dirname(__file__) + "/test")
+    os.rmdir(os.path.dirname(__file__) + "/test")
+
     # test graph creation
     trainer.gen_graphs_from_sdf(sdf_path)
     assert len(trainer.data) == 3

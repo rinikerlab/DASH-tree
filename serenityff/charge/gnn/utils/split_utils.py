@@ -20,11 +20,6 @@ def get_split_numbers(N: int, train_ratio: Optional[float] = 0.8) -> List[float]
     """
     train = ceil(N * train_ratio)
     test = N - train
-    while train + test != N:
-        if train + test > N:
-            test -= 1
-        else:
-            train += 1
     return [train, test]
 
 

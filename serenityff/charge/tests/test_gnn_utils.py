@@ -111,6 +111,9 @@ def node_features() -> np.ndarray:
 
 
 def test_get_split_numbers() -> None:
+    assert [1, 0] == get_split_numbers(N=1, train_ratio=0.5)
+    assert [1, 1] == get_split_numbers(N=2, train_ratio=0.5)
+    assert [2, 1] == get_split_numbers(N=3, train_ratio=0.5)
     assert [50, 50] == get_split_numbers(N=100, train_ratio=0.5)
     assert [51, 50] == get_split_numbers(N=101, train_ratio=0.5)
     assert [51, 51] == get_split_numbers(N=102, train_ratio=0.5)

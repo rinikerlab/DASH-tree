@@ -1,6 +1,7 @@
-import pytest
+import os
 
-# from numpy import array_equal
+import pytest
+from numpy import array_equal
 from rdkit import Chem
 from torch import device
 from torch.nn.functional import mse_loss
@@ -16,7 +17,7 @@ def sdf_path() -> str:
 
 
 @pytest.fixture
-def graphs_path() -> str:
+def pt_path() -> str:
     return "serenityff/charge/data/example_graphs.pt"
 
 
@@ -43,13 +44,18 @@ def optimizer(model):
 
 
 @pytest.fixture
-def trainer():
-    return Trainer()
+def lossfunction():
+    return mse_loss
 
 
 @pytest.fixture
-def lossfunction():
-    return mse_loss
+def trainer(model, lossfunction, optimizer):
+    trainer = Trainer()
+    trainer.model = model
+    trainer.optimizer = optimizer
+    trainer.loss_function = lossfunction
+    trainer.save_prefix = os.path.dirname(__file__) + "/test"
+    return trainer
 
 
 def test_init_and_forward_model(model, graph) -> None:
@@ -66,23 +72,21 @@ def test_init_and_forward_model(model, graph) -> None:
     return
 
 
-def test_initialize_trainer(trainer, model, optimizer, lossfunction, sdf_path, graphs_path) -> None:
+def test_initialize_trainer(trainer, sdf_path, pt_path) -> None:
     # test init
     assert trainer.device == device("cpu")
+    trainer.device = "CPU"
 
     # test setters
-    trainer.model = model
     with pytest.raises(TypeError):
         trainer.model = "faulty"
-    trainer.optimizer = optimizer
     with pytest.raises(TypeError):
         trainer.optimizer = "faulty"
-    trainer.loss_function = lossfunction
     with pytest.raises(TypeError):
         trainer.loss_function = "faulty"
     trainer.device = "cuda"
     with pytest.raises(ValueError):
-        trainer.device = "faulty type"
+        trainer.device = "faulty value"
     with pytest.raises(TypeError):
         trainer.device = 2
     assert trainer.device == device("cuda")
@@ -91,15 +95,38 @@ def test_initialize_trainer(trainer, model, optimizer, lossfunction, sdf_path, g
     trainer.gen_graphs_from_sdf(sdf_path)
     assert len(trainer.data) == 3
     a = trainer.data
-    trainer.load_graphs_from_pt(graphs_path)
+    trainer.load_graphs_from_pt(pt_path)
     assert len(trainer.data) == 3
     b = trainer.data
 
     for x, y in zip(a, b):
-        assert x.x == y.x
-        assert x.batch == y.batch
-        assert x.edge_index == y.edge_index
-        assert x.edge_attr == y.edge_attr
-        assert x.y == y.y
+        assert array_equal(x.x, y.x)
+        assert array_equal(x.batch, y.batch)
+        assert array_equal(x.edge_index, y.edge_index)
+        assert array_equal(x.edge_attr, y.edge_attr)
+        assert array_equal(x.y, y.y)
         assert x.smiles == y.smiles
         assert x.molecule_charge == y.molecule_charge
+
+
+def test_prepare_train_data(trainer, sdf_path):
+    with pytest.warns(Warning):
+        trainer.prepare_training_data()
+    trainer.gen_graphs_from_sdf(sdf_path)
+    trainer.prepare_training_data()
+    trainer.prepare_training_data(split_type="kfold", n_splits=3)
+    with pytest.raises(NotImplementedError):
+        trainer.prepare_training_data(split_type="faulty")
+    return
+
+
+def test_train_model(trainer, sdf_path) -> None:
+    trainer.gen_graphs_from_sdf(sdf_path)
+    trainer.prepare_training_data()
+    trainer.train_model(epochs=1)
+    for file in [
+        f"{trainer.save_prefix}_train_loss.dat.npy",
+        f"{trainer.save_prefix}_eval_loss.dat.npy",
+    ]:
+        assert os.path.isfile(file)
+        os.remove(file)

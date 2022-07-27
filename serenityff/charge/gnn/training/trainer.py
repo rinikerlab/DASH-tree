@@ -217,8 +217,8 @@ class Trainer:
         return np.mean(val_loss)
 
     def _save_training_data(self, loss: Sequence[float], eval_loss: Sequence[float], batch_size: int) -> None:
-        np.save(arr=loss, file=f"{self.save_prefix}_train_loss.dat")
-        np.save(arr=eval_loss, file=f"{self.save_prefix}_eval_loss.dat")
+        np.save(arr=loss, file=f"{self.save_prefix}_train_loss")
+        np.save(arr=eval_loss, file=f"{self.save_prefix}_eval_loss")
 
     def train_model(
         self,
@@ -265,4 +265,5 @@ class Trainer:
             eval_losses.append(self.validate_model())
 
         self._save_training_data(losses, eval_losses, batch_size)
+        torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")
         return losses, eval_losses

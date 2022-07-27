@@ -123,8 +123,9 @@ def test_train_model(trainer, sdf_path) -> None:
     trainer.prepare_training_data()
     trainer.train_model(epochs=1)
     for file in [
-        f"{trainer.save_prefix}_train_loss.dat.npy",
-        f"{trainer.save_prefix}_eval_loss.dat.npy",
+        f"{trainer.save_prefix}_train_loss.npy",
+        f"{trainer.save_prefix}_eval_loss.npy",
+        f"{trainer.save_prefix}_model_sd.pt",
     ]:
         assert os.path.isfile(file)
         os.remove(file)

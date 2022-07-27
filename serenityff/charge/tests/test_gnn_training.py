@@ -84,12 +84,10 @@ def test_initialize_trainer(trainer, sdf_path, pt_path) -> None:
         trainer.optimizer = "faulty"
     with pytest.raises(TypeError):
         trainer.loss_function = "faulty"
-    trainer.device = "cuda"
     with pytest.raises(ValueError):
         trainer.device = "faulty value"
     with pytest.raises(TypeError):
         trainer.device = 2
-    assert trainer.device == device("cuda")
 
     # test graph creation
     trainer.gen_graphs_from_sdf(sdf_path)

@@ -227,7 +227,7 @@ def test_command_to_shell_file(cwd) -> None:
     os.remove(f"{cwd}/test.sh")
 
 
-def test_run_extraction_local(extractor, args, cwd) -> None:
+def test_run_extraction_local(extractor, args, cwd, sdf_path) -> None:
     extractor.run_extraction_local(args, working_dir=cwd, epochs=1)
     os.remove(f"{cwd}/sdf_data.zip")
     os.remove(f"{cwd}/combined.csv")

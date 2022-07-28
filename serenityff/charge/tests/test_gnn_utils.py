@@ -5,7 +5,11 @@ import pytest
 from rdkit import Chem
 
 from serenityff.charge.gnn import MolGraphConvFeaturizer
-from serenityff.charge.gnn.utils.custom_data import CustomData, CustomGraphData, GraphData
+from serenityff.charge.gnn.utils.custom_data import (
+    CustomData,
+    CustomGraphData,
+    GraphData,
+)
 from serenityff.charge.gnn.utils.featurizer import (
     Featurizer,
     MolecularFeaturizer,
@@ -17,8 +21,18 @@ from serenityff.charge.gnn.utils.featurizer import (
     get_atom_total_degree_one_hot,
     one_hot_encode,
 )
-from serenityff.charge.gnn.utils.split_utils import get_split_numbers, split_data_Kfold, split_data_random
-from serenityff.charge.utils import Atom, Bond, Molecule
+from serenityff.charge.gnn.utils.split_utils import (
+    get_split_numbers,
+    split_data_Kfold,
+    split_data_random,
+)
+from serenityff.charge.utils import (
+    Atom,
+    Bond,
+    ExtractionError,
+    Molecule,
+    NotInitializedError,
+)
 
 
 @pytest.fixture
@@ -327,3 +341,10 @@ def test_molecular_featurizer(mol, smiles):
     featurizer.featurize(mol)
     featurizer.featurize([smiles])
     featurizer.featurize(smiles)
+
+
+def test_exceptions():
+    with pytest.raises(NotInitializedError):
+        raise NotInitializedError("msg")
+    with pytest.raises(ExtractionError):
+        raise ExtractionError("msg")

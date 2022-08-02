@@ -9,6 +9,7 @@ from torch.optim import Adam
 
 from serenityff.charge.gnn import Trainer
 from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, CustomData, get_graph_from_mol
+from serenityff.charge.utils import NotInitializedError
 
 
 @pytest.fixture
@@ -96,7 +97,10 @@ def test_initialize_trainer(trainer, sdf_path, pt_path) -> None:
 
     trainer.save_prefix = os.path.dirname(__file__)
     trainer.save_prefix = os.path.dirname(__file__) + "/test/testprefix"
+    trainer.save_model_statedict()
+    assert os.path.isfile(os.path.dirname(__file__) + "/test/testprefix_model.pt")
     assert os.path.isdir(os.path.dirname(__file__) + "/test")
+    os.remove(os.path.dirname(__file__) + "/test/testprefix_model.pt")
     os.rmdir(os.path.dirname(__file__) + "/test")
 
     # test graph creation
@@ -144,6 +148,7 @@ def test_train_model(trainer, sdf_path) -> None:
 
 
 def test_prediction(trainer, graph, molecule) -> None:
+
     a = trainer.predict(graph)
     b = trainer.predict(molecule)
     c = trainer.predict([graph])
@@ -153,3 +158,17 @@ def test_prediction(trainer, graph, molecule) -> None:
     array_equal(a, b)
     array_equal(a, c)
     array_equal(a, d)
+
+    delattr(trainer, "_model")
+
+    with pytest.raises(NotInitializedError):
+        trainer.predict(graph)
+    with pytest.raises(NotInitializedError):
+        trainer.save_model_statedict()
+    with pytest.raises(NotInitializedError):
+        trainer.train_model(1)
+    return
+
+
+def test_on_gpu(trainer):
+    assert not trainer._on_gpu()

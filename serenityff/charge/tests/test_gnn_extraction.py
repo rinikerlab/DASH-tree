@@ -31,6 +31,11 @@ def sdf_path() -> str:
 
 
 @pytest.fixture
+def model_path() -> str:
+    return "serenityff/charge/data/example_model.pt"
+
+
+@pytest.fixture
 def mol(sdf_path) -> Molecule:
     return Chem.SDMolSupplier(sdf_path, removeHs=False)[0]
 
@@ -144,8 +149,9 @@ def test_explain_atom(explainer, graph) -> None:
     return
 
 
-def test_extractor_properties(extractor, model, statedict_path, statedict, explainer) -> None:
+def test_extractor_properties(extractor, model, model_path, statedict_path, statedict, explainer) -> None:
     extractor.model = model
+    extractor.model = model_path
     extractor.model = statedict_path
     extractor.model = statedict
     with pytest.raises(TypeError):

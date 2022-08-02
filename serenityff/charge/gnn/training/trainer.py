@@ -420,4 +420,9 @@ class Trainer:
         Args:
             name (Optional[str], optional): name the model to be saved under. Defaults to "_model.pt".
         """
+        try:
+            self.model
+        except AttributeError:
+            raise NotInitializedError("No model initialized, cannot save nothing ;^)")
         torch.save(self.model.state_dict(), f"{self.save_prefix}{name}")
+        return

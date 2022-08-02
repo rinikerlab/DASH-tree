@@ -8,6 +8,16 @@ from serenityff.charge.utils import Molecule
 
 
 def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[Molecule]:
+    """
+    Returns a Sequence of rdkit molecules read in from a .sdf file.
+
+    Args:
+        sdf_file (str): path to .sdf file.
+        removeHs (Optional[bool], optional): Wheter to remove Hydrogens. Defaults to False.
+
+    Returns:
+        Sequence[Molecule]: rdkit mols.
+    """
     return Chem.SDMolSupplier(sdf_file, removeHs=removeHs)
 
 

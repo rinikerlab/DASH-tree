@@ -49,13 +49,32 @@ class CustomData(Data):
         else:
             return super().__setattr__(key, value)
 
-    def _set_smiles(self, value: str):
+    def _set_smiles(self, value: str) -> None:
+        """
+        Workaround for the ._store that is implemented in pytorch geometrics data.
+
+        Args:
+            value (str): smiles to be set
+
+        Raises:
+            TypeError: if value not convertable to string.
+        """
         if isinstance(value, str) or value is None:
             return super().__setattr__("smiles", value)
         else:
             raise TypeError("Attribute smiles has to be of type string")
 
-    def _set_molecule_charge(self, value: int):
+    def _set_molecule_charge(self, value: int) -> None:
+        """
+        Workaround for the ._store that is implemented in pytorch geometrics data.
+
+        Args:
+            value (int): molecule charge to be set.
+
+        Raises:
+            TypeError: if value not integer.
+
+        """
         if isinstance(value, int):
             return super().__setattr__("molecule_charge", torch.tensor([value], dtype=int))
         elif value is None:

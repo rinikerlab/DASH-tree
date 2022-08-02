@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List, Optional, Sequence, Union
+from typing import Callable, List, Optional, Sequence, Tuple, Union
 from warnings import warn
 
 try:
@@ -9,7 +9,7 @@ except ImportError:
 
 import numpy as np
 import torch
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 
 from serenityff.charge.gnn.utils import (
     CustomData,
@@ -127,7 +127,7 @@ class Trainer:
 
     def _update_device(self) -> None:
         """
-        Moves model and data to the device specified in self.device.
+        Moves model to the device specified in self.device.
         """
         try:
             self.model.to(self.device)
@@ -151,15 +151,35 @@ class Trainer:
             "H",
         ],
     ) -> None:
+        """
+        Creates pytorch geometric graphs using the custom featurizer for all molecules in a sdf file. 'MolFileAlias' in the sdf is taken
+        as the ground truth value, generate your input sdf file accordingly.
+
+        Args:
+            sdf_file (str): path to .sdf file holding the molecules.
+            allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
+        """
         mols = mols_from_sdf(sdf_file)
         self.data = [get_graph_from_mol(mol, allowable_set) for mol in mols]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:
+        """
+        Loads pytorch geometric graphs from a .pt file.
+
+        Args:
+            pt_file (str): path to .pt file.
+        """
         self.data = torch.load(pt_file)
         return
 
     def _random_split(self, train_ratio: Optional[float] = 0.8) -> None:
+        """
+        performs a random split on self.data.
+
+        Args:
+            train_ratio (Optional[float], optional): train/eval set ratio. Defaults to 0.8.
+        """
         self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio)
         return
 
@@ -168,6 +188,13 @@ class Trainer:
         n_splits: Optional[int] = 5,
         split: Optional[int] = 0,
     ) -> None:
+        """
+        performs a kfold split on self.data
+
+        Args:
+            n_splits (Optional[int], optional): number of splits. Defaults to 5.
+            split (Optional[int], optional): which split you want.. Defaults to 0.
+        """
         self.train_data, self.eval_data = split_data_Kfold(
             data_list=self.data,
             n_splits=n_splits,
@@ -182,6 +209,18 @@ class Trainer:
         n_splits: Optional[int] = 5,
         split: Optional[int] = 0,
     ) -> None:
+        """
+        Splits training data into test data and eval data. At the moment, random and kfold split are implemented.
+
+        Args:
+            split_type (Optional[Literal[&quot;random&quot;, &quot;kfold&quot;]], optional): What split type you want. Defaults to "random".
+            train_ratio (Optional[float], optional): ratio of train/eval in random split. Defaults to 0.8.
+            n_splits (Optional[int], optional): number of splits in the kfold split. Defaults to 5.
+            split (Optional[int], optional): which of the n_splits you want. Defaults to 0.
+
+        Raises:
+            NotImplementedError: If a splittype other than 'random' or 'kfold' is chosen.
+        """
         try:
             self.data
         except AttributeError:
@@ -196,11 +235,31 @@ class Trainer:
         else:
             raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
-    def _save_training_data(self, loss: Sequence[float], eval_loss: Sequence[float], batch_size: int) -> None:
+    def _save_training_data(
+        self,
+        loss: Sequence[float],
+        eval_loss: Sequence[float],
+    ) -> None:
+        """
+        Saves losses to numpy files.
+
+        Args:
+            loss (Sequence[float]): train loss.
+            eval_loss (Sequence[float]): eval loss.
+        """
         np.save(arr=loss, file=f"{self.save_prefix}_train_loss")
         np.save(arr=eval_loss, file=f"{self.save_prefix}_eval_loss")
 
-    def _is_initialized(self):
+    def _is_initialized(self) -> bool:
+        """
+        Checks if this instance of trainer has all attributes needed for it to train a model.
+
+        Raises:
+            NotInitializedError: Thrown if something is yet missing.
+
+        Returns:
+            bool: True if everything is initialized.
+        """
         try:
             self.train_data
             self.eval_data
@@ -214,14 +273,26 @@ class Trainer:
             )
 
     def _on_gpu(self) -> bool:
+        """
+        Returns true if self.device is equal to torch.device('cuda')
+
+        Returns:
+            bool: true if on cuda
+        """
         return self.device == torch.device("cuda")
 
     def validate_model(self) -> List[float]:
+        """
+        predicts values for self.eval_data and returns the losses.
+
+        Returns:
+            List[float]: eval losses for self.eval_data.
+        """
         if self._is_initialized():
             pass
         self.model.eval()
         val_loss = []
-        loader = DataLoader(self.eval_data, batch_size=32)
+        loader = DataLoader(self.eval_data, batch_size=64)
         for data in loader:
             data.to(self.device)
             prediction = self.model(
@@ -231,7 +302,7 @@ class Trainer:
                 data.edge_attr,
                 data.molecule_charge,
             )
-            loss = self.loss_function(prediction, data.y)
+            loss = self.loss_function(torch.squeeze(prediction), data.y)
             val_loss.append(np.mean(loss.to("cpu").tolist()))
             del data, prediction, loss
             if self._on_gpu:
@@ -242,15 +313,30 @@ class Trainer:
         self,
         epochs: int,
         batch_size: Optional[int] = 64,
-    ):
-        if self._is_initialized():
-            pass
-        losses = []
+    ) -> Tuple[Sequence[float]]:
+        """
+        Trains self.model if everything is initialized.
+
+        Args:
+            epochs (int): epochs to be trained.
+            batch_size (Optional[int], optional): batchsize to be used in training. Defaults to 64.
+        Raises:
+            NotInitializedError: Raised in first two lines.
+
+        Returns:
+            Tuple[Sequence[float]]: train and eval losses.
+
+        """
+        try:
+            self._is_initialized()
+        except NotInitializedError as e:
+            raise e
+        train_loss = []
         eval_losses = []
 
         for _ in range(epochs):
             self.model.train()
-            train_loss = []
+            losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
 
             for data in loader:
@@ -263,25 +349,37 @@ class Trainer:
                     data.edge_attr,
                     data.molecule_charge,
                 )
-                loss = self.loss_function(prediction, data.y)
+                loss = self.loss_function(torch.squeeze(prediction), data.y)
                 loss.backward()
                 self.optimizer.step()
-
-                losses.append(np.mean(loss.to("cpu").tolist()))
-                train_loss.append(np.mean(loss.to("cpu").tolist()))
+                losses.append(loss.to("cpu").tolist())
                 del data, prediction, loss
                 if self._on_gpu:
                     torch.cuda.empty_cache()
             eval_losses.append(self.validate_model())
+            train_loss.append(np.mean(losses))
 
-        self._save_training_data(losses, eval_losses, batch_size)
+        self._save_training_data(train_loss, eval_losses)
         torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")
-        return losses, eval_losses
+        return train_loss, eval_losses
 
     def predict(
         self,
         data: Union[Molecule, Sequence[Molecule], CustomData, Sequence[CustomData]],
     ) -> Sequence[Sequence[float]]:
+        """
+        Predict values for graphs given in data using self.model.
+
+        Args:
+            data (Union[Molecule, Sequence[Molecule], CustomData, Sequence[CustomData]]): data to be predict values for.
+
+        Raises:
+            NotInitializedError: If self.model is not set yet.
+            TypeError: If Input is neither a rdkit molecule or torch_geometric graph (or sequences of them)
+
+        Returns:
+            Sequence[Sequence[float]]: predictions made by self.model
+        """
         try:
             self.model
         except AttributeError:
@@ -314,3 +412,12 @@ class Trainer:
             if self._on_gpu:
                 torch.cuda.empty_cache()
         return predictions
+
+    def save_model_statedict(self, name: Optional[str] = "_model.pt") -> None:
+        """
+        Saves a models statedict to self.save_prefix + name
+
+        Args:
+            name (Optional[str], optional): name the model to be saved under. Defaults to "_model.pt".
+        """
+        torch.save(self.model.state_dict(), f"{self.save_prefix}{name}")

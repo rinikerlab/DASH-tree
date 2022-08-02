@@ -143,7 +143,7 @@ def test_train_model(trainer, sdf_path) -> None:
     return
 
 
-def test_predictioin(trainer, graph, molecule) -> None:
+def test_prediction(trainer, graph, molecule) -> None:
     a = trainer.predict(graph)
     b = trainer.predict(molecule)
     c = trainer.predict([graph])

@@ -288,8 +288,10 @@ class Trainer:
         Returns:
             List[float]: eval losses for self.eval_data.
         """
-        if self._is_initialized():
-            pass
+        try:
+            self._is_initialized()
+        except NotInitializedError as e:
+            raise e
         self.model.eval()
         val_loss = []
         loader = DataLoader(self.eval_data, batch_size=64)

@@ -8,7 +8,11 @@ from torch.nn.functional import mse_loss
 from torch.optim import Adam
 
 from serenityff.charge.gnn import Trainer
-from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, CustomData, get_graph_from_mol
+from serenityff.charge.gnn.utils import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    CustomData,
+    get_graph_from_mol,
+)
 from serenityff.charge.utils import NotInitializedError
 
 
@@ -82,6 +86,8 @@ def test_initialize_trainer(trainer, sdf_path, pt_path) -> None:
     # test init
     assert trainer.device == device("cpu")
     trainer.device = "CPU"
+    trainer.device = "cpu"
+    trainer.device = device("cpu")
 
     # test setters
     with pytest.raises(TypeError):
@@ -144,6 +150,7 @@ def test_train_model(trainer, sdf_path) -> None:
     ]:
         assert os.path.isfile(file)
         os.remove(file)
+    trainer.validate_model()
     return
 
 
@@ -167,6 +174,8 @@ def test_prediction(trainer, graph, molecule) -> None:
         trainer.save_model_statedict()
     with pytest.raises(NotInitializedError):
         trainer.train_model(1)
+    with pytest.raises(NotInitializedError):
+        trainer.validate_model()
     return
 
 

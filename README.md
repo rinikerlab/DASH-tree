@@ -29,10 +29,7 @@ Content
     * Generate graph neural network (PyTorchGeometric)
     * Train graph neural network
     * Predict partial charges
-
-* **Attention Extraction**
-    * Generate attention
-    * Extract attention for each atom
+    * Attention Extraction (GNNExplainer)
 
 * **Decision Tree**
     * Generate decision tree (attention based)

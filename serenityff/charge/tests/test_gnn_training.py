@@ -141,7 +141,7 @@ def test_prepare_train_data(trainer, sdf_path):
 
 def test_train_model(trainer, sdf_path) -> None:
     trainer.gen_graphs_from_sdf(sdf_path)
-    trainer.prepare_training_data()
+    trainer.prepare_training_data(train_ratio=0.5)
     trainer.train_model(epochs=1)
     for file in [
         f"{trainer.save_prefix}_train_loss.npy",

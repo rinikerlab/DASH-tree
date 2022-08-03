@@ -12,7 +12,6 @@ from serenityff.charge.gnn.attention_extraction import Explainer
 from serenityff.charge.gnn.utils import CustomData
 from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
 from serenityff.charge.utils import Molecule, command_to_shell_file
-from serenityff.charge.utils.io import _get_job_id, _split_sdf
 
 
 @pytest.fixture
@@ -33,6 +32,11 @@ def sdf_path() -> str:
 @pytest.fixture
 def model_path() -> str:
     return "serenityff/charge/data/example_model.pt"
+
+
+@pytest.fixture
+def args(sdf_path, statedict_path) -> Sequence[str]:
+    return ["-s", sdf_path, "-m", statedict_path]
 
 
 @pytest.fixture
@@ -75,11 +79,6 @@ def model(statedict) -> ChargeCorrectedNodeWiseAttentiveFP:
     m = ChargeCorrectedNodeWiseAttentiveFP()
     m.load_state_dict(statedict)
     return m
-
-
-@pytest.fixture
-def args(sdf_path, statedict_path) -> Sequence[str]:
-    return ["-s", sdf_path, "-m", statedict_path]
 
 
 @pytest.fixture
@@ -157,7 +156,7 @@ def test_extractor_properties(extractor, model, model_path, statedict_path, stat
 
 
 def test_split_sdf(cwd, sdf_path) -> None:
-    _split_sdf(
+    Extractor._split_sdf(
         sdf_file=sdf_path,
         directory=f"{cwd}/sdftest",
     )
@@ -172,7 +171,7 @@ def test_split_sdf(cwd, sdf_path) -> None:
 def test_job_id(cwd) -> None:
     with open(f"{cwd}/id.txt", "w") as f:
         f.write("sdcep ab ein \n sdf <12345> saoeb <sd>")
-    id = _get_job_id(file=f"{cwd}/id.txt")
+    id = Extractor._get_job_id(file=f"{cwd}/id.txt")
     assert id == "12345"
     os.remove(f"{cwd}/id.txt")
     return
@@ -227,8 +226,8 @@ def test_command_to_shell_file(cwd) -> None:
     os.remove(f"{cwd}/test.sh")
 
 
-def test_run_extraction_local(extractor, args, cwd, sdf_path) -> None:
-    extractor.run_extraction_local(args, working_dir=cwd, epochs=1)
-    os.remove(f"{cwd}/sdf_data.zip")
+def test_run_extraction_local(extractor, statedict_path, cwd, sdf_path) -> None:
+    extractor.run_extraction_local(sdf_file=sdf_path, ml_model=statedict_path, output=f"{cwd}/combined.csv", epochs=1)
+    os.path.isfile(f"{cwd}/combined.csv")
     os.remove(f"{cwd}/combined.csv")
     return

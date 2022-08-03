@@ -86,7 +86,7 @@ def test_init_and_forward_model(model, graph) -> None:
     return
 
 
-def test_initialize_trainer(trainer, sdf_path, pt_path, statedict_path, model_path, statedict) -> None:
+def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, model_path, statedict) -> None:
     # test init
     assert trainer.device == device("cpu")
     trainer.device = "CPU"
@@ -97,6 +97,7 @@ def test_initialize_trainer(trainer, sdf_path, pt_path, statedict_path, model_pa
     trainer.model = statedict_path
     trainer.model = model_path
     trainer.model = statedict
+    trainer.model = model
     with pytest.raises(FileNotFoundError):
         trainer.model = "faulty"
     with pytest.raises(TypeError):

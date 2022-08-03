@@ -101,6 +101,8 @@ def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, m
     with pytest.raises(FileNotFoundError):
         trainer.model = "faulty"
     with pytest.raises(TypeError):
+        trainer.model = 3213
+    with pytest.raises(TypeError):
         trainer.optimizer = "faulty"
     with pytest.raises(TypeError):
         trainer.loss_function = "faulty"

@@ -72,14 +72,7 @@ def statedict(statedict_path) -> OrderedDict:
 
 @pytest.fixture
 def model(statedict) -> ChargeCorrectedNodeWiseAttentiveFP:
-    m = ChargeCorrectedNodeWiseAttentiveFP(
-        in_channels=25,
-        hidden_channels=200,
-        out_channels=1,
-        edge_dim=11,
-        num_layers=5,
-        num_timesteps=2,
-    )
+    m = ChargeCorrectedNodeWiseAttentiveFP()
     m.load_state_dict(statedict)
     return m
 
@@ -192,6 +185,7 @@ def test_mol_from_sdf(sdf_path):
 
 
 def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> None:
+    graph = get_graph_from_mol(mol=mol, no_y=True)
     graph = get_graph_from_mol(mol=mol)
     assert graph.num_nodes == num_atoms
     assert graph.num_edges == num_bonds * 2

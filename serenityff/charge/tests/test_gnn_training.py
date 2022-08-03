@@ -1,18 +1,15 @@
 import os
+from typing import OrderedDict
 
 import pytest
 from numpy import array_equal
 from rdkit import Chem
-from torch import device
+from torch import device, load
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
 
 from serenityff.charge.gnn import Trainer
-from serenityff.charge.gnn.utils import (
-    ChargeCorrectedNodeWiseAttentiveFP,
-    CustomData,
-    get_graph_from_mol,
-)
+from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, CustomData, get_graph_from_mol
 from serenityff.charge.utils import NotInitializedError
 
 
@@ -27,6 +24,21 @@ def pt_path() -> str:
 
 
 @pytest.fixture
+def model_path() -> str:
+    return "serenityff/charge/data/example_model.pt"
+
+
+@pytest.fixture
+def statedict_path() -> str:
+    return "serenityff/charge/data/example_state_dict.pt"
+
+
+@pytest.fixture
+def statedict(statedict_path) -> OrderedDict:
+    return load(statedict_path)
+
+
+@pytest.fixture
 def molecule(sdf_path) -> CustomData:
     return Chem.SDMolSupplier(sdf_path, removeHs=False)[0]
 
@@ -38,14 +50,7 @@ def graph(molecule) -> CustomData:
 
 @pytest.fixture
 def model() -> ChargeCorrectedNodeWiseAttentiveFP:
-    return ChargeCorrectedNodeWiseAttentiveFP(
-        in_channels=25,
-        hidden_channels=200,
-        out_channels=1,
-        edge_dim=11,
-        num_layers=5,
-        num_timesteps=2,
-    )
+    return ChargeCorrectedNodeWiseAttentiveFP()
 
 
 @pytest.fixture
@@ -59,11 +64,10 @@ def lossfunction():
 
 
 @pytest.fixture
-def trainer(model, lossfunction, optimizer):
+def trainer(model, optimizer):
     trainer = Trainer()
     trainer.model = model
     trainer.optimizer = optimizer
-    trainer.loss_function = lossfunction
     trainer.save_prefix = os.path.dirname(__file__) + "/test"
     return trainer
 
@@ -82,7 +86,7 @@ def test_init_and_forward_model(model, graph) -> None:
     return
 
 
-def test_initialize_trainer(trainer, sdf_path, pt_path) -> None:
+def test_initialize_trainer(trainer, sdf_path, pt_path, statedict_path, model_path, statedict) -> None:
     # test init
     assert trainer.device == device("cpu")
     trainer.device = "CPU"
@@ -90,7 +94,10 @@ def test_initialize_trainer(trainer, sdf_path, pt_path) -> None:
     trainer.device = device("cpu")
 
     # test setters
-    with pytest.raises(TypeError):
+    trainer.model = statedict_path
+    trainer.model = model_path
+    trainer.model = statedict
+    with pytest.raises(FileNotFoundError):
         trainer.model = "faulty"
     with pytest.raises(TypeError):
         trainer.optimizer = "faulty"

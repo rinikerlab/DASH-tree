@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List, Optional, Sequence, Tuple, Union
+from typing import Callable, List, Optional, OrderedDict, Sequence, Tuple, Union
 from warnings import warn
 
 try:
@@ -12,6 +12,7 @@ import torch
 from torch_geometric.loader import DataLoader
 
 from serenityff.charge.gnn.utils import (
+    ChargeCorrectedNodeWiseAttentiveFP,
     CustomData,
     get_graph_from_mol,
     mols_from_sdf,
@@ -24,9 +25,11 @@ from serenityff.charge.utils import Molecule, NotInitializedError
 class Trainer:
     def __init__(
         self,
-        device: Union[torch.device, Literal["cpu", "cuda"]] = "cpu",
+        device: Optional[Union[torch.device, Literal["cpu", "cuda"]]] = "cpu",
+        loss_function: Optional[Callable] = torch.nn.functional.mse_loss,
     ) -> None:
         self.device = device
+        self.loss_function = loss_function
 
     @property
     def device(self) -> torch.device:
@@ -61,13 +64,31 @@ class Trainer:
         return self._save_prefix
 
     @model.setter
-    def model(self, value: torch.nn.Module) -> None:
-        if isinstance(value, torch.nn.Module):
+    def model(self, value: Union[str, torch.nn.Module]) -> None:
+        if isinstance(value, str):
+            try:
+                load = torch.load(value, map_location=torch.device("cpu"))
+            except FileNotFoundError as e:
+                raise e
+            try:
+                load.state_dict()
+                self._model = value
+            except AttributeError:
+                self._model = ChargeCorrectedNodeWiseAttentiveFP()
+                self._model.load_state_dict(load)
+
+        elif isinstance(value, torch.nn.Module):
             self._model = value
-            self._model.to(self._device)
-            return
+        elif isinstance(value, OrderedDict):
+            self._model = ChargeCorrectedNodeWiseAttentiveFP()
+            self._model.load_state_dict(value)
         else:
-            raise TypeError("model has to be a subclass of torch.nn.Module!")
+            raise TypeError(
+                "model has to be either of type torch.nn.Module, OrderedDict, \
+                    or the str path to a .pt model holding either of the aforementioned types."
+            )
+        self._update_device()
+        return
 
     @optimizer.setter
     def optimizer(self, value: torch.optim.Optimizer) -> None:
@@ -389,7 +410,7 @@ class Trainer:
         if not isinstance(data, list):
             data = [data]
         if isinstance(data[0], Molecule):
-            graphs = [get_graph_from_mol(mol) for mol in data]
+            graphs = [get_graph_from_mol(mol, no_y=True) for mol in data]
         elif isinstance(data[0], CustomData):
             graphs = data
         else:

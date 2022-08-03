@@ -9,7 +9,11 @@ import torch
 from rdkit import Chem
 from torch_geometric.nn import GNNExplainer
 
-from serenityff.charge.gnn import ChargeCorrectedNodeWiseAttentiveFP, Extractor, get_graph_from_mol
+from serenityff.charge.gnn import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    Extractor,
+    get_graph_from_mol,
+)
 from serenityff.charge.gnn.attention_extraction import Explainer
 from serenityff.charge.gnn.utils import CustomData
 from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
@@ -237,7 +241,7 @@ def test_csv_handling(cwd, sdf_path, extractor, model):
     )
     for filenr in range(1, 4):
         extractor._explain_molecules_in_sdf(sdf_file=f"{cwd}/sdftest/{filenr}.sdf", scratch=f"{cwd}/sdftest")
-    Extractor._summarize_csvs(3, 1, f"{cwd}/sdftest", outfile)
+    Extractor._summarize_csvs(3, 1, f"{cwd}/sdftest", outfile.rstrip(".csv"))
     df = pd.read_csv(outfile)
     df.atomtype[0] = "H"
     df.to_csv(outfile, index=False)
@@ -246,7 +250,12 @@ def test_csv_handling(cwd, sdf_path, extractor, model):
 
 
 def test_run_extraction_local(extractor, statedict_path, cwd, sdf_path) -> None:
-    extractor.run_extraction_local(sdf_file=sdf_path, ml_model=statedict_path, output=f"{cwd}/combined.csv", epochs=1)
+    extractor.run_extraction_local(
+        sdf_file=sdf_path,
+        ml_model=statedict_path,
+        output=f"{cwd}/combined.csv",
+        epochs=1,
+    )
     os.path.isfile(f"{cwd}/combined.csv")
     os.remove(f"{cwd}/combined.csv")
     return

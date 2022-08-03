@@ -11,8 +11,8 @@ from rdkit import Chem
 from tqdm import tqdm
 
 from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
-from serenityff.charge.utils.exceptions import ExtractionError
 from serenityff.charge.utils import command_to_shell_file
+from serenityff.charge.utils.exceptions import ExtractionError
 
 from .explainer import Explainer
 
@@ -171,13 +171,14 @@ class Extractor:
         csv_iterator = 0
         for mol_idx, mol in tqdm(enumerate(sdf), total=len(sdf)):
             smiles = Chem.MolToSmiles(mol, canonical=True)
-            for i in range(mol.GetNumAtoms()):
+            for atom_iterator, atom in enumerate(mol.GetAtoms()):
                 try:
-                    if i == 0:
+                    if atom_iterator == 0:
                         assert smiles == csv.smiles[csv_iterator]
-                    assert mol.GetNumAtoms() == len(csv["node_attentions"][i + csv_iterator])
-                    assert mol_idx == csv.mol_index[i + csv_iterator]
-                    assert csv.idx_in_mol[i + csv_iterator] == i
+                    assert mol.GetNumAtoms() == len(csv["node_attentions"][atom_iterator + csv_iterator])
+                    assert mol_idx == csv.mol_index[atom_iterator + csv_iterator]
+                    assert csv.idx_in_mol[atom_iterator + csv_iterator] == atom_iterator
+                    assert csv.atomtype[atom_iterator + csv_iterator] == atom.GetSymbol()
                 except AssertionError:
                     is_healthy = False
             csv_iterator += mol.GetNumAtoms()
@@ -357,7 +358,6 @@ class Extractor:
         num_files: int,
         batch_size: int,
         sdf_file: str,
-        local: Optional[bool] = False,
         working_dir: Optional[str] = None,
     ) -> None:
         """
@@ -367,8 +367,6 @@ class Extractor:
             num_files (int): number of smaller .sdf files
             batch_size (int): number of molecules per small .sdf file
             sdf_file (str): original .sdf file
-            local (Optional[bool], optional): Wheter the extraction\
-                was run locally or on the lsf cluster. Defaults to False.
 
         Raises:
             Exception: Thrown if the generated.csv file is not matching the original .sdf file
@@ -381,12 +379,11 @@ class Extractor:
             combined_filename=combined_filename,
         )
         if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):
-            if not local:
-                os.remove("id.txt")
-                os.remove("worker.sh")
-                os.remove("run_cleanup.sh")
-                os.remove("run_extraction.sh")
-                os.remove("cleaner.sh")
+            os.remove("id.txt")
+            os.remove("worker.sh")
+            os.remove("run_cleanup.sh")
+            os.remove("run_extraction.sh")
+            os.remove("cleaner.sh")
             make_archive(working_dir + "/sdf_data", "zip", working_dir + "/sdf_data")
             rmtree(working_dir + "/sdf_data/")
         else:

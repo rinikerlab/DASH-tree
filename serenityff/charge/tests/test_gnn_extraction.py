@@ -1,7 +1,9 @@
 import os
+from shutil import rmtree
 from typing import OrderedDict, Sequence
 
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 from rdkit import Chem
@@ -224,6 +226,23 @@ def test_command_to_shell_file(cwd) -> None:
         text = f.read()
     assert text == "#!/bin/bash\n\necho Hello World"
     os.remove(f"{cwd}/test.sh")
+
+
+def test_csv_handling(cwd, sdf_path, extractor, model):
+    extractor._initialize_expaliner(model=model, epochs=1)
+    outfile = f"{cwd}/sdftest/combined.csv"
+    Extractor._split_sdf(
+        sdf_file=sdf_path,
+        directory=f"{cwd}/sdftest",
+    )
+    for filenr in range(1, 4):
+        extractor._explain_molecules_in_sdf(sdf_file=f"{cwd}/sdftest/{filenr}.sdf", scratch=f"{cwd}/sdftest")
+    Extractor._summarize_csvs(3, 1, f"{cwd}/sdftest", outfile)
+    df = pd.read_csv(outfile)
+    df.atomtype[0] = "H"
+    df.to_csv(outfile, index=False)
+    assert not Extractor._check_final_csv(sdf_path, outfile)
+    rmtree(f"{cwd}/sdftest")
 
 
 def test_run_extraction_local(extractor, statedict_path, cwd, sdf_path) -> None:

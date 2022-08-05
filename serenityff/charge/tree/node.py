@@ -39,6 +39,8 @@ class node:
         return False
 
     def _get_hash(self):
+        if self.level == 0:
+            return [0]
         return [hash(str(self.level) + str(atom)) for atom in self.atoms]
 
     def add_node(self, node):

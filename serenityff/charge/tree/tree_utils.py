@@ -1,6 +1,8 @@
 from rdkit import Chem
 
 from serenityff.charge.tree.atom_features import atom_features
+from serenityff.charge.tree.node import node
+from serenityff.charge.tree_develop.develop_node import develop_node
 
 
 def create_mol_from_suply(sdf_suply: str, index: int) -> Chem.Mol:
@@ -81,3 +83,13 @@ def get_possible_atom_features(mol, connected_atoms):
                 )
                 possible_atom_idxs.append(bond.GetEndAtomIdx())
     return possible_atom_features, possible_atom_idxs
+
+
+def create_new_node_from_develop_node(current_develop_node: develop_node, current_new_node: node):
+    atom = current_develop_node.atom
+    level = current_develop_node.level
+    result, std, attention, size = current_develop_node.get_node_result_and_std_and_attention_and_length()
+    new_new_node = node(atom, level, result, std, attention, size)
+    current_new_node.add_child(new_new_node)
+    for child in current_develop_node.children:
+        create_new_node_from_develop_node(child, new_new_node)

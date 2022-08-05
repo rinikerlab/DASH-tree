@@ -45,3 +45,15 @@ class develop_node:
                 self.average = np.NAN
         for child in self.children:
             child.update_average()
+
+    def get_node_result_and_std_and_attention_and_length(self, attention_percentage: int = 0.95):
+        if self.level == 0:
+            return (np.float32(np.nan), np.float32(np.nan), np.float32(np.nan), 0)
+        if self.data.size == 1:
+            return (np.float32(self.data), np.float32(np.nan), np.float32(self.attention_data), 1)
+        if self.data.size > 1:
+            selected_data = self.data[(self.attention_data + self.parent_attention) > attention_percentage]
+            if selected_data.size == 0:
+                return (np.mean(self.data), np.std(self.data), np.mean(self.attention_data), self.data.size)
+            else:
+                return (np.mean(selected_data), np.std(selected_data), np.mean(self.attention_data), selected_data.size)

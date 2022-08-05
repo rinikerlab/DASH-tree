@@ -6,10 +6,40 @@ from serenityff.charge.tree_develop.develop_node import develop_node
 
 
 def create_mol_from_suply(sdf_suply: str, index: int) -> Chem.Mol:
+    """
+    Create a molecule from a sdf suply.
+
+    Parameters
+    ----------
+    sdf_suply : str
+        The sdf file path to create the molecule from.
+    index : int
+        The index of the molecule in the sdf file.
+
+    Returns
+    -------
+    Chem.Mol
+        The molecule with all Hs
+    """
     return Chem.SDMolSupplier(sdf_suply, removeHs=False)[index]
 
 
 def get_possible_connected_atom(line, layer):
+    """
+    Get the possible connected atoms of a subgraph in the construction tree.
+
+    Parameters
+    ----------
+    line : pandas.dataframe line
+        The line of the raw construction tree.
+    layer : int
+        The layer in the construction tree.
+
+    Returns
+    -------
+    list[int]
+        The possible connected atoms of the subgraph of the molecule.
+    """
     mol = line["mol"]
     atom_idx = line["idx_in_mol"]
 
@@ -30,6 +60,21 @@ def get_possible_connected_atom(line, layer):
 
 
 def get_possible_connected_new_atom(line, mol):
+    """
+    Get the list of neighbours of a subgraph in the construction tree.
+
+    Parameters
+    ----------
+    line : pandas.dataframe line
+        The line of the raw construction tree.
+    mol : Chem.Mol
+        The molecule to get the possible connected atoms for.
+
+    Returns
+    -------
+    list[int]
+        The possible connected atoms of the subgraph of the molecule.
+    """
     possible_atoms = line["connected_atoms"]
     new_atoms = set()
     for atom in possible_atoms:
@@ -42,6 +87,21 @@ def get_possible_connected_new_atom(line, mol):
 
 
 def get_connected_atom_with_max_attention(line, layer):
+    """
+    Get the neighbour atom with the highest attention.
+
+    Parameters
+    ----------
+    line : pandas.dataframe line
+        The line of the raw construction tree.
+    layer : int
+        The layer in the construction tree.
+
+    Returns
+    -------
+    list[int, int]
+        The  absolute atom idx of the connected atom with the highest attention and the attention.
+    """
     node_attentions = line["node_attentions"]
     possible_atoms = get_possible_connected_atom(line, layer)
     max_attention_index = None
@@ -54,6 +114,23 @@ def get_connected_atom_with_max_attention(line, layer):
 
 
 def get_connected_neighbor(line, idx, mol):
+    """
+    Get the closest connected neighbor of an atom.
+
+    Parameters
+    ----------
+    line : pandas.dataframe line
+        The line of the raw construction tree.
+    idx : int
+        The idx of the atom.
+    mol : Chem.Mol
+        The molecule to get the connected neighbor from.
+
+    Returns
+    -------
+    list[int, int]
+        relative atom idx and absolute atom idx of the connected neighbor.
+    """
     connected_idx = line["connected_atoms"]
     for b in mol.GetAtomWithIdx(int(idx)).GetBonds():
         if b.GetBeginAtomIdx() in connected_idx:
@@ -68,6 +145,21 @@ def get_connected_neighbor(line, idx, mol):
 
 
 def get_possible_atom_features(mol, connected_atoms):
+    """
+    Get the possible atom features for a molecule in reach of the connected atoms.
+
+    Parameters
+    ----------
+    mol : Chem.Mol
+        The molecule to get the possible atom features for.
+    connected_atoms : list
+        The already connected atoms of the subgraph of the molecule.
+
+    Returns
+    -------
+    list[list[atom_features], list[int]]
+        The possible atom features for the molecule and the possible atom idxs.
+    """
     possible_atom_features = []
     possible_atom_idxs = []
     for atom in connected_atoms:
@@ -86,6 +178,16 @@ def get_possible_atom_features(mol, connected_atoms):
 
 
 def create_new_node_from_develop_node(current_develop_node: develop_node, current_new_node: node):
+    """
+    Create a new node from a develop node. Used to convert a the raw construction tree to a final tree.
+
+    Parameters
+    ----------
+    current_develop_node : develop_node
+        The develop node to convert.
+    current_new_node : node
+        The new node to create.
+    """
     atom = current_develop_node.atom
     level = current_develop_node.level
     result, std, attention, size = current_develop_node.get_node_result_and_std_and_attention_and_length()

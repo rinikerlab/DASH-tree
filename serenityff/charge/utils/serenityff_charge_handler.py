@@ -1,6 +1,10 @@
 import numpy as np
 from openff.toolkit.topology import TopologyAtom, TopologyVirtualSite
-from openff.toolkit.typing.engines.smirnoff import ElectrostaticsHandler, LibraryChargeHandler, vdWHandler
+from openff.toolkit.typing.engines.smirnoff import (
+    ElectrostaticsHandler,
+    LibraryChargeHandler,
+    vdWHandler,
+)
 from openff.toolkit.typing.engines.smirnoff.parameters import _NonbondedHandler
 from openmm.unit import Quantity, elementary_charge
 
@@ -32,6 +36,8 @@ class SerenityFFChargeHandler(_NonbondedHandler):
 
             for topology_molecule in topology._reference_molecule_to_topology_molecules[reference_molecule]:
                 rdkit_mol = reference_molecule.to_rdkit()
+
+                # TODO: Add tree support as soon as tree is good to go
                 partial_charges = [0.0 for _ in range(rdkit_mol.GetNumAtoms())]
 
                 for topology_particle in topology_molecule.atoms:

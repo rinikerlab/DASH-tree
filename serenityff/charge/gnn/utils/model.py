@@ -9,12 +9,12 @@ from torch_geometric.nn import AttentiveFP
 class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
     def __init__(
         self,
-        in_channels: int,
-        hidden_channels: int,
-        out_channels: int,
-        edge_dim: int,
-        num_layers: int,
-        num_timesteps: int,
+        in_channels: Optional[int] = 25,
+        hidden_channels: Optional[int] = 200,
+        out_channels: Optional[int] = 1,
+        edge_dim: Optional[int] = 11,
+        num_layers: Optional[int] = 5,
+        num_timesteps: Optional[int] = 2,
         dropout: Optional[float] = 0.0,
     ):
         super().__init__(

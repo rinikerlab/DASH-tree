@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from serenityff.charge.tree.atom_features import atom_features
 
 
-class multi_node:
+class node:
     def __init__(
         self,
         atom: List = None,
@@ -37,28 +37,17 @@ class multi_node:
         return f"mn {len(self.atoms)} - {self.result} - {self.atoms}"
 
     def __eq__(self, other):
-        if isinstance(other, multi_node):
-            if other.hashes == self.hashes:
-                return True
-        else:
-            if other.hash in self.hashes:
-                for node in self.nodes:
-                    if node == other:
-                        return True
+        if other.hashes == self.hashes:
+            return True
         return False
 
     def _get_hash(self):
         return [hash(str(self.level) + str(atom)) for atom in self.atoms]
 
     def add_node(self, node):
-        if isinstance(node, multi_node):
-            self.atoms.extend(node.atoms)
-            self._update_statistics(node)
-            self.hashes.extend(node.hashes)
-        else:
-            self.atoms.append(node.atom)
-            self._update_statistics(node)
-            self.hashes.append(node.hash)
+        self.atoms.extend(node.atoms)
+        self._update_statistics(node)
+        self.hashes.extend(node.hashes)
 
         for child in node.children:
             self.add_child(child)

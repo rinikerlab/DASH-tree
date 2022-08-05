@@ -47,7 +47,6 @@ def keys():
         "ToolkitAM1BCC",
         "ChargeIncrementModel",
         "VirtualSites",
-        "SerenityFFCharge",
     ]
 
 
@@ -86,9 +85,12 @@ def test_handler_functions(handler):
 def test_off_handler_empty(force_field, keys):
     for key in keys:
         assert force_field.get_parameter_handler(key)
+    with pytest.raises(KeyError):
+        assert force_field.get_parameter_handler("SerenityFFCharge")
 
 
 def test_off_handler_plugins(force_field_with_plugins, keys):
+    keys.append("SerenityFFCharge")
     for key in keys:
         assert force_field_with_plugins.get_parameter_handler(key)
     with pytest.raises(KeyError):
@@ -96,6 +98,7 @@ def test_off_handler_plugins(force_field_with_plugins, keys):
 
 
 def test_off_handler_custom(force_field_custom_offxml, keys):
+    keys.append("SerenityFFCharge")
     for key in keys:
         assert force_field_custom_offxml.get_parameter_handler(key)
     with pytest.raises(KeyError):

@@ -1,7 +1,8 @@
 import argparse
 import os
+from math import ceil
 from shutil import make_archive, rmtree
-from typing import Optional, OrderedDict, Sequence, Union
+from typing import Optional, OrderedDict, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -10,8 +11,8 @@ from rdkit import Chem
 from tqdm import tqdm
 
 from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
+from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.utils.exceptions import ExtractionError
-from serenityff.charge.utils.io import _get_job_id, _split_sdf, _summarize_csvs, command_to_shell_file
 
 from .explainer import Explainer
 
@@ -34,22 +35,12 @@ class Extractor:
             load = torch.load(value, map_location=torch.device("cpu"))
             try:
                 load.state_dict()
-                self._model = value
-                return
+                self._model = load
             except AttributeError:
-                self._model = ChargeCorrectedNodeWiseAttentiveFP(
-                    in_channels=25,
-                    hidden_channels=200,
-                    out_channels=1,
-                    edge_dim=11,
-                    num_layers=5,
-                    num_timesteps=2,
-                )
+                self._model = ChargeCorrectedNodeWiseAttentiveFP()
                 self._model.load_state_dict(load)
-                return
         elif isinstance(value, torch.nn.Module):
             self._model = value
-            return
         elif isinstance(value, OrderedDict):
             self._model = ChargeCorrectedNodeWiseAttentiveFP(
                 in_channels=25,
@@ -60,12 +51,12 @@ class Extractor:
                 num_timesteps=2,
             )
             self._model.load_state_dict(value)
-            return
         else:
             raise TypeError(
                 "model has to be either of type torch.nn.Module, OrderedDict, \
                     or the str path to a .pt model holding either of the aforementioned types."
             )
+        return
 
     @property
     def explainer(self) -> Explainer:
@@ -77,45 +68,6 @@ class Extractor:
             raise TypeError("Explainer has to be (derived) of type GNNExplainer from torch_geometric.nn")
         self._explainer = value
         return
-
-    @staticmethod
-    def _check_final_csv(sdf_file: str, csv_file: str) -> bool:
-        """
-        Performs following checks on the final .csv file:
-            > Smile in the first entry of a molecule is same \
-                as the one in the original .sfd file.
-            > that number of node attentions per atom is \
-                equal the number of atoms in the molecule.
-            > if the mol_index of a molecule is the same in \
-                the final .csv file as in the original .sdf file.
-            > if atomnumbering is equal in final .csv and original \
-                .sdf file.
-
-        Args:
-            sdf_file (str): path to the original .sdf file
-            csv_file (str): path to the final .csv file
-
-        Returns:
-            bool: Wheter the final.csv checks the tests
-        """
-        is_healthy = True
-        sdf = Chem.SDMolSupplier(sdf_file, removeHs=False)
-        csv = pd.read_csv(csv_file)
-        csv["node_attentions"] = csv["node_attentions"].apply(eval)
-        csv_iterator = 0
-        for mol_idx, mol in tqdm(enumerate(sdf), total=len(sdf)):
-            smiles = Chem.MolToSmiles(mol, canonical=True)
-            for i in range(mol.GetNumAtoms()):
-                try:
-                    if i == 0:
-                        assert smiles == csv.smiles[csv_iterator]
-                    assert mol.GetNumAtoms() == len(csv["node_attentions"][i + csv_iterator])
-                    assert mol_idx == csv.mol_idx[i + csv_iterator]
-                    assert csv.idx_in_mol[i + csv_iterator] == i
-                except AssertionError:
-                    is_healthy = False
-            csv_iterator += mol.GetNumAtoms()
-        return is_healthy
 
     def _initialize_expaliner(
         self,
@@ -134,11 +86,7 @@ class Extractor:
         self.model = model
         self.explainer = Explainer(model=self.model, epochs=epochs, verbose=verbose)
 
-    def _explain_molecules_in_sdf(
-        self,
-        sdf_file: str,
-        scratch: str,
-    ) -> None:
+    def _explain_molecules_in_sdf(self, sdf_file: str, scratch: str, output: Optional[str] = None) -> None:
         """
         ! Needs an initialized explainer (use initialize_explainer()) !
         Explains the prediction of every atom of every molecule in an .sdf file \
@@ -189,11 +137,143 @@ class Extractor:
                 "truth",
             ],
         )
+        out = output if output else f'{scratch}/{sdf_file.split(".")[0].split("/")[-1] + ".csv"}'
         df.to_csv(
-            path_or_buf=f'{scratch}/{sdf_file.split(".")[0].split("/")[-1] + ".csv"}',
+            path_or_buf=out,
             index=False,
         )
         return
+
+    @staticmethod
+    def _check_final_csv(sdf_file: str, csv_file: str) -> bool:
+        """
+        Performs following checks on the final .csv file:
+            > Smile in the first entry of a molecule is same \
+                as the one in the original .sfd file.
+            > that number of node attentions per atom is \
+                equal the number of atoms in the molecule.
+            > if the mol_index of a molecule is the same in \
+                the final .csv file as in the original .sdf file.
+            > if atomnumbering is equal in final .csv and original \
+                .sdf file.
+
+        Args:
+            sdf_file (str): path to the original .sdf file
+            csv_file (str): path to the final .csv file
+
+        Returns:
+            bool: Wheter the final.csv checks the tests
+        """
+        is_healthy = True
+        sdf = Chem.SDMolSupplier(sdf_file, removeHs=False)
+        csv = pd.read_csv(csv_file)
+        csv["node_attentions"] = csv["node_attentions"].apply(eval)
+        csv_iterator = 0
+        for mol_idx, mol in tqdm(enumerate(sdf), total=len(sdf)):
+            smiles = Chem.MolToSmiles(mol, canonical=True)
+            for atom_iterator, atom in enumerate(mol.GetAtoms()):
+                try:
+                    if atom_iterator == 0:
+                        assert smiles == csv.smiles[csv_iterator]
+                    assert mol.GetNumAtoms() == len(csv["node_attentions"][atom_iterator + csv_iterator])
+                    assert mol_idx == csv.mol_index[atom_iterator + csv_iterator]
+                    assert csv.idx_in_mol[atom_iterator + csv_iterator] == atom_iterator
+                    assert csv.atomtype[atom_iterator + csv_iterator] == atom.GetSymbol()
+                except AssertionError:
+                    is_healthy = False
+            csv_iterator += mol.GetNumAtoms()
+        return is_healthy
+
+    @staticmethod
+    def _open_next_file(writer: Chem.SDWriter, file_name: str, directory: str) -> Chem.SDWriter:
+        """
+        Closes an SDWriter and opens a new one. The new file has the number given
+        as file_iterator as its name.
+
+        Args:
+            writer (Chem.SDWriter): SDWriter to be closed.
+            file_name (int): number added into the new file name.
+            directory (str): directory in which the individual sdfs will be stored.
+
+        Returns:
+            Chem.SDWriter: New SDWriter
+        """
+        if writer:
+            writer.close()
+        if not os.path.isdir(directory):
+            os.mkdir(directory)
+        writer = Chem.SDWriter(f"{directory}/{file_name}.sdf")
+        return writer
+
+    @staticmethod
+    def _split_sdf(sdf_file: str, directory: Optional[str] = f"{os.getcwd()}/sdf_data") -> Tuple[int]:
+        """
+        Splits a big sdf file in a number (<10000) of smaller sdf file,
+        to make parallelization on a cluster possible.
+
+        Args:
+            sdf_file (str): Big .sdf file to be split
+            directory (Optional[str], optional): Where to store the smaller .sdf file. \
+                Defaults to f"{os.getcwd()}/sdf_data".
+
+        Returns:
+            Tuple[int]: number of files written, number of molecule per file.
+        """
+        suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
+        batchsize = ceil(len(suppl) / 10000)
+        writer = None
+        file_iterator = 0
+        for molidx, mol in tqdm(enumerate(suppl)):
+            if not molidx % batchsize:
+                file_iterator += 1
+                writer = Extractor._open_next_file(writer=writer, file_name=str(file_iterator), directory=directory)
+            writer.write(mol)
+        return file_iterator, batchsize
+
+    @staticmethod
+    def _get_job_id(file: str) -> str:
+        """
+        Takes a file containing the lsf submission return and
+        extracts the job id of the Job that has been submitted.
+
+        Args:
+            file (str): file where the submission return is stored
+
+        Returns:
+            str: Jobid
+        """
+        with open(file, "r") as f:
+            txt = f.read()
+        id = txt.split("<")[1].split(">")[0]
+        return id
+
+    @staticmethod
+    def _summarize_csvs(
+        num_files: int,
+        batch_size: int,
+        directory: Optional[str] = f"{os.getcwd()}/sdf_data",
+        combined_filename: Optional[str] = "combined",
+    ) -> None:
+        """
+        Takes all the csv generated with the extract method and combines
+        them to one .csv file containing all attention weights.
+        Args:
+            num_files (int): number of csv files in the directory.
+            batch_size (int): number of molecules per csv file.
+            directory (Optional[str], optional): directory where the \
+                .sdf files are stored. Defaults to f"{os.getcwd()}/sdf_data".
+            combined_filename (Optional[str], optional): name of the final, \
+                big .csv file. Defaults to "combined".
+        """
+        if not combined_filename.endswith(".csv"):
+            combined_filename += ".csv"
+        datalist = []
+        for num in tqdm(range(0, num_files)):
+            df = pd.read_csv(f"{directory}/{num + 1}.csv")
+            df["mol_index"] = df["mol_index"] + num * batch_size
+            datalist.append(df)
+        df = pd.concat(datalist, axis=0, ignore_index=True)
+        df.to_csv(combined_filename, index=False)
 
     @staticmethod
     def _parse_filenames(args: Sequence[str]) -> argparse.Namespace:
@@ -214,7 +294,7 @@ class Extractor:
         return parser.parse_args(args)
 
     @staticmethod
-    def _extract(
+    def _extract_hpc(
         model: Union[str, torch.nn.Module],
         sdf_index: int,
         scratch: str,
@@ -249,7 +329,7 @@ class Extractor:
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"import extractor as e; e.Extractor._extract(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
+        text += r"import extractor as e; e.Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
         text += '"\n'
         text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:
@@ -278,7 +358,6 @@ class Extractor:
         num_files: int,
         batch_size: int,
         sdf_file: str,
-        local: Optional[bool] = False,
         working_dir: Optional[str] = None,
     ) -> None:
         """
@@ -288,26 +367,23 @@ class Extractor:
             num_files (int): number of smaller .sdf files
             batch_size (int): number of molecules per small .sdf file
             sdf_file (str): original .sdf file
-            local (Optional[bool], optional): Wheter the extraction\
-                was run locally or on the lsf cluster. Defaults to False.
 
         Raises:
             Exception: Thrown if the generated.csv file is not matching the original .sdf file
         """
         combined_filename = "combined" if not working_dir else f"{working_dir.rstrip('/')}/combined"
-        _summarize_csvs(
+        Extractor._summarize_csvs(
             num_files=num_files,
             batch_size=batch_size,
             directory=working_dir + "/sdf_data",
             combined_filename=combined_filename,
         )
         if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):
-            if not local:
-                os.remove("id.txt")
-                os.remove("worker.sh")
-                os.remove("run_cleanup.sh")
-                os.remove("run_extraction.sh")
-                os.remove("cleaner.sh")
+            os.remove("id.txt")
+            os.remove("worker.sh")
+            os.remove("run_cleanup.sh")
+            os.remove("run_extraction.sh")
+            os.remove("cleaner.sh")
             make_archive(working_dir + "/sdf_data", "zip", working_dir + "/sdf_data")
             rmtree(working_dir + "/sdf_data/")
         else:
@@ -319,9 +395,11 @@ class Extractor:
 
     @staticmethod
     def run_extraction_local(
-        args: Sequence[str],
-        working_dir: Optional[str] = None,
+        ml_model=Union[str, torch.nn.Module],
+        sdf_file=str,
+        output: Optional[str] = "combined.csv",
         epochs: Optional[int] = 2000,
+        verbose: Optional[bool] = True,
     ) -> None:
         """
         Use this function if you want to run the feature extraction on your local machine.
@@ -335,25 +413,14 @@ class Extractor:
             > -m:   path to the ml model .pt file
             > -s:   path to the .sdf file containing the molecules.
         """
-        files = Extractor._parse_filenames(args)
-        scratch = "sdf_data" if not working_dir else f"{working_dir.rstrip('/')}/sdf_data"
-        num_files, batch_size = _split_sdf(sdf_file=files.sdffile, directory=scratch)
-        for file in range(num_files):
-            Extractor._extract(
-                model=files.mlmodel,
-                sdf_index=file + 1,
-                working_dir=scratch,
-                scratch=scratch,
-                verbose=True,
-                epochs=epochs,
+        extractor = Extractor()
+        extractor._initialize_expaliner(model=ml_model, epochs=epochs, verbose=verbose)
+        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, output=output, scratch=None)
+        if not extractor._check_final_csv(sdf_file=sdf_file, csv_file=output):
+            raise ExtractionError(
+                "Oops Something went wrong with the extraction. \
+                Make sure, all paths provided are correct."
             )
-        Extractor._clean_up(
-            num_files=num_files,
-            batch_size=batch_size,
-            sdf_file=files.sdffile,
-            local=True,
-            working_dir=working_dir,
-        )
         return
 
     @staticmethod
@@ -371,13 +438,13 @@ class Extractor:
 
         """
         files = Extractor._parse_filenames(args)
-        num_files, batch_size = _split_sdf(sdf_file=files.sdffile)
+        num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
         Extractor._write_worker()
         os.mkdir("logfiles")
         lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 12:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
-        id = _get_job_id("id.txt")
+        id = Extractor._get_job_id("id.txt")
         lsf_command = f"bsub -n 1 -J 'clean_up' -o logfiles/cleanup.out -e logfiles/cleanup.err -w 'done({id})' './cleaner.sh {num_files} {batch_size} {files.sdffile}'"
         os.system(lsf_command)
         command_to_shell_file(lsf_command, "run_cleanup.sh")

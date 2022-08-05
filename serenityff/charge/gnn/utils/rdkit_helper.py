@@ -35,6 +35,7 @@ def get_graph_from_mol(
         "I",
         "H",
     ],
+    no_y: Optional[bool] = False,
 ) -> CustomData:
     """
     Creates an pytorch_geometric Graph from an rdkit molecule.
@@ -62,10 +63,16 @@ def get_graph_from_mol(
     """
     grapher = MolGraphConvFeaturizer(use_edges=True)
     graph = grapher._featurize(mol, allowable_set).to_pyg_graph()
-    graph.y = torch.tensor(
-        [at.GetPropsAsDict()["molFileAlias"] for at in mol.GetAtoms()],
-        dtype=torch.float,
-    )
+    if not no_y:
+        graph.y = torch.tensor(
+            [at.GetPropsAsDict()["molFileAlias"] for at in mol.GetAtoms()],
+            dtype=torch.float,
+        )
+    else:
+        graph.y = torch.tensor(
+            [0 for _ in mol.GetAtoms()],
+            dtype=torch.float,
+        )
     graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)
     graph.molecule_charge = Chem.GetFormalCharge(mol)
     graph.smiles = Chem.MolToSmiles(mol, canonical=False)

@@ -34,4 +34,9 @@ setup(
     include_package_data=True,
     keywords="molecular dynamics, force field, parametrization, nonbonded parameters, explainable md",
     python_requires=">=3.7",
+    entry_points={
+        "openff.toolkit.plugins.handlers": [
+            "SerenityFFCharge = serenityff.charge.utils.serenityff_charge_handler:SerenityFFChargeHandler"
+        ]
+    },
 )

@@ -56,6 +56,16 @@ def molecule():
 
 
 @pytest.fixture
+def molecule_virtual():
+    return Molecule.from_smiles("CCOAs")
+
+
+@pytest.fixture
+def molecule_faulty():
+    return Molecule.from_smiles("CCO")
+
+
+@pytest.fixture
 def charges_serenity():
     return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
@@ -113,7 +123,7 @@ def test_empty_charges(force_field, molecule, handler, charges_amber, charges_se
 
 def test_plugin_charges_get(force_field_with_plugins, molecule, handler, charges_amber, charges_serenity):
     assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_amber)
-    force_field_with_plugins.get_parameter_handler(handler)
+    force_field_with_plugins.get_parameter_handler("SerenityChargeFF")
     assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_serenity)
 
 

@@ -1,7 +1,20 @@
-from numpy import array_equal
 import pytest
+from numpy import array_equal
 from openff.toolkit.topology import Molecule
-from openff.toolkit.typing.engines.smirnoff import ForceField, ToolkitAM1BCCHandler
+from openff.toolkit.typing.engines.smirnoff import (
+    ElectrostaticsHandler,
+    ForceField,
+    LibraryChargeHandler,
+    ToolkitAM1BCCHandler,
+    vdWHandler,
+)
+
+from serenityff.charge.utils.serenityff_charge_handler import SerenityFFChargeHandler
+
+
+@pytest.fixture
+def handler():
+    return SerenityFFChargeHandler(version=0.3)
 
 
 @pytest.fixture
@@ -60,6 +73,13 @@ def charges_amber():
         0.04319988888888887,
         0.3959998888888889,
     ]
+
+
+def test_handler_functions(handler):
+    assert handler.check_handler_compatibility(handler)
+    assert handler._TAGNAME == "SerenityFFCharge"
+    assert array_equal(handler._DEPENDENCIES, [ElectrostaticsHandler, LibraryChargeHandler, vdWHandler])
+    assert handler._KWARGS == ["toolkit_registry"]
 
 
 def test_off_handler_empty(force_field, keys):

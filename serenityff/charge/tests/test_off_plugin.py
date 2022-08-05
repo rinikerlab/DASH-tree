@@ -18,11 +18,6 @@ def handler():
 
 
 @pytest.fixture
-def force_field():
-    return ForceField("openff-2.0.0.offxml")
-
-
-@pytest.fixture
 def force_field_with_plugins():
     return ForceField("openff-2.0.0.offxml", load_plugins=True)
 
@@ -82,13 +77,6 @@ def test_handler_functions(handler):
     assert handler._KWARGS == ["toolkit_registry"]
 
 
-def test_off_handler_empty(force_field, keys):
-    for key in keys:
-        assert force_field.get_parameter_handler(key)
-    with pytest.raises(KeyError):
-        assert force_field.get_parameter_handler("SerenityFFCharge")
-
-
 def test_off_handler_plugins(force_field_with_plugins, keys):
     keys.append("SerenityFFCharge")
     for key in keys:
@@ -105,13 +93,7 @@ def test_off_handler_custom(force_field_custom_offxml, keys):
         force_field_custom_offxml.get_parameter_handler("faulty")
 
 
-def test_empty_charges(force_field, molecule, handler, charges_amber, charges_serenity):
-    assert array_equal(force_field.get_partial_charges(molecule), charges_amber)
-    force_field.register_parameter_handler(handler)
-    assert array_equal(force_field.get_partial_charges(molecule), charges_serenity)
-
-
-def test_plugin_charges_get(force_field_with_plugins, molecule, handler, charges_amber, charges_serenity):
+def test_plugin_charges_get(force_field_with_plugins, molecule, charges_amber, charges_serenity):
     assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_amber)
     force_field_with_plugins.get_parameter_handler("SerenityFFCharge")
     assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_serenity)

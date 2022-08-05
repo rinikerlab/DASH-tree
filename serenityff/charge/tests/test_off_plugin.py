@@ -47,21 +47,12 @@ def keys():
         "ToolkitAM1BCC",
         "ChargeIncrementModel",
         "VirtualSites",
+        "SerenityFFCharge",
     ]
 
 
 @pytest.fixture
 def molecule():
-    return Molecule.from_smiles("CCO")
-
-
-@pytest.fixture
-def molecule_virtual():
-    return Molecule.from_smiles("CCOAs")
-
-
-@pytest.fixture
-def molecule_faulty():
     return Molecule.from_smiles("CCO")
 
 
@@ -86,7 +77,7 @@ def charges_amber():
 
 
 def test_handler_functions(handler):
-    assert handler.check_handler_compatibility(handler)
+    assert handler.check_handler_compatibility(handler) is None
     assert handler._TAGNAME == "SerenityFFCharge"
     assert array_equal(handler._DEPENDENCIES, [ElectrostaticsHandler, LibraryChargeHandler, vdWHandler])
     assert handler._KWARGS == ["toolkit_registry"]
@@ -95,12 +86,9 @@ def test_handler_functions(handler):
 def test_off_handler_empty(force_field, keys):
     for key in keys:
         assert force_field.get_parameter_handler(key)
-    with pytest.raises(KeyError):
-        force_field.get_parameter_handler("SerenityFFCharge")
 
 
 def test_off_handler_plugins(force_field_with_plugins, keys):
-    keys.append("SerenityFFCharge")
     for key in keys:
         assert force_field_with_plugins.get_parameter_handler(key)
     with pytest.raises(KeyError):
@@ -108,7 +96,6 @@ def test_off_handler_plugins(force_field_with_plugins, keys):
 
 
 def test_off_handler_custom(force_field_custom_offxml, keys):
-    keys.append("SerenityFFCharge")
     for key in keys:
         assert force_field_custom_offxml.get_parameter_handler(key)
     with pytest.raises(KeyError):
@@ -123,7 +110,7 @@ def test_empty_charges(force_field, molecule, handler, charges_amber, charges_se
 
 def test_plugin_charges_get(force_field_with_plugins, molecule, handler, charges_amber, charges_serenity):
     assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_amber)
-    force_field_with_plugins.get_parameter_handler("SerenityChargeFF")
+    force_field_with_plugins.get_parameter_handler("SerenityFFCharge")
     assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_serenity)
 
 

@@ -211,3 +211,41 @@ class multi_node:
             self.num_children = df_line["num_children"]
         except KeyError:
             pass
+
+    def node_is_similar(self, other, min_std_deviation=0.001):
+        if self.level in [0, 1, 2, 3]:
+            return False
+        if abs(self.result - other.result) < min_std_deviation:
+            return True
+        return False
+
+    def try_to_merge_similar_branches(self, min_std_deviation=0.001, children_overlap_acceptance=0.6):
+        for idx, child in enumerate(self.children):
+            for other_child in self.children[idx + 1 :]:
+                if child.node_is_similar(other_child, min_std_deviation=min_std_deviation):
+                    control_bool = True
+                    child_match = 0
+                    for node_i in child.children:
+                        if node_i in other_child.children:
+                            child_match += 1
+                            if not node_i.node_is_similar(
+                                other_child.children[other_child.children.index(node_i)],
+                                min_std_deviation=min_std_deviation,
+                            ):
+                                control_bool = False
+                                break
+                    if (
+                        control_bool
+                        and len(child.children) > 0
+                        and ((child_match / len(child.children)) >= children_overlap_acceptance)
+                    ):
+                        child.add_node(other_child)
+                        self.children.remove(other_child)
+                        return True
+            child.try_to_merge_similar_branches(min_std_deviation=min_std_deviation)
+
+    def get_tree_length(self, length_dict):
+        length_dict[self.level] += 1
+        for child in self.children:
+            length_dict = child.get_tree_length(length_dict)
+        return length_dict

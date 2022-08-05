@@ -5,7 +5,7 @@ import pandas as pd
 
 from concurrent.futures import ThreadPoolExecutor
 
-from serenityff.core.c6_and_partial_charges.tree.atom_features import atom_features
+from serenityff.charge.tree.atom_features import atom_features
 
 
 class multi_node:

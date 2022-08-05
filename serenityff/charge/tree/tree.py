@@ -7,7 +7,7 @@ from serenityff.charge.tree.node import node
 from serenityff.charge.tree.atom_features import atom_features
 
 
-from serenityff.core.c6_and_partial_charges.tree.tree_utils import get_possible_atom_features
+from serenityff.charge.tree.tree_utils import get_possible_atom_features
 
 
 class tree:

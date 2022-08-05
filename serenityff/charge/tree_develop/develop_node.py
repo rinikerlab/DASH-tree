@@ -46,7 +46,21 @@ class develop_node:
         for child in self.children:
             child.update_average()
 
-    def get_node_result_and_std_and_attention_and_length(self, attention_percentage: int = 0.95):
+    def get_node_result_and_std_and_attention_and_length(self, attention_percentage: int = 0.0):
+        """
+        Returns averaged properties of a node
+        Returns the result of the node and the standard deviation of the node and the attention of the node
+
+        Parameters
+        ----------
+        attention_percentage : int, optional
+            threshold for averaging, by default 0.95
+
+        Returns
+        -------
+        list[float, float, float, int]
+            [result, stdDeviation, attention, length]
+        """
         if self.level == 0:
             return (np.float32(np.nan), np.float32(np.nan), np.float32(np.nan), 0)
         if self.data.size == 1:

@@ -20,13 +20,32 @@ class tree:
     ###############################################################################
 
     def from_file(self, file_path: str):
+        """
+        Reads a tree from a file.
+
+        Parameters
+        ----------
+        file_path : str
+            The path to the file. (file must be readable by pandas)
+        """
         self.root = self.from_file(file_path)
 
     def update_tree_length(self):
+        """
+        Updates the tree_lengths dictionary.
+        """
         self.tree_lengths.clear()
         self.tree_lengths = self.root.get_tree_length(self.tree_lengths)
 
     def get_sum_nodes(self):
+        """
+        Returns the sum of the nodes in the tree.
+
+        Returns
+        -------
+        int
+            The sum of the nodes in the tree.
+        """
         self.update_tree_length()
         return sum(self.tree_lengths.values())
 
@@ -35,6 +54,21 @@ class tree:
     ###############################################################################
 
     def match_new_atom(self, atom, mol):
+        """
+        Matches a given atom in the decision tree to a node
+
+        Parameters
+        ----------
+        atom : int
+            atom index
+        mol : rdkit.Chem.rdchem.Mol
+            molecule in which the atom is located
+
+        Returns
+        -------
+        list[node, list[node]]
+            The final matched node and the path to the node
+        """
         current_correct_node = tree.root
         node_path = [self.root]
         connected_atoms = []
@@ -66,6 +100,21 @@ class tree:
         return (current_correct_node.result, node_path)
 
     def match_molecules_atoms(self, mol, mol_idx):
+        """
+        Matches all atoms in a molecule to the tree. ANd returns multiple normalized results.
+
+        Parameters
+        ----------
+        mol : rdkit.Chem.rdchem.Mol
+            molecule to be matched
+        mol_idx : int
+            index of the molecule in the dataset
+
+        Returns
+        -------
+        list[dict[]]
+            A dict for every atom with the atom properties and the result of the match.
+        """
         return_list = []
         for atom in mol.GetAtoms():
             return_dict = {}
@@ -98,6 +147,21 @@ class tree:
         return return_list
 
     def match_dataset(self, mol_sup, stop=1000000):
+        """
+        Matches all molecules in a dataset to the tree.
+
+        Parameters
+        ----------
+        mol_sup : rdkit.Chem.rdchem.MolSupplier
+            The dataset to be matched.
+        stop : int, optional
+            A early stop for development, by default 1000000
+
+        Returns
+        -------
+        pd.DataFrame
+            A dataframe with the results of the match.
+        """
         i = 0
         tot_list = []
         for mol in tqdm(mol_sup):

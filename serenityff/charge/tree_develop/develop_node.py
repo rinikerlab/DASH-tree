@@ -29,6 +29,18 @@ class develop_node:
     def add_child(self, child):
         self.children.append(child)
 
+    def add_node(self, branch: list):
+        current_parent = self
+        for layer, node in enumerate(branch):
+            if node in current_parent.children:
+                correct_child = current_parent.children[current_parent.children.index(node)]
+                correct_child.data = np.append(correct_child.data, node.data)
+                correct_child.attention_data = np.append(correct_child.attention_data, node.attention_data)
+                current_parent = correct_child
+            else:
+                current_parent.add_child(node)
+                current_parent = current_parent.children[-1]
+
     def max_attention(self):
         return np.max(self.attention_data)
 

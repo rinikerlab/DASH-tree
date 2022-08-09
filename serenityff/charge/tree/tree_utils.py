@@ -24,25 +24,24 @@ def create_mol_from_suply(sdf_suply: str, index: int) -> Chem.Mol:
     return Chem.SDMolSupplier(sdf_suply, removeHs=False)[index]
 
 
-def get_possible_connected_atom(line, layer):
+def get_possible_connected_atom(atom_idx:int, layer:int, mol:Chem.Mol) -> list:
     """
-    Get the possible connected atoms of a subgraph in the construction tree.
+    Get the possible connected atoms of a subgraph of size layer in the construction tree.
 
     Parameters
     ----------
-    line : pandas.dataframe line
-        The line of the raw construction tree.
+    atom_idx : int
+        The idx of the atom.
     layer : int
-        The layer in the construction tree.
+        Number of layers to iterate over.
+    mol : Chem.Mol
+        The molecule to get the possible connected atoms for.
 
     Returns
     -------
-    list[int]
-        The possible connected atoms of the subgraph of the molecule.
+    _type_
+        _description_
     """
-    mol = line["mol"]
-    atom_idx = line["idx_in_mol"]
-
     possible_atoms = [int(atom_idx)]
     last_atoms = [int(atom_idx)]
     for _ in range(layer):
@@ -59,23 +58,23 @@ def get_possible_connected_atom(line, layer):
     return possible_atoms
 
 
-def get_possible_connected_new_atom(line, mol):
+def get_possible_connected_new_atom(mol:Chem.Mol, connected_atoms:list[int]) -> list:
     """
     Get the list of neighbours of a subgraph in the construction tree.
 
     Parameters
     ----------
-    line : pandas.dataframe line
-        The line of the raw construction tree.
     mol : Chem.Mol
         The molecule to get the possible connected atoms for.
+    connected_atoms : list[int]
+        The already connected atoms of the subgraph of the molecule.
 
     Returns
     -------
     list[int]
         The possible connected atoms of the subgraph of the molecule.
     """
-    possible_atoms = line["connected_atoms"]
+    possible_atoms = connected_atoms
     new_atoms = set()
     for atom in possible_atoms:
         for bond in mol.GetAtomWithIdx(atom).GetBonds():
@@ -86,24 +85,27 @@ def get_possible_connected_new_atom(line, mol):
     return list(new_atoms)
 
 
-def get_connected_atom_with_max_attention(line, layer):
+def get_connected_atom_with_max_attention(atom_idx:int, layer:int, mol:Chem.Mol, node_attentions:list[float]) -> list:
     """
     Get the neighbour atom with the highest attention.
 
     Parameters
     ----------
-    line : pandas.dataframe line
-        The line of the raw construction tree.
+    atom_idx : int
+        The idx of the atom.
     layer : int
-        The layer in the construction tree.
+        Number of layers to iterate over.
+    mol : Chem.Mol
+        The molecule to get the possible connected atoms for.
+    node_attentions : list[float]
+        The attention of the nodes.
 
     Returns
     -------
     list[int, int]
         The  absolute atom idx of the connected atom with the highest attention and the attention.
     """
-    node_attentions = line["node_attentions"]
-    possible_atoms = get_possible_connected_atom(line, layer)
+    possible_atoms = get_possible_connected_atom(atom_idx, layer, mol)
     max_attention_index = None
     max_attention = 0
     for atom_idx in possible_atoms:
@@ -113,16 +115,16 @@ def get_connected_atom_with_max_attention(line, layer):
     return (max_attention_index, max_attention)
 
 
-def get_connected_neighbor(line, idx, mol):
+def get_connected_neighbor(atom_idx:int, connected_atoms:list[int], mol:Chem.Mol) -> list:
     """
     Get the closest connected neighbor of an atom.
 
     Parameters
     ----------
-    line : pandas.dataframe line
-        The line of the raw construction tree.
-    idx : int
+    atom_idx : int
         The idx of the atom.
+    connected_atoms : list[int]
+        The already connected atoms of the subgraph of the molecule.
     mol : Chem.Mol
         The molecule to get the connected neighbor from.
 
@@ -131,15 +133,14 @@ def get_connected_neighbor(line, idx, mol):
     list[int, int]
         relative atom idx and absolute atom idx of the connected neighbor.
     """
-    connected_idx = line["connected_atoms"]
-    for b in mol.GetAtomWithIdx(int(idx)).GetBonds():
-        if b.GetBeginAtomIdx() in connected_idx:
+    for b in mol.GetAtomWithIdx(int(atom_idx)).GetBonds():
+        if b.GetBeginAtomIdx() in connected_atoms:
             absolut_idx = b.GetBeginAtomIdx()
-            relative_idx = connected_idx.index(absolut_idx)
+            relative_idx = connected_atoms.index(absolut_idx)
             return (relative_idx, absolut_idx)
-        if b.GetEndAtomIdx() in connected_idx:
+        if b.GetEndAtomIdx() in connected_atoms:
             absolut_idx = b.GetEndAtomIdx()
-            relative_idx = connected_idx.index(absolut_idx)
+            relative_idx = connected_atoms.index(absolut_idx)
             return (relative_idx, absolut_idx)
     return None
 

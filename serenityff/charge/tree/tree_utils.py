@@ -24,7 +24,7 @@ def create_mol_from_suply(sdf_suply: str, index: int) -> Chem.Mol:
     return Chem.SDMolSupplier(sdf_suply, removeHs=False)[index]
 
 
-def get_possible_connected_atom(atom_idx:int, layer:int, mol:Chem.Mol) -> list:
+def get_possible_connected_atom(atom_idx: int, layer: int, mol: Chem.Mol) -> list:
     """
     Get the possible connected atoms of a subgraph of size layer in the construction tree.
 
@@ -58,7 +58,7 @@ def get_possible_connected_atom(atom_idx:int, layer:int, mol:Chem.Mol) -> list:
     return possible_atoms
 
 
-def get_possible_connected_new_atom(mol:Chem.Mol, connected_atoms:list[int]) -> list:
+def get_possible_connected_new_atom(mol: Chem.Mol, connected_atoms: list[int]) -> list:
     """
     Get the list of neighbours of a subgraph in the construction tree.
 
@@ -85,7 +85,9 @@ def get_possible_connected_new_atom(mol:Chem.Mol, connected_atoms:list[int]) -> 
     return list(new_atoms)
 
 
-def get_connected_atom_with_max_attention(atom_idx:int, layer:int, mol:Chem.Mol, node_attentions:list[float]) -> list:
+def get_connected_atom_with_max_attention(
+    atom_idx: int, layer: int, mol: Chem.Mol, node_attentions: list[float]
+) -> list:
     """
     Get the neighbour atom with the highest attention.
 
@@ -115,7 +117,7 @@ def get_connected_atom_with_max_attention(atom_idx:int, layer:int, mol:Chem.Mol,
     return (max_attention_index, max_attention)
 
 
-def get_connected_neighbor(atom_idx:int, connected_atoms:list[int], mol:Chem.Mol) -> list:
+def get_connected_neighbor(atom_idx: int, connected_atoms: list[int], mol: Chem.Mol) -> list:
     """
     Get the closest connected neighbor of an atom.
 

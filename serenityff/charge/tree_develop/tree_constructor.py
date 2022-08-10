@@ -30,14 +30,14 @@ class Tree_constructor:
         # Get sdfs of all molecules
         self.sdf_suplier = Chem.SDMolSupplier(sdf_suplier, removeHs=False)
 
-        # get the dataset with all the information
+        #  get the dataset with all the information
         self.original_df = pd.read_csv(
             df_path,
             usecols=["atomtype", "smiles", "mol_index", "idx_in_mol", "node_attentions", "prediction", "truth"],
             nrows=nrows,
         )
 
-        # split the dataset into build and test
+        #  split the dataset into build and test
         random.seed(seed)
         test_set = random.sample(
             self.original_df.mol_index.unique().tolist(), int(len(self.original_df.mol_index.unique()) * data_split)

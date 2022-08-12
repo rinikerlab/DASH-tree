@@ -19,7 +19,7 @@ class tree:
     # General helper functions
     ###############################################################################
 
-    def from_file(self, file_path: str):
+    def from_file(self, file_path: str, nrows=None):
         """
         Reads a tree from a file.
 
@@ -28,7 +28,7 @@ class tree:
         file_path : str
             The path to the file. (file must be readable by pandas)
         """
-        self.root = self.from_file(file_path)
+        self.root.from_file(file_path, nrows=nrows)
 
     def update_tree_length(self):
         """
@@ -69,7 +69,7 @@ class tree:
         list[node, list[node]]
             The final matched node and the path to the node
         """
-        current_correct_node = tree.root
+        current_correct_node = self.root
         node_path = [self.root]
         connected_atoms = []
         for i in range(20):
@@ -169,4 +169,15 @@ class tree:
                 break
             tot_list.extend(self.match_molecules_atoms(mol, i))
             i += 1
+        return pd.DataFrame(tot_list)
+
+    def match_dataset_with_indices(self, mol_sup, indices):
+        i = 0
+        tot_list = []
+        for mol in tqdm(mol_sup):
+            if i in indices:
+                tot_list.extend(self.match_molecules_atoms(mol, i))
+                i += 1
+            else:
+                i += 1
         return pd.DataFrame(tot_list)

@@ -8,16 +8,22 @@ from serenityff.charge.tree.atom_features import atom_features
 class node:
     def __init__(
         self,
-        atom: List = None,
-        level: int = None,
+        atom: List = [],
+        level: int = 0,
         result: float = np.NaN,
         stdDeviation: float = np.NaN,
         attention: float = np.NaN,
-        count: int = np.NaN,
+        count: int = 0,
         number: int = 0,
+        parent_number: int = 0,
     ):
         self.level = level
-        self.atoms = atom
+        self.atoms = None
+        if atom is not None:
+            if isinstance(atom, list):
+                self.atoms = atom
+            else:
+                self.atoms = [atom]
         self.hashes = []
 
         self.result = result
@@ -25,13 +31,16 @@ class node:
         self.attention = attention
         self.count = count
         self.number = number
+        self.parent_number = parent_number
+        self.children = []
 
-        self.hashes = self._get_hash()
+        if self.atoms is not None:
+            self.hashes = self._get_hash()
 
     def __repr__(self) -> str:
         if self.level == 0:
             return "root"
-        return f"mn {len(self.atoms)} - {self.result} - {self.atoms}"
+        return f"node {len(self.atoms)} - {self.result} - {self.count} - {self.atoms}"
 
     def __eq__(self, other):
         if other.hashes == self.hashes:
@@ -39,9 +48,15 @@ class node:
         return False
 
     def _get_hash(self):
+        hashes = []
         if self.atoms is None:
-            return [0]
-        return [hash(str(self.level) + str(atom)) for atom in self.atoms]
+            return hashes
+        for atom in self.atoms:
+            if atom is None:
+                continue
+            else:
+                hashes.append(atom.hash)
+        return hashes
 
     def add_node(self, node):
         """
@@ -137,29 +152,29 @@ class node:
         node_dict_list = []
         node_dict_list, number = self._node_to_dict(node_dict_list, number=0)
         df = pd.DataFrame(node_dict_list)
-        df.to_csv(file_path)
+        df.to_csv(file_path, sep=";", na_rep="NaN")
         print(f"Saved to {file_path} with {number} nodes")
 
     def _node_to_dict(self, node_dict: Dict, number: int, parent_number: int = 0):
         this_node = {
-            "level": self.level,
-            "atom": self.atoms,
-            "result": self.result,
-            "stdDeviation": self.stdDeviation,
-            "attention": self.attention,
-            "count": self.count,
-            "num_children": len(self.children),
-            "number": number,
-            "parent_number": parent_number,
+            "level": np.int32(self.level),
+            "atom": str(self.atoms),
+            "result": np.float32(self.result),
+            "stdDeviation": np.float32(self.stdDeviation),
+            "attention": np.float32(self.attention),
+            "count": np.int32(self.count),
+            "num_children": np.int32(len(self.children)),
+            "number": np.int32(number),
+            "parent_number": np.int32(parent_number),
         }
         node_dict.append(this_node)
         parent_number = number
         number += 1
         for child in self.children:
-            node_dict, number = child.node_to_dict(node_dict, number, parent_number)
+            node_dict, number = child._node_to_dict(node_dict, number, parent_number)
         return (node_dict, number)
 
-    def from_file(self, file_path: str):
+    def from_file(self, file_path: str, nrows: int = None):
         """
         Read a tree from a file.
 
@@ -172,6 +187,7 @@ class node:
             df = pd.read_csv(
                 file_path,
                 index_col=0,
+                sep=";",
                 dtype={
                     "level": np.int32,
                     "atom": str,
@@ -182,27 +198,46 @@ class node:
                     "num_children": np.int32,
                     "number": np.int32,
                 },
+                nrows=nrows,
             )
             self._node_from_df(df, index=0)
         except FileNotFoundError:
             Warning(f"File {file_path} not found")
 
+    def _df_parse_atoms(self, atoms_line: str):
+        self.atoms = []
+        try:
+            atoms_list = atoms_line.strip("[").strip("]").split(",")
+            for atom_str in atoms_list:
+                atom_split = atom_str.strip().split(" ")
+                atom = atom_features(data=atom_split)
+                self.atoms.append(atom)
+        except Exception as e:
+            print(e)
+            print(atoms_list)
+            print(atom_split)
+            print(f"Error parsing atoms for node {self.number}\n {atoms_line}")
+
+    def _df_line_parsing(self, df_line: pd.Series):
+        self.level = df_line["level"]
+        self.result = df_line["result"]
+        self.stdDeviation = df_line["stdDeviation"]
+        self.attention = df_line["attention"]
+        self.count = df_line["count"]
+        self.number = df_line["number"]
+        self.parent_number = df_line["parent_number"]
+        self.children = []
+        self._df_parse_atoms(df_line["atom"])
+
     def _node_from_df(self, df: pd.DataFrame, index: int, parent_level: int = -1):
         if index >= len(df):
             return index
-        this_node = df.iloc[index]
-        self.level = this_node["level"]
+        this_line = df.iloc[index]
+        self._df_line_parsing(this_line)
         if self.level <= parent_level:  # saftey to check if node can be child
             return None
-        atom_data = this_node["atom"].split(" ") if isinstance(this_node["atom"], str) else []
-        self.atom = atom_features(data=atom_data)
-        self.result = this_node["result"]
-        self.stdDeviation = this_node["stdDeviation"]
-        self.attention = this_node["attention"]
-        self.count = this_node["count"]
-        self.number = this_node["number"]
         self.children = []
-        num_children = this_node["num_children"]
+        num_children = this_line["num_children"]
         children_found = 0
         if num_children > 0:
             if self.level != 0:
@@ -278,7 +313,7 @@ class node:
         """
         for idx, child in enumerate(self.children):
             for other_child in self.children[idx + 1 :]:
-                if child.node_is_similar(other_child, min_std_deviation=min_deviation):
+                if child.node_is_similar(other_child, min_deviation=min_deviation):
                     control_bool = True
                     child_match = 0
                     for node_i in child.children:
@@ -286,7 +321,7 @@ class node:
                             child_match += 1
                             if not node_i.node_is_similar(
                                 other_child.children[other_child.children.index(node_i)],
-                                min_std_deviation=min_deviation,
+                                min_deviation=min_deviation,
                             ):
                                 control_bool = False
                                 break
@@ -297,7 +332,7 @@ class node:
                     ):
                         child.add_node(other_child)
                         self.children.remove(other_child)
-            child.try_to_merge_similar_branches(min_std_deviation=min_deviation)
+            child.try_to_merge_similar_branches(min_deviation=min_deviation)
 
     def get_tree_length(self, length_dict: Dict):
         """

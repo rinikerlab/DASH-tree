@@ -1,8 +1,10 @@
 import numpy as np
 
+from serenityff.charge.tree.atom_features import atom_features
+
 
 class develop_node:
-    def __init__(self, atom=None, level=None, data=None, attention_data=None, parent_attention=0):
+    def __init__(self, atom=atom_features(), level=0, data=None, attention_data=None, parent_attention=0):
         self.children = []
         self.level = level
         self.parent_attention = parent_attention
@@ -73,6 +75,7 @@ class develop_node:
         list[float, float, float, int]
             [result, stdDeviation, attention, length]
         """
+        self.update_average()
         if self.level == 0:
             return (np.float32(np.nan), np.float32(np.nan), np.float32(np.nan), 0)
         if self.data.size == 1:
@@ -82,4 +85,9 @@ class develop_node:
             if selected_data.size == 0:
                 return (np.mean(self.data), np.std(self.data), np.mean(self.attention_data), self.data.size)
             else:
-                return (np.mean(selected_data), np.std(selected_data), np.mean(self.attention_data), selected_data.size)
+                return (
+                    np.mean(selected_data),
+                    np.std(selected_data),
+                    np.mean(np.array(self.attention_data)[np.argsort(self.attention_data)][-3:]),
+                    selected_data.size,
+                )

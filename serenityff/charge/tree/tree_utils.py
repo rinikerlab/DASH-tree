@@ -86,28 +86,26 @@ def get_possible_connected_new_atom(mol: Chem.Mol, connected_atoms: list[int]) -
 
 
 def get_connected_atom_with_max_attention(
-    atom_idx: int, layer: int, mol: Chem.Mol, node_attentions: list[float]
+    mol: Chem.Mol, node_attentions: list[float], connected_atoms: list[int]
 ) -> list:
     """
     Get the neighbour atom with the highest attention.
 
     Parameters
     ----------
-    atom_idx : int
-        The idx of the atom.
-    layer : int
-        Number of layers to iterate over.
     mol : Chem.Mol
         The molecule to get the possible connected atoms for.
     node_attentions : list[float]
         The attention of the nodes.
+    connected_atoms : list[int]
+        The already connected atoms of the subgraph of the molecule.
 
     Returns
     -------
     list[int, int]
         The  absolute atom idx of the connected atom with the highest attention and the attention.
     """
-    possible_atoms = get_possible_connected_atom(atom_idx, layer, mol)
+    possible_atoms = get_possible_connected_new_atom(mol, connected_atoms)
     max_attention_index = None
     max_attention = 0
     for atom_idx in possible_atoms:
@@ -180,7 +178,7 @@ def get_possible_atom_features(mol, connected_atoms):
     return possible_atom_features, possible_atom_idxs
 
 
-def create_new_node_from_develop_node(current_develop_node: develop_node, current_new_node: node):
+def create_new_node_from_develop_node(current_develop_node: develop_node) -> node:
     """
     Create a new node from a develop node. Used to convert a the raw construction tree to a final tree.
 
@@ -190,11 +188,18 @@ def create_new_node_from_develop_node(current_develop_node: develop_node, curren
         The develop node to convert.
     current_new_node : node
         The new node to create.
+
+    Returns
+    -------
+    node
+        The new node.
     """
+    # get current node properties
     atom = current_develop_node.atom
     level = current_develop_node.level
     result, std, attention, size = current_develop_node.get_node_result_and_std_and_attention_and_length()
-    new_new_node = node(atom, level, result, std, attention, size)
-    current_new_node.add_child(new_new_node)
+    current_new_node = node(atom=[atom], level=level, result=result, stdDeviation=std, attention=attention, count=size)
+    # do the same things recursively for the children (get their properties and create the new nodes)
     for child in current_develop_node.children:
-        create_new_node_from_develop_node(child, new_new_node)
+        current_new_node.add_child(create_new_node_from_develop_node(child))
+    return current_new_node

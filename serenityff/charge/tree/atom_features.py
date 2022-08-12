@@ -9,11 +9,7 @@ class atom_features:
     """
 
     def __init__(self, mol: Chem.rdchem.Mol = None, idx=None, connectedTo=(None, None), data=None):
-        if data is None:
-            if mol is None:
-                raise ValueError("mol is None")
-            if idx is None:
-                raise ValueError("idx is None")
+        if data is None and mol is not None and idx is not None:
             atom = mol.GetAtomWithIdx(int(idx))
             self.idx = idx
             self.element = atom.GetSymbol()
@@ -29,7 +25,7 @@ class atom_features:
                 else str(mol.GetBondBetweenAtoms(int(idx), int(connectedTo[1])).GetBondType())
             )
             self.hash = self._hash_atom_features()
-        else:
+        elif data is not None:
             if len(data) == 8:
                 self.idx = 0
                 self.element = data[0]
@@ -56,6 +52,19 @@ class atom_features:
                     self.connectedTo = (None, None)
                     self.connectionBondType = None
                 self.hash = self._hash_atom_features()
+            else:
+                raise ValueError("data must be a list of length 8")
+        else:
+            self.idx = 0
+            self.element = "XXX"
+            self.num_bonds = 0
+            self.formalCharge = 0
+            self.hybridization = ""
+            self.IsAromatic = False
+            self.TotalNumHs = 0
+            self.connectedTo = (None, None)
+            self.connectionBondType = None
+            self.hash = 0
 
     def __repr__(self):
         return f"{self.element} {self.num_bonds} {self.formalCharge} {str(self.hybridization)} {self.IsAromatic} {self.TotalNumHs} {self.connectedTo[0]} {str(self.connectionBondType)}"

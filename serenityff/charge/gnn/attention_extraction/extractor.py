@@ -329,7 +329,7 @@ class Extractor:
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"import extractor as e; e.Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
+        text += r"from serenityff.charge import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
         text += '"\n'
         text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:
@@ -346,7 +346,7 @@ class Extractor:
         file = "cleaner.sh" if not directory else f"{directory}/cleaner.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"import extractor as e; e.Extractor._clean_up(model=${1}, sdf_index=int(${2}), scratch='${3}')"
+        text += r"from serenityff.charge import Extractor; Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
         text += '"\n'
         with open(file, "w") as f:
             f.write(text)

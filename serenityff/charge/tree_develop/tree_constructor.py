@@ -44,6 +44,10 @@ class Tree_constructor:
         )
         self.df = self.original_df.loc[~self.original_df.mol_index.isin(test_set)].copy()
         self.test_df = self.original_df.loc[self.original_df.mol_index.isin(test_set)].copy()
+        num_train_mols = len(self.df.mol_index.unique())
+        num_test_mols = len(self.test_df.mol_index.unique())
+        print(f"Number of train mols: {num_train_mols}")
+        print(f"Number of test mols: {num_test_mols}")
 
         # prepare df to build the tree
         self.df["node_attentions"] = self.df["node_attentions"].apply(eval)
@@ -173,8 +177,11 @@ class Tree_constructor:
 
         self.root.update_average()
 
-    def convert_tree_to_node(self):
+    def convert_tree_to_node(self, delDevelop=False):
         self.new_root = create_new_node_from_develop_node(self.root)
+        if delDevelop:
+            del self.root
+            self.root = None
 
     def calculate_tree_length(self):
         self.tree_length = self.new_root.calculate_tree_length()

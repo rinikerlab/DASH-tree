@@ -1,3 +1,4 @@
+import glob
 from collections import defaultdict
 import numpy as np
 import pandas as pd
@@ -29,6 +30,22 @@ class tree:
             The path to the file. (file must be readable by pandas)
         """
         self.root.from_file(file_path, nrows=nrows)
+
+    def from_folder(self, folder_path: str, verbose=False):
+        self.root = node(level=0)
+        all_files_in_folder = glob.glob(folder_path + "/tree*.csv")
+        if verbose:
+            print("Found {} files in folder".format(len(all_files_in_folder)))
+        for file_path in all_files_in_folder:
+            try:
+                new_node = node(level=0)
+                new_node.from_file(file_path)
+                self.root.add_child(new_node)
+                if verbose:
+                    print("Added {}".format(file_path))
+            except Exception as e:
+                print(e)
+                continue
 
     def update_tree_length(self):
         """

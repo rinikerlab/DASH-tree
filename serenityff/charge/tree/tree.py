@@ -40,7 +40,7 @@ class tree:
             try:
                 new_node = node(level=0)
                 new_node.from_file(file_path)
-                self.root.add_child(new_node)
+                self.root.children.append(new_node)
                 if verbose:
                     print("Added {}".format(file_path))
             except Exception as e:

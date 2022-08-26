@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from serenityff.charge.tree.atom_features import atom_features
+from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import get_possible_atom_features
 
@@ -74,7 +74,7 @@ class tree:
         for i in range(20):
             try:
                 if i == 0:
-                    possible_new_atom_features = [atom_features(mol, atom)]
+                    possible_new_atom_features = [AtomFeatures.from_molecule(mol, atom)]
                     possible_new_atom_idxs = [atom]
                 else:
                     possible_new_atom_features, possible_new_atom_idxs = get_possible_atom_features(

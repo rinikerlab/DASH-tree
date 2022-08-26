@@ -7,7 +7,8 @@ import pandas as pd
 from rdkit import Chem
 from tqdm import tqdm
 
-from serenityff.charge.tree.atom_features import atom_features
+from serenityff.charge.gnn.utils import mols_from_sdf
+from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import (
     create_new_node_from_develop_node,
@@ -15,7 +16,7 @@ from serenityff.charge.tree.tree_utils import (
     get_connected_neighbor,
     get_possible_connected_new_atom,
 )
-from serenityff.charge.tree_develop.develop_node import develop_node
+from serenityff.charge.tree_develop.develop_node import DevelopNode
 
 
 class Tree_constructor:
@@ -30,7 +31,7 @@ class Tree_constructor:
         num_layers_to_build=24,
     ):
         # Get sdfs of all molecules
-        self.sdf_suplier = Chem.SDMolSupplier(sdf_suplier, removeHs=False)
+        self.sdf_suplier = mols_from_sdf(sdf_file=sdf_suplier)
 
         #  get the dataset with all the information
         self.original_df = pd.read_csv(
@@ -70,22 +71,20 @@ class Tree_constructor:
 
         self.num_layers_to_build = num_layers_to_build
 
-        self.root = develop_node()
+        self.root = DevelopNode()
         self.new_root = node(level=0)
 
     def try_to_add_new_node(self, line, matrix, mol, layer):
         connected_atoms = line["connected_atoms"]
         truth_value = line["truth"]
-        node_attentions = line["node_attentions"]
         connected_attentions = line["connected_attentions"]
-        connected_atom_max_attention_idx = line["connected_atom_max_attention_idx"]
         connected_atom_max_attention = line["connected_atom_max_attention"]
 
         try:
             current_node = self.root
             for i in range(layer):
                 for child in current_node.children:
-                    if child.atom == line[i]:
+                    if child.atom_features == line[i]:
                         current_node = child
                         break
             matching_child = None
@@ -97,57 +96,58 @@ class Tree_constructor:
                 possible_new_atoms = [
                     (
                         i,
-                        atom_features(
+                        AtomFeatures.from_molecule(
                             mol,
-                            i,
-                            connectedTo=get_connected_neighbor(matrix=matrix, idx=i, indices=np.array(connected_atoms)),
+                            int(i),
+                            connected_to=get_connected_neighbor(
+                                matrix=matrix, idx=i, indices=np.array(connected_atoms)
+                            ),
                         ),
                     )
                     for i in possible_new_atoms_idx
                 ]
                 for idx, possible_new_atom in possible_new_atoms:
-                    if possible_new_atom == child.atom:
+                    if possible_new_atom == child.atom_features:
                         matching_child = child
                         new_atom_idx = idx
                         break
                 if matching_child is not None:
                     break
             if matching_child is not None:
-                matching_child.data = np.append(matching_child.data, truth_value)
-                attention_value = node_attentions[new_atom_idx]
-                matching_child.attention_data = np.append(matching_child.attention_data, attention_value)
-                line[i] = matching_child.atom
+                matching_child.truth_values = np.append(matching_child.truth_values, truth_value)
+                attention_value = line["node_attentions"][new_atom_idx]
+                matching_child.attention_values = np.append(matching_child.attention_values, attention_value)
+                line[i] = matching_child.atom_features
                 connected_atoms.append(new_atom_idx)
                 connected_attentions.append(attention_value)
-                return matching_child.atom
+                return matching_child.atom_features
             else:
-                current_atom_idx = int(connected_atom_max_attention_idx)
+                current_atom_idx = int(line["connected_atom_max_attention_idx"])
                 connectedTo = get_connected_neighbor(
                     matrix=matrix,
                     idx=current_atom_idx,
                     indices=np.array(connected_atoms),
                 )
-                new_atom_feature = atom_features(mol, current_atom_idx, connectedTo=connectedTo)
-                new_node = develop_node(
-                    atom=new_atom_feature,
+                new_atom_feature = AtomFeatures.from_molecule(mol, current_atom_idx, connected_to=connectedTo)
+                new_node = DevelopNode(
+                    atom_features=new_atom_feature,
                     level=layer + 1,
-                    data=truth_value,
-                    attention_data=connected_atom_max_attention,
-                    parent_attention=current_node.parent_attention + np.max(current_node.attention_data),
+                    truth_values=truth_value,
+                    attention_values=connected_atom_max_attention,
+                    parent_attention=current_node.parent_attention + np.max(current_node.attention_values),
                 )
                 current_node.add_child(new_node)
-                line[i] = new_node.atom
+                line[i] = new_node.atom_features
                 connected_atoms.append(current_atom_idx)
                 connected_attentions.append(connected_atom_max_attention)
             return new_atom_feature
         except Exception as e:
             raise e
-            return None
 
     def _create_feature_0_in_table(self, line):
         mol = self.sdf_suplier[line["mol_index"]]
         idx = line["idx_in_mol"]
-        atom = atom_features(mol, idx)
+        atom = AtomFeatures.from_molecule(mol, idx)
         line["connected_atoms"] = line["connected_atoms"].append(idx)
         line["connected_attentions"] = line["connected_attentions"].append(line["node_attentions"][idx])
         return atom
@@ -157,20 +157,21 @@ class Tree_constructor:
         self.df.apply(
             lambda x: self.root.add_node(
                 [
-                    develop_node(
-                        atom=x[0],
+                    DevelopNode(
+                        atom_features=x[0],
                         level=1,
-                        data=x["truth"],
-                        attention_data=x["connected_attentions"][0],
+                        truth_values=x["truth"],
+                        attention_values=x["connected_attentions"][0],
                     )
                 ]
             ),
             axis=1,
         )
         self.matrices = []
-        for index, mol in enumerate(tqdm(self.sdf_suplier)):
-            self.matrices.append(np.array(Chem.GetAdjacencyMatrix(mol), np.bool_))
-            np.fill_diagonal(self.matrices[index], True)
+        for mol in tqdm(self.sdf_suplier):
+            matrix = np.array(Chem.GetAdjacencyMatrix(mol), np.bool_)
+            np.fill_diagonal(matrix, True)
+            self.matrices.append(matrix)
         self.df["total_connected_attention"] = self.df["connected_attentions"].apply(np.sum)
         print(f"{datetime.datetime.now()}\tLayer 0 done")
 

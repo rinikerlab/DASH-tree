@@ -3,7 +3,7 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-from serenityff.charge.tree.atom_features import atom_features
+from serenityff.charge.tree.atom_features import AtomFeatures
 
 
 class node:
@@ -211,7 +211,7 @@ class node:
             atoms_list = atoms_line.strip("[").strip("]").split(",")
             for atom_str in atoms_list:
                 atom_split = atom_str.strip().split(" ")
-                atom = atom_features(data=atom_split)
+                atom = AtomFeatures.from_data(data=atom_split)
                 self.atoms.append(atom)
         except Exception as e:
             print(e)
@@ -268,7 +268,7 @@ class node:
     def _get_attribute_from_df_line(self, df_line):
         self.level = df_line["level"]
         atom_data = df_line["atom"].split(" ") if isinstance(df_line["atom"], str) else []
-        self.atom = atom_features(data=atom_data)
+        self.atom = AtomFeatures.from_data(data=atom_data)
         self.result = df_line["result"]
         self.stdDeviation = df_line["stdDeviation"]
         self.attention = df_line["attention"]

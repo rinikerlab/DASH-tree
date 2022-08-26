@@ -2,30 +2,10 @@ from typing import Tuple
 
 import numpy as np
 from numba import njit
-from rdkit import Chem
 
-from serenityff.charge.tree.atom_features import atom_features
+from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.node import node
-from serenityff.charge.tree_develop.develop_node import develop_node
-
-
-def create_mol_from_suply(sdf_suply: str, index: int) -> Chem.Mol:
-    """
-    Create a molecule from a sdf suply.
-
-    Parameters
-    ----------
-    sdf_suply : str
-        The sdf file path to create the molecule from.
-    index : int
-        The index of the molecule in the sdf file.
-
-    Returns
-    -------
-    Chem.Mol
-        The molecule with all Hs
-    """
-    return Chem.SDMolSupplier(sdf_suply, removeHs=False)[index]
+from serenityff.charge.tree_develop.develop_node import DevelopNode
 
 
 def get_possible_atom_features(mol, connected_atoms):
@@ -41,7 +21,7 @@ def get_possible_atom_features(mol, connected_atoms):
 
     Returns
     -------
-    list[list[atom_features], list[int]]
+    list[list[AtomFeatures], list[int]]
         The possible atom features for the molecule and the possible atom idxs.
     """
     possible_atom_features = []
@@ -50,32 +30,32 @@ def get_possible_atom_features(mol, connected_atoms):
         for bond in mol.GetAtomWithIdx(atom).GetBonds():
             if bond.GetBeginAtomIdx() not in connected_atoms:
                 possible_atom_features.append(
-                    atom_features(
+                    AtomFeatures.from_molecule(
                         mol,
                         bond.GetBeginAtomIdx(),
-                        connectedTo=(connected_atoms.index(atom), atom),
+                        connected_to=(connected_atoms.index(atom), atom),
                     )
                 )
                 possible_atom_idxs.append(bond.GetBeginAtomIdx())
             if bond.GetEndAtomIdx() not in connected_atoms:
                 possible_atom_features.append(
-                    atom_features(
+                    AtomFeatures.from_molecule(
                         mol,
                         bond.GetEndAtomIdx(),
-                        connectedTo=(connected_atoms.index(atom), atom),
+                        connected_to=(connected_atoms.index(atom), atom),
                     )
                 )
                 possible_atom_idxs.append(bond.GetEndAtomIdx())
     return possible_atom_features, possible_atom_idxs
 
 
-def create_new_node_from_develop_node(current_develop_node: develop_node) -> node:
+def create_new_node_from_develop_node(current_develop_node: DevelopNode) -> node:
     """
     Create a new node from a develop node. Used to convert a the raw construction tree to a final tree.
 
     Parameters
     ----------
-    current_develop_node : develop_node
+    current_develop_node : DevelopNode
         The develop node to convert.
     current_new_node : node
         The new node to create.
@@ -86,7 +66,7 @@ def create_new_node_from_develop_node(current_develop_node: develop_node) -> nod
         The new node.
     """
     # get current node properties
-    atom = current_develop_node.atom
+    atom = current_develop_node.atom_features
     level = current_develop_node.level
     (
         result,

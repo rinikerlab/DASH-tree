@@ -1,12 +1,11 @@
 from collections import defaultdict
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from serenityff.charge.tree.node import node
 from serenityff.charge.tree.atom_features import atom_features
-
-
+from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import get_possible_atom_features
 
 

@@ -59,8 +59,7 @@ class Tree_constructor:
         num_test_mols = len(self.test_df.mol_index.unique())
         print(f"Number of train mols: {num_train_mols}")
         print(f"Number of test mols: {num_test_mols}")
-
-        # prepare df to build the tree
+        delattr(self, "original_df")
         self.df["node_attentions"] = self.df["node_attentions"].apply(eval)
         self.df["node_attentions"] = self.df["node_attentions"].apply(
             lambda x: (np.array(x) / sum(x)).tolist()

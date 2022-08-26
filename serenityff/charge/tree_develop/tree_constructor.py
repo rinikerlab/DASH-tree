@@ -1,19 +1,21 @@
+import datetime
 import pickle
-from rdkit import Chem
+import random
+
 import numpy as np
 import pandas as pd
-import random
-import datetime
+from rdkit import Chem
+from tqdm import tqdm
 
 from serenityff.charge.tree.atom_features import atom_features
-from serenityff.charge.tree_develop.develop_node import develop_node
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import (
-    get_connected_atom_with_max_attention,
-    get_possible_connected_new_atom,
-    get_connected_neighbor,
     create_new_node_from_develop_node,
+    get_connected_atom_with_max_attention,
+    get_connected_neighbor,
+    get_possible_connected_new_atom,
 )
+from serenityff.charge.tree_develop.develop_node import develop_node
 
 
 class Tree_constructor:
@@ -33,14 +35,23 @@ class Tree_constructor:
         #  get the dataset with all the information
         self.original_df = pd.read_csv(
             df_path,
-            usecols=["atomtype", "smiles", "mol_index", "idx_in_mol", "node_attentions", "prediction", "truth"],
+            usecols=[
+                "atomtype",
+                "smiles",
+                "mol_index",
+                "idx_in_mol",
+                "node_attentions",
+                "prediction",
+                "truth",
+            ],
             nrows=nrows,
         )
 
         #  split the dataset into build and test
         random.seed(seed)
         test_set = random.sample(
-            self.original_df.mol_index.unique().tolist(), int(len(self.original_df.mol_index.unique()) * data_split)
+            self.original_df.mol_index.unique().tolist(),
+            int(len(self.original_df.mol_index.unique()) * data_split),
         )
         self.df = self.original_df.loc[~self.original_df.mol_index.isin(test_set)].copy()
         self.test_df = self.original_df.loc[self.original_df.mol_index.isin(test_set)].copy()
@@ -63,7 +74,7 @@ class Tree_constructor:
         self.root = develop_node()
         self.new_root = node(level=0)
 
-    def try_to_add_new_node(self, line, mol, layer):
+    def try_to_add_new_node(self, line, matrix, mol, layer):
         connected_atoms = line["connected_atoms"]
         truth_value = line["truth"]
         node_attentions = line["node_attentions"]
@@ -81,14 +92,16 @@ class Tree_constructor:
             matching_child = None
             new_atom_idx = None
             for child in current_node.children:
-                possible_new_atoms_idx = get_possible_connected_new_atom(mol, connected_atoms=connected_atoms)
+                possible_new_atoms_idx = list(
+                    get_possible_connected_new_atom(matrix, indices=np.array(connected_atoms))
+                )
                 possible_new_atoms = [
                     (
                         i,
                         atom_features(
                             mol,
                             i,
-                            connectedTo=get_connected_neighbor(atom_idx=i, mol=mol, connected_atoms=connected_atoms),
+                            connectedTo=get_connected_neighbor(matrix=matrix, idx=i, indices=np.array(connected_atoms)),
                         ),
                     )
                     for i in possible_new_atoms_idx
@@ -111,7 +124,9 @@ class Tree_constructor:
             else:
                 current_atom_idx = int(connected_atom_max_attention_idx)
                 connectedTo = get_connected_neighbor(
-                    atom_idx=current_atom_idx, mol=mol, connected_atoms=connected_atoms
+                    matrix=matrix,
+                    idx=current_atom_idx,
+                    indices=np.array(connected_atoms),
                 )
                 new_atom_feature = atom_features(mol, current_atom_idx, connectedTo=connectedTo)
                 new_node = develop_node(
@@ -142,10 +157,21 @@ class Tree_constructor:
         self.df[0] = self.df.apply(self._create_feature_0_in_table, axis=1)
         self.df.apply(
             lambda x: self.root.add_node(
-                [develop_node(atom=x[0], level=1, data=x["truth"], attention_data=x["connected_attentions"][0])]
+                [
+                    develop_node(
+                        atom=x[0],
+                        level=1,
+                        data=x["truth"],
+                        attention_data=x["connected_attentions"][0],
+                    )
+                ]
             ),
             axis=1,
         )
+        self.matrices = []
+        for index, mol in enumerate(tqdm(self.sdf_suplier)):
+            self.matrices.append(np.array(Chem.GetAdjacencyMatrix(mol), np.bool_))
+            np.fill_diagonal(self.matrices[index], True)
         self.df["total_connected_attention"] = self.df["connected_attentions"].apply(np.sum)
         print(f"{datetime.datetime.now()}\tLayer 0 done")
 
@@ -156,22 +182,25 @@ class Tree_constructor:
 
             self.df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
 
-            # self.df_work["connected_atom_max_attention"] = self.df_work.apply(lambda x: get_connected_atom_with_max_attention(atom_idx=int(x["idx_in_mol"]), layer=0, mol=self.sdf_suplier[int(x["mol_index"])], node_attentions=x["node_attentions"])[1], axis=1)
-            # self.df_work["connected_atom_max_attention_idx"] = self.df_work.apply(lambda x: get_connected_atom_with_max_attention(atom_idx=int(x["idx_in_mol"]), layer=0, mol=self.sdf_suplier[int(x["mol_index"])], node_attentions=x["node_attentions"])[0], axis=1)
-
-            self.df_work["connected_atom_max_attention_idx"], self.df_work["connected_atom_max_attention"] = zip(
+            (self.df_work["connected_atom_max_attention_idx"], self.df_work["connected_atom_max_attention"],) = zip(
                 *self.df_work.apply(
                     lambda x: get_connected_atom_with_max_attention(
-                        mol=self.sdf_suplier[int(x["mol_index"])],
-                        node_attentions=x["node_attentions"],
-                        connected_atoms=x["connected_atoms"],
+                        matrix=self.matrices[int(x["mol_index"])],
+                        attentions=np.array(x["node_attentions"]),
+                        indices=np.array(x["connected_atoms"]),
                     ),
                     axis=1,
                 )
             )
             self.df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
             self.df_work[i] = self.df_work.apply(
-                lambda x: self.try_to_add_new_node(x, self.sdf_suplier[int(x["mol_index"])], i), axis=1
+                lambda x: self.try_to_add_new_node(
+                    x,
+                    self.matrices[int(x["mol_index"])],
+                    self.sdf_suplier[int(x["mol_index"])],
+                    i,
+                ),
+                axis=1,
             )
             print(f"{datetime.datetime.now()}\tLayer {i} done", flush=True)
 

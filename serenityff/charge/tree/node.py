@@ -119,6 +119,14 @@ class node:
         else:
             self.children.append(child)
 
+    def fix_nan_stdDeviation(self):
+        if hasattr(self, "stdDeviation") and not np.isnan(self.stdDeviation):
+            pass
+        else:
+            self.stdDeviation = 0.05
+        for child in self.children:
+            child.fix_nan_stdDeviation()
+
     def prune(self, threshold=0.001):
         """
         Prune the tree to remove nodes with a stdDeviation below a threshold.
@@ -129,16 +137,40 @@ class node:
         threshold : float, optional
             pruning threshold, by default 0.001
         """
-        if hasattr(self, "stdDeviation") and self.stdDeviation != np.nan:
-            adjusted_threshold = threshold * ((self.level / 8) + (np.exp(self.level - 20)))
+        # if hasattr(self, "stdDeviation") and self.stdDeviation != np.nan:
+        #     adjusted_threshold = threshold * ((self.level / 8) + (np.exp(self.level - 20)))
 
+        #     if self.stdDeviation < adjusted_threshold:
+        #         for child in self.children:
+        #             if np.abs(child.result - self.result) < adjusted_threshold:
+        #                 self.children.remove(child)
+
+        # for child in self.children:
+        #     child.prune(threshold)
+
+        if hasattr(self, "stdDeviation") and self.stdDeviation != np.nan:
+            adjusted_threshold = threshold * ((self.level / 8))
+            # adjusted_threshold = threshold
             if self.stdDeviation < adjusted_threshold:
                 for child in self.children:
                     if np.abs(child.result - self.result) < adjusted_threshold:
                         self.children.remove(child)
+        else:
+            all_children_similar = True
+            for child in self.children:
+                if np.abs(child.result - self.result) > adjusted_threshold:
+                    all_children_similar = False
+                    break
+            if all_children_similar:
+                for child in self.children:
+                    self.children.remove(child)
+            self.stdDeviation = 0.05
 
         for child in self.children:
-            child.prune(threshold)
+            if child.count < 3 and child.level > 3:
+                self.children.remove(child)
+            else:
+                child.new_prune(threshold)
 
     def to_file(self, file_path: str):
         """
@@ -294,7 +326,7 @@ class node:
         bool
             True if similar, False otherwise
         """
-        if self.level in [0, 1, 2, 3]:
+        if self.level in [0, 1, 2, 3, 4]:
             return False
         if abs(self.result - other.result) < min_deviation:
             return True

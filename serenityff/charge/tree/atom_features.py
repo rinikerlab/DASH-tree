@@ -50,8 +50,7 @@ class AtomFeatures:
             raise ValueError("Data has to have a length of 8.")
         try:
             connected_to = (int(data[6]), 0)
-
-        except TypeError:
+        except (TypeError, ValueError):
             connected_to = (None, None)
         try:
             bond_type_str = data[7]
@@ -64,7 +63,7 @@ class AtomFeatures:
                     ]
                 )
             )
-        except AttributeError:
+        except (AttributeError, ValueError):
             conenection_bond_type = None
 
         return cls(
@@ -73,7 +72,7 @@ class AtomFeatures:
             num_bonds=data[1],
             formal_charge=data[2],
             hybridization=data[3],
-            is_aromatic=data[4],
+            is_aromatic=True if data[4].lower in ("true", "yes", "1") else False,
             total_num_hs=data[5],
             connected_to=connected_to,
             conenection_bond_type=conenection_bond_type,
@@ -136,6 +135,22 @@ class AtomFeatures:
 
     def _hash(self) -> int:
         return hash(repr(self))
+
+    def _is_similar(self, other):
+        sum_similar = 0
+        if self.element == other.element:
+            sum_similar += 1
+        if self.num_bonds == other.num_bonds:
+            sum_similar += 1
+        if self.formal_charge == other.formal_charge:
+            sum_similar += 1
+        if self.hybridization == other.hybridization:
+            sum_similar += 1
+        if self.is_aromatic == other.is_aromatic:
+            sum_similar += 1
+        if self.total_num_hs == other.total_num_hs:
+            sum_similar += 1
+        return sum_similar / 6
 
     @property
     def idx(self) -> int:

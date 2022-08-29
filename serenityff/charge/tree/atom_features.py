@@ -23,7 +23,6 @@ class AtomFeatures:
         connected_to: Tuple[int] = (None, None),
         conenection_bond_type: str = None,
     ) -> None:
-        self.idx = idx
         self.element = element
         self.num_bonds = num_bonds
         self.formal_charge = formal_charge
@@ -50,8 +49,7 @@ class AtomFeatures:
             raise ValueError("Data has to have a length of 8.")
         try:
             connected_to = (int(data[6]), 0)
-
-        except TypeError:
+        except (TypeError, ValueError):
             connected_to = (None, None)
         try:
             bond_type_str = data[7]
@@ -64,11 +62,10 @@ class AtomFeatures:
                     ]
                 )
             )
-        except AttributeError:
+        except (AttributeError, ValueError):
             conenection_bond_type = None
 
         return cls(
-            idx=0,
             element=data[0],
             num_bonds=data[1],
             formal_charge=data[2],
@@ -102,7 +99,6 @@ class AtomFeatures:
             else str(molecule.GetBondBetweenAtoms(int(idx), int(connected_to[1])).GetBondType())
         )
         return cls(
-            idx=idx,
             element=atom.GetSymbol(),
             num_bonds=len(atom.GetBonds()),
             formal_charge=int(atom.GetFormalCharge()),
@@ -136,10 +132,6 @@ class AtomFeatures:
 
     def _hash(self) -> int:
         return hash(repr(self))
-
-    @property
-    def idx(self) -> int:
-        return self._idx
 
     @property
     def element(self) -> str:
@@ -176,22 +168,6 @@ class AtomFeatures:
     @property
     def hash(self) -> int:
         return self._hash
-
-    @idx.setter
-    def idx(self, value: int) -> None:
-        if isinstance(value, int):
-            self._idx = value
-        elif isinstance(value, float) and value.is_integer():
-            self._idx = value
-        elif isinstance(value, str):
-            try:
-                value = float(value)
-                self.idx = value
-            except ValueError:
-                raise TypeError("Idx has to be of type int")
-        else:
-            raise TypeError("Idx has to be of type int")
-        return
 
     @element.setter
     def element(self, value: str) -> None:

@@ -1,10 +1,6 @@
 import numpy as np
 from openff.toolkit.topology import TopologyAtom, TopologyVirtualSite
-from openff.toolkit.typing.engines.smirnoff import (
-    ElectrostaticsHandler,
-    LibraryChargeHandler,
-    vdWHandler,
-)
+from openff.toolkit.typing.engines.smirnoff import ElectrostaticsHandler, LibraryChargeHandler, vdWHandler
 from openff.toolkit.typing.engines.smirnoff.parameters import _NonbondedHandler
 from openmm.unit import Quantity, elementary_charge
 

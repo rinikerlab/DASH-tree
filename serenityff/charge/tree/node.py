@@ -171,7 +171,7 @@ class node:
             if child.count < 3 and child.level > 3:
                 self.children.remove(child)
             else:
-                child.new_prune(threshold)
+                child.prune(threshold)
 
     def to_file(self, file_path: str):
         """

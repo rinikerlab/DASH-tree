@@ -2,6 +2,7 @@ import datetime
 import pickle
 import random
 
+
 import numpy as np
 import pandas as pd
 from rdkit import Chem
@@ -54,15 +55,18 @@ class Tree_constructor:
         self.test_df = self.original_df.loc[self.original_df.mol_index.isin(test_set)].copy()
 
         delattr(self, "original_df")
+        self.df["h_connectivity"] = self.df.apply(lambda x: self._get_hydrogen_connectivity(x), axis=1)
+        self.df.astype({"h_connectivity": "int8"})
         self.df["node_attentions"] = self.df["node_attentions"].apply(eval)
         self.df["node_attentions"] = self.df["node_attentions"].apply(lambda x: (np.array(x) / sum(x)))
-        self.attention_percentage = attention_percentage
-        self.df["connected_atoms"] = self.df.apply(lambda x: [x["idx_in_mol"]], axis=1)
-        self.df["h_connectivity"] = self.df.apply(lambda x: self._get_hydrogen_connectivity(x), axis=1)
+        self.df["connected_atoms"] = self.df.apply(lambda x: [] if x["atomtype"] == "H" else [x["idx_in_mol"]], axis=1)
+
         self.df["total_connected_attention"] = self.df.apply(
-            lambda x: x["node_attentions"][x["idx_in_mol"]], axis=1, dtype=pd.Int16Dtype
+            lambda x: x["node_attentions"][x["idx_in_mol"]],
+            axis=1,
         )
 
+        self.attention_percentage = attention_percentage
         self.num_layers_to_build = num_layers_to_build
         self.root = DevelopNode()
         self.new_root = node(level=0)
@@ -80,7 +84,7 @@ class Tree_constructor:
                 )[0].item()
             )
         else:
-            return np.NAN
+            return -1
 
     def _create_atom_features(self, line):
         return AtomFeatures.from_molecule(self.sdf_suplier[line["mol_index"]], line["idx_in_mol"])
@@ -135,6 +139,7 @@ class Tree_constructor:
             for idx, possible_new_atom in possible_new_atoms:
                 if possible_new_atom == child.atom_features:
                     return child, idx
+        return None, None
 
     def _try_to_add_new_node(self, line, matrix, mol, layer):
         connected_atoms = line["connected_atoms"]
@@ -147,9 +152,10 @@ class Tree_constructor:
             if matching_child is not None:
                 matching_child.truth_values = np.append(matching_child.truth_values, truth_value)
                 matching_child.attention_values = np.append(
-                    matching_child.attention_values, line["node_attentions"][new_atom_idx]
+                    matching_child.attention_values,
+                    line["node_attentions"][new_atom_idx],
                 )
-                line[layer] = matching_child.atom_features
+                line.iloc[layer] = matching_child.atom_features
                 connected_atoms.append(new_atom_idx)
                 return matching_child.atom_features
             else:
@@ -171,23 +177,76 @@ class Tree_constructor:
                     parent_attention=current_node.parent_attention + np.max(current_node.attention_values),
                 )
                 current_node.add_child(new_node)
-                line[layer] = new_node.atom_features
+                line.iloc[layer] = new_node.atom_features
                 connected_atoms.append(current_atom_idx)
             return new_atom_feature
         except Exception as e:
             raise e
 
-    def _add_new_node_level_1(self, line, matrix, mol):
-        # TODO: all
-        return
+    def _find_matching_child_h(self, children, mol, hconnec):
+        for child in children:
+            possible_new_atom = AtomFeatures.from_molecule(
+                mol,
+                int(hconnec),
+                connected_to=(None, None),
+            )
+
+            if possible_new_atom == child.atom_features:
+                return child, hconnec
+        return None, None
+
+    def _add_node_conn_to_hydrogen(self, line, mol, matrix):
+        connected_atoms = line["connected_atoms"]
+        truth_value = line["truth"]
+        connected_atom_max_attention = line["connected_atom_max_attention"]
+        try:
+            current_node = self._match_atom(1, line)
+            matching_child, new_atom_idx = self._find_matching_child_h(
+                current_node.children,
+                mol,
+                line["h_connectivity"],
+            )
+            if matching_child is not None:
+                matching_child.truth_values = np.append(matching_child.truth_values, truth_value)
+                matching_child.attention_values = np.append(
+                    matching_child.attention_values,
+                    line["node_attentions"][new_atom_idx],
+                )
+                line.iloc[1] = matching_child.atom_features
+                connected_atoms.append(new_atom_idx)
+                return matching_child.atom_features
+            else:
+                current_atom_idx = int(line["connected_atom_max_attention_idx"])
+                new_atom_feature = AtomFeatures.from_molecule(
+                    mol,
+                    int(current_atom_idx),
+                )
+                new_node = DevelopNode(
+                    atom_features=new_atom_feature,
+                    level=1 + 1,
+                    truth_values=truth_value,
+                    attention_values=connected_atom_max_attention,
+                    parent_attention=current_node.parent_attention + np.max(current_node.attention_values),
+                )
+                current_node.add_child(new_node)
+                line.iloc[1] = new_node.atom_features
+                connected_atoms.append(current_atom_idx)
+            return new_atom_feature
+        except Exception as e:
+            raise e
 
     def _build_layer_1(self):
+        self.df_work["total_connected_attention"] = self.df_work.apply(
+            lambda x: np.sum(x["node_attentions"][x["connected_atoms"]]), axis=1
+        )
+
         self.df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
+
         (self.df_work["connected_atom_max_attention_idx"], self.df_work["connected_atom_max_attention"],) = zip(
             *self.df_work.apply(
                 lambda x: (
-                    int(x["h_connectivity"]),
-                    x["node_attentions"][int(x["h_connectivity"])],
+                    x["h_connectivity"],
+                    x["node_attentions"][x["h_connectivity"]],
                 )
                 if x["atomtype"] == "H"
                 else get_connected_atom_with_max_attention(
@@ -200,7 +259,11 @@ class Tree_constructor:
         )
         self.df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
         self.df_work[1] = self.df_work.apply(
-            lambda x: self._try_to_add_new_node(
+            lambda x: self._add_node_conn_to_hydrogen(
+                x, self.sdf_suplier[int(x["mol_index"])], self.matrices[x["mol_index"]]
+            )
+            if x["atomtype"] == "H"
+            else self._try_to_add_new_node(
                 x,
                 self.matrices[x["mol_index"]],
                 self.sdf_suplier[int(x["mol_index"])],
@@ -211,36 +274,35 @@ class Tree_constructor:
 
     def build_tree(self):
         self.df_work = self.df.copy(deep=True)
-        for i in range(1, self.num_layers_to_build):
-            if i == 1:
-                self._build_layer_1()
-            else:
-                self.df_work["total_connected_attention"] = self.df_work.apply(
-                    lambda x: np.sum(x["node_attentions"][x["connected_atoms"]]), axis=1
-                )
+        self._build_layer_1()
+        print(f"{datetime.datetime.now()}\tLayer {1} done", flush=True)
+        for i in range(2, self.num_layers_to_build):
+            self.df_work["total_connected_attention"] = self.df_work.apply(
+                lambda x: np.sum(x["node_attentions"][x["connected_atoms"]]), axis=1
+            )
 
-                self.df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
+            self.df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
 
-                (self.df_work["connected_atom_max_attention_idx"], self.df_work["connected_atom_max_attention"],) = zip(
-                    *self.df_work.apply(
-                        lambda x: get_connected_atom_with_max_attention(
-                            matrix=self.matrices[int(x["mol_index"])],
-                            attentions=np.array(x["node_attentions"]),
-                            indices=np.array(x["connected_atoms"]),
-                        ),
-                        axis=1,
-                    )
-                )
-                self.df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
-                self.df_work[i] = self.df_work.apply(
-                    lambda x: self._try_to_add_new_node(
-                        x,
-                        self.matrices[x["mol_index"]],
-                        self.sdf_suplier[int(x["mol_index"])],
-                        i,
+            (self.df_work["connected_atom_max_attention_idx"], self.df_work["connected_atom_max_attention"],) = zip(
+                *self.df_work.apply(
+                    lambda x: get_connected_atom_with_max_attention(
+                        matrix=self.matrices[int(x["mol_index"])],
+                        attentions=np.array(x["node_attentions"]),
+                        indices=np.array(x["connected_atoms"]),
                     ),
                     axis=1,
                 )
+            )
+            self.df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
+            self.df_work[i] = self.df_work.apply(
+                lambda x: self._try_to_add_new_node(
+                    x,
+                    self.matrices[x["mol_index"]],
+                    self.sdf_suplier[int(x["mol_index"])],
+                    i,
+                ),
+                axis=1,
+            )
             print(f"{datetime.datetime.now()}\tLayer {i} done", flush=True)
 
         self.root.update_average()

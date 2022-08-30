@@ -10,10 +10,7 @@ import torch
 from rdkit import Chem
 from tqdm import tqdm
 
-from serenityff.charge.gnn.utils import (
-    ChargeCorrectedNodeWiseAttentiveFP,
-    get_graph_from_mol,
-)
+from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
 from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.utils.exceptions import ExtractionError
 

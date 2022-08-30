@@ -104,7 +104,7 @@ class AtomFeatures:
             formal_charge=int(atom.GetFormalCharge()),
             hybridization=str(atom.GetHybridization()),
             is_aromatic=bool(atom.GetIsAromatic()),
-            total_num_hs=int(atom.GetTotalNumHs()),
+            total_num_hs=int(atom.GetTotalNumHs(includeNeighbors=True)),
             connected_to=connected_to,
             conenection_bond_type=connected_bond_type,
         )

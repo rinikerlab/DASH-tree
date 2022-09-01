@@ -197,7 +197,7 @@ class AtomFeatures:
         if isinstance(value, int):
             self._idx = value
         elif isinstance(value, float) and value.is_integer():
-            self._idx = value
+            self._idx = int(value)
         elif isinstance(value, str):
             try:
                 value = float(value)
@@ -221,7 +221,7 @@ class AtomFeatures:
         if isinstance(value, int):
             self._num_bonds = value
         elif isinstance(value, float) and value.is_integer():
-            self._num_bonds = value
+            self._num_bonds = int(value)
         elif isinstance(value, str):
             try:
                 value = float(value)
@@ -237,7 +237,7 @@ class AtomFeatures:
         if isinstance(value, int):
             self._formal_charge = value
         elif isinstance(value, float) and value.is_integer():
-            self._formal_charge = value
+            self._formal_charge = int(value)
         elif isinstance(value, str):
             try:
                 value = float(value)
@@ -281,7 +281,7 @@ class AtomFeatures:
         if isinstance(value, int):
             self._total_num_hs = value
         elif isinstance(value, float) and value.is_integer():
-            self._total_num_hs = value
+            self._total_num_hs = int(value)
         elif isinstance(value, str):
             try:
                 value = float(value)
@@ -317,7 +317,7 @@ class AtomFeatures:
         if isinstance(value, int):
             self._hash = value
         elif isinstance(value, float) and value.is_integer():
-            self._hash = value
+            self._hash = int(value)
         elif isinstance(value, str):
             try:
                 value = float(value)

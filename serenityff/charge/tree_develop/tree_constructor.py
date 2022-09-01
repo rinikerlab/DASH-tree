@@ -29,6 +29,7 @@ class Tree_constructor:
         data_split: float = 0.2,
         seed: int = 42,
         num_layers_to_build=24,
+        sanitize=False,
     ):
         # Get sdfs of all molecules
         self.sdf_suplier = mols_from_sdf(sdf_file=sdf_suplier)
@@ -47,7 +48,8 @@ class Tree_constructor:
             ],
             nrows=nrows,
         )
-
+        if sanitize:
+            self._clean_molecule_indices_in_df()
         #  split the dataset into build and test
         random.seed(seed)
         test_set = random.sample(
@@ -73,6 +75,23 @@ class Tree_constructor:
 
         self.root = DevelopNode()
         self.new_root = node(level=0)
+
+    def _clean_molecule_indices_in_df(self):
+        molecule_idx_in_df = self.original_df.mol_index.unique().tolist()
+        for mol_idx in molecule_idx_in_df:
+            number_of_atoms_in_mol_df = len(self.original_df.loc[self.original_df.mol_index == mol_idx])
+            number_of_atoms_in_mol_sdf = self.sdf_suplier[mol_idx].GetNumAtoms()
+            if number_of_atoms_in_mol_df > number_of_atoms_in_mol_sdf:
+                if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_idx + 1].GetNumAtoms():
+                    self.original_df.loc[self.original_df.mol_index >= mol_idx, "mol_index"] += 1
+                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_idx + 2].GetNumAtoms():
+                    self.original_df.loc[self.original_df.mol_index >= mol_idx, "mol_index"] += 2
+                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_idx + 3].GetNumAtoms():
+                    self.original_df.loc[self.original_df.mol_index >= mol_idx, "mol_index"] += 3
+                else:
+                    raise ValueError(f"Molecule {mol_idx} could not be sanitized")
+            else:
+                pass
 
     def try_to_add_new_node(self, line, matrix, mol, layer):
         connected_atoms = line["connected_atoms"]

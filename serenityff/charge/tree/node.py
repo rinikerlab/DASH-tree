@@ -243,7 +243,7 @@ class node:
             atoms_list = atoms_line.strip("[").strip("]").split(",")
             for atom_str in atoms_list:
                 atom_split = atom_str.strip().split(" ")
-                atom = AtomFeatures.from_data(data=atom_split)
+                atom = AtomFeatures.atom_features_from_data_w_connection_info(data=atom_split)
                 self.atoms.append(atom)
         except Exception as e:
             print(e)
@@ -300,7 +300,7 @@ class node:
     def _get_attribute_from_df_line(self, df_line):
         self.level = df_line["level"]
         atom_data = df_line["atom"].split(" ") if isinstance(df_line["atom"], str) else []
-        self.atom = AtomFeatures.from_data(data=atom_data)
+        self.atom = AtomFeatures.atom_features_from_data_w_connection_info(data=atom_data)
         self.result = df_line["result"]
         self.stdDeviation = df_line["stdDeviation"]
         self.attention = df_line["attention"]

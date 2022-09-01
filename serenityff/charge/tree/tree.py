@@ -91,7 +91,7 @@ class tree:
         for i in range(20):
             try:
                 if i == 0:
-                    possible_new_atom_features = [AtomFeatures.from_molecule(mol, atom)]
+                    possible_new_atom_features = [AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)]
                     possible_new_atom_idxs = [atom]
                 else:
                     possible_new_atom_features, possible_new_atom_idxs = get_possible_atom_features(

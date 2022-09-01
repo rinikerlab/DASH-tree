@@ -1,4 +1,4 @@
-from typing import List, Sequence, Union
+from typing import Sequence, Tuple, Union
 
 import numpy as np
 
@@ -8,7 +8,7 @@ from serenityff.charge.tree.atom_features import AtomFeatures
 class DevelopNode:
     def __init__(
         self,
-        atom_features: AtomFeatures = None,
+        atom_features: Tuple[int, Tuple[int]] = None,
         level: int = 0,
         truth_values: Sequence[float] = None,
         attention_values: Sequence[float] = None,
@@ -32,7 +32,7 @@ class DevelopNode:
         if self.level == 0:
             return f"node --- lvl: {self.level}, Num=1"
         else:
-            return f"node --- lvl: {self.level}, Num={str(self.truth_values.size)}, Mean={float(self.average):.4f}, std={np.std(self.truth_values):.4f}, fp={self.atom_features}"
+            return f"node --- lvl: {self.level}, Num={str(self.truth_values.size)}, Mean={float(self.average):.4f}, std={np.std(self.truth_values):.4f}, fp={AtomFeatures.lookup_int(self.atom_features[0])}"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -50,7 +50,7 @@ class DevelopNode:
         return self._level
 
     @property
-    def atom_features(self) -> AtomFeatures:
+    def atom_features(self) -> Tuple[int, Tuple[int]]:
         return self._atom_features
 
     @property
@@ -96,20 +96,8 @@ class DevelopNode:
         return
 
     @atom_features.setter
-    def atom_features(self, value: AtomFeatures) -> None:
-        if value is None:
-            self._atom_features = None
-            return
-        if isinstance(value, AtomFeatures):
-            self._atom_features = value
-        elif isinstance(value, List):
-            try:
-                self._atom_features = AtomFeatures.from_data(value)
-            except TypeError:
-                raise ValueError("atom_feature needs to be of type AtomFeatures")
-        else:
-            raise TypeError("atom_feature needs to be of type AtomFeatures")
-        return
+    def atom_features(self, value: Tuple[int, Tuple[int]]) -> None:
+        self._atom_features = value
 
     @parent_attention.setter
     def parent_attention(self, value: float) -> None:

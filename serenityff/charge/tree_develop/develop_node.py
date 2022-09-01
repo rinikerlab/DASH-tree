@@ -8,7 +8,7 @@ from serenityff.charge.tree.atom_features import AtomFeatures
 class DevelopNode:
     def __init__(
         self,
-        atom_features: Tuple[int, Tuple[int]] = None,
+        atom_features: np.array = None,
         level: int = 0,
         truth_values: Sequence[float] = None,
         attention_values: Sequence[float] = None,
@@ -26,7 +26,7 @@ class DevelopNode:
         return str(self)
 
     def __eq__(self, other: object) -> bool:
-        return self.level == other.level and self.atom_features == other.atom_features
+        return self.level == other.level and (self.atom_features == other.atom_features).all()
 
     def __str__(self) -> str:
         if self.level == 0:
@@ -96,7 +96,7 @@ class DevelopNode:
         return
 
     @atom_features.setter
-    def atom_features(self, value: Tuple[int, Tuple[int]]) -> None:
+    def atom_features(self, value: np.array) -> None:
         self._atom_features = value
 
     @parent_attention.setter

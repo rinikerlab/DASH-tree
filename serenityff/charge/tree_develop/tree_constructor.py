@@ -31,9 +31,15 @@ class Tree_constructor:
         seed: int = 42,
         num_layers_to_build=24,
         sanitize=False,
+        verbose=False,
     ):
+        if verbose:
+            print(f"{datetime.datetime.now()}\tInitializing Tree_constructor")
         self.sdf_suplier = mols_from_sdf(sdf_suplier)
         self.sdf_suplier_wo_h = mols_from_sdf(sdf_suplier, removeHs=True)
+
+        if verbose:
+            print(f"{datetime.datetime.now()}\tMols imported, starting df import")
 
         self.original_df = (
             pd.read_csv(
@@ -61,10 +67,14 @@ class Tree_constructor:
             )
         )
 
+        if verbose:
+            print(f"{datetime.datetime.now()}\tdf imported, starting data spliting")
+
         random.seed(seed)
+        unique_mols = self.original_df.mol_index.unique().tolist()
         test_set = random.sample(
-            self.original_df.mol_index.unique().tolist(),
-            int(len(self.original_df.mol_index.unique()) * data_split),
+            unique_mols,
+            int(len(unique_mols) * data_split),
         )
         self.df = self.original_df.loc[~self.original_df.mol_index.isin(test_set)].copy()
         self.test_df = self.original_df.loc[self.original_df.mol_index.isin(test_set)].copy()
@@ -74,7 +84,12 @@ class Tree_constructor:
 
         h, c, t, n = [], [], [], []
 
-        for _, row in self.df.iterrows():
+        if verbose:
+            print(f"{datetime.datetime.now()}\tStarting table filling")
+
+        self.tempmatrix = Chem.GetAdjacencyMatrix(self.sdf_suplier[0])
+
+        for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
             n.append(np.array(row["node_attentions"]) / sum(row["node_attentions"]))
             h.append(self._get_hydrogen_connectivity(row))
             c.append(([] if row["atomtype"] == "H" else [row["idx_in_mol"]]))
@@ -87,6 +102,8 @@ class Tree_constructor:
 
         del h, c, n, t
 
+        delattr(self, "tempmatrix")
+
         self.attention_percentage = attention_percentage
         self.num_layers_to_build = num_layers_to_build
         self.feature_dict = dict()
@@ -97,10 +114,10 @@ class Tree_constructor:
         print(f"Number of test mols: {len(self.test_df.mol_index.unique())}")
 
     def _get_hydrogen_connectivity(self, line) -> int:
+        if line["idx_in_mol"] == 0:
+            self.tempmatrix = Chem.GetAdjacencyMatrix(self.sdf_suplier[line["mol_index"]])
         if line["atomtype"] == "H":
-            return int(
-                np.where(Chem.GetAdjacencyMatrix(self.sdf_suplier[line["mol_index"]])[line["idx_in_mol"]])[0].item()
-            )
+            return int(np.where(self.tempmatrix[line["idx_in_mol"]])[0].item())
         else:
             return -1
 
@@ -130,7 +147,7 @@ class Tree_constructor:
     def create_tree_level_0(self):
         print("Preparing Dataframe:")
         features = []
-        for _, row in self.df.iterrows():
+        for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
             feat = self._create_atom_features(row)
             features.append(feat)
             if row["idx_in_mol"] == 0:
@@ -157,7 +174,7 @@ class Tree_constructor:
         current_node = self.root
         for i in range(layer):
             for child in current_node.children:
-                if child.atom_features == line[i]:
+                if (child.atom_features == line[i]).all():
                     return child
 
     def _find_matching_child(self, children, matrix, indices, mol_index):
@@ -168,14 +185,11 @@ class Tree_constructor:
                 possible_new_atoms.append(
                     (
                         i,
-                        (
-                            self.feature_dict[mol_index][i],
-                            (rel, self.bond_matrices[mol_index][abs][i]),
-                        ),
+                        np.array([self.feature_dict[mol_index][i], rel, self.bond_matrices[mol_index][abs][i]]),
                     ),
                 )
             for idx, possible_new_atom in possible_new_atoms:
-                if possible_new_atom == child.atom_features:
+                if (possible_new_atom == child.atom_features).all():
                     return child, idx
         return None, None
 
@@ -205,9 +219,13 @@ class Tree_constructor:
             else:
                 current_atom_idx = int(line["connected_atom_max_attention_idx"])
                 rel, abs = get_connected_neighbor(matrix, current_atom_idx, indices)
-                new_atom_feature = (
-                    self.feature_dict[mol_index][current_atom_idx],
-                    (rel, self.bond_matrices[mol_index][current_atom_idx][abs]),
+                new_atom_feature = np.array(
+                    [
+                        self.feature_dict[mol_index][current_atom_idx],
+                        rel,
+                        self.bond_matrices[mol_index][current_atom_idx][abs],
+                    ],
+                    dtype=np.int64,
                 )
                 new_node = DevelopNode(
                     atom_features=new_atom_feature,
@@ -225,12 +243,9 @@ class Tree_constructor:
 
     def _find_matching_child_h(self, children, mol_index, hconnec):
         for child in children:
-            possible_new_atom = (
-                self.feature_dict[mol_index][hconnec],
-                (None, None),
-            )
+            possible_new_atom = np.array([self.feature_dict[mol_index][hconnec], -1, -1], dtype=np.int64)
 
-            if possible_new_atom == child.atom_features:
+            if (possible_new_atom == child.atom_features).all():
                 return child, hconnec
         return None, None
 
@@ -257,10 +272,7 @@ class Tree_constructor:
                 return matching_child.atom_features
             else:
                 current_atom_idx = int(line["connected_atom_max_attention_idx"])
-                new_atom_feature = (
-                    self.feature_dict[mol_index][current_atom_idx],
-                    (None, None),
-                )
+                new_atom_feature = np.array([self.feature_dict[mol_index][current_atom_idx], -1, -1], dtype=np.int64)
                 new_node = DevelopNode(
                     atom_features=new_atom_feature,
                     level=1 + 1,

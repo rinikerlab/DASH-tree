@@ -1,5 +1,7 @@
 from typing import Any, Sequence, Tuple
 
+import numpy as np
+
 from rdkit import Chem
 
 from serenityff.charge.utils import Molecule
@@ -103,23 +105,23 @@ class AtomFeatures:
 
     @staticmethod
     def atom_features_from_molecule_w_connection_info(
-        molecule: Molecule, index: int, connected_to: Tuple[Any] = (None, None)
+        molecule: Molecule, index: int, connected_to: Tuple[Any] = (-1, -1)
     ) -> int:
         connected_bond_type = (
-            None
-            if connected_to[1] is None
+            -1
+            if connected_to[1] is -1
             else str(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
         )
         atom = molecule.GetAtomWithIdx(index)
         key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {str(atom.GetHybridization())} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
-        return (AtomFeatures.str_key_dict[key], (connected_to[0], connected_bond_type))
+        return np.array([AtomFeatures.str_key_dict[key], connected_to[0], connected_bond_type], dtype=np.int64)
 
     @staticmethod
     def atom_features_from_data_w_connection_info(data: Sequence[Any]) -> int:
         try:
             connected_to = (int(data[6]), 0)
         except (TypeError, ValueError):
-            connected_to = (None, None)
+            connected_to = (-1, -1)
         try:
             bond_type_str = data[7]
             conenection_bond_type = (
@@ -132,12 +134,9 @@ class AtomFeatures:
                 )
             )
         except (AttributeError, ValueError):
-            conenection_bond_type = None
+            conenection_bond_type = -1
         key = f"{data[0]} {int(data[1])} {int(data[2])} {data[3]} {data[4]} {int(data[5])}"
-        return (
-            AtomFeatures.str_key_dict[key],
-            (connected_to[0], conenection_bond_type),
-        )
+        return np.array([AtomFeatures.str_key_dict[key], connected_to[0], conenection_bond_type], dtype=np.int64)
 
     @staticmethod
     def is_similar(feature1: int, feature2: int) -> float:

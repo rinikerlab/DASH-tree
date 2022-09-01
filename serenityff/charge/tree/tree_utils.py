@@ -129,7 +129,7 @@ def get_connected_atom_with_max_attention(
     try:
         return possible_atoms[np.argmax(possible_attentions)], np.max(possible_attentions)
     except Exception:
-        return (None, 0)
+        return (np.NaN, np.NaN)
 
 
 @njit

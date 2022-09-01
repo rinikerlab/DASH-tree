@@ -1,4 +1,4 @@
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Sequence, Tuple
 
 from rdkit import Chem
 
@@ -6,47 +6,116 @@ from serenityff.charge.utils import Molecule
 
 
 class AtomFeatures:
-    """
-    class to represent an atom type, as stored in the decision tree
-    AtomFeatures are hashed for fast comparison in the decision tree
-    """
+    feature_list = [
+        "Br 1 0 SP3 False 0",
+        "C 2 0 SP False 0",
+        "C 2 0 SP False 1",
+        "C 3 -1 SP2 False 0",
+        "C 3 -1 SP2 True 0",
+        "C 3 -1 SP2 True 1",
+        "C 3 -1 SP3 False 0",
+        "C 3 0 SP2 False 0",
+        "C 3 0 SP2 False 1",
+        "C 3 0 SP2 False 2",
+        "C 3 0 SP2 True 0",
+        "C 3 0 SP2 True 1",
+        "C 3 1 SP2 False 0",
+        "C 3 1 SP2 True 0",
+        "C 4 0 SP3 False 0",
+        "C 4 0 SP3 False 1",
+        "C 4 0 SP3 False 2",
+        "C 4 0 SP3 False 3",
+        "Cl 1 0 SP3 False 0",
+        "F 1 0 SP3 False 0",
+        "H 1 0 S False 0",
+        "I 1 0 SP3 False 0",
+        "N 1 -1 SP2 False 0",
+        "N 1 0 SP False 0",
+        "N 2 0 SP2 False 0",
+        "N 2 0 SP2 False 1",
+        "N 2 0 SP2 True 0",
+        "N 2 1 SP False 0",
+        "N 3 0 SP2 False 0",
+        "N 3 0 SP2 False 1",
+        "N 3 0 SP2 False 2",
+        "N 3 0 SP2 True 0",
+        "N 3 0 SP2 True 1",
+        "N 3 0 SP3 False 0",
+        "N 3 0 SP3 False 1",
+        "N 3 0 SP3 False 2",
+        "N 3 1 SP2 False 0",
+        "N 3 1 SP2 True 0",
+        "N 4 1 SP3 False 0",
+        "N 4 1 SP3 False 3",
+        "O 1 -1 SP2 False 0",
+        "O 1 -1 SP3 False 0",
+        "O 1 0 SP2 False 0",
+        "O 2 0 SP2 False 0",
+        "O 2 0 SP2 False 1",
+        "O 2 0 SP2 True 0",
+        "O 2 0 SP3 False 0",
+        "O 2 0 SP3 False 1",
+        "O 2 1 SP2 False 0",
+        "O 2 1 SP2 False 1",
+        "O 2 1 SP2 True 0",
+        "P 2 0 SP2 False 0",
+        "P 2 0 SP2 False 1",
+        "P 2 0 SP2 True 0",
+        "P 3 0 SP3 False 0",
+        "P 4 0 SP3 False 0",
+        "P 4 0 SP3 False 1",
+        "P 4 1 SP3 False 0",
+        "S 1 0 SP2 False 0",
+        "S 2 0 SP2 False 0",
+        "S 2 0 SP2 True 0",
+        "S 2 0 SP3 False 0",
+        "S 2 0 SP3 False 1",
+        "S 2 1 SP2 True 0",
+        "S 3 0 SP2 False 0",
+        "S 3 0 SP3 False 0",
+        "S 3 1 SP2 True 0",
+        "S 3 1 SP3 False 0",
+        "S 4 0 SP3 False 0",
+        "S 4 0 SP3D False 0",
+        "S 4 1 SP3 False 0",
+    ]
+    int_key_dict = {k: v for k, v in enumerate(feature_list)}
+    str_key_dict = {v: k for k, v in int_key_dict.items()}
 
-    def __init__(
-        self,
-        idx: int = 0,
-        element: str = "NAN",
-        num_bonds: int = 0,
-        formal_charge: int = 0,
-        hybridization: str = "",
-        is_aromatic: bool = False,
-        total_num_hs: int = 0,
-        connected_to: Tuple[int] = (None, None),
-        conenection_bond_type: str = None,
-    ) -> None:
-        self.element = element
-        self.num_bonds = num_bonds
-        self.formal_charge = formal_charge
-        self.hybridization = hybridization
-        self.is_aromatic = is_aromatic
-        self.total_num_hs = total_num_hs
-        self.connected_to = connected_to
-        self.conenection_bond_type = conenection_bond_type
-        self.hash = self._hash()
-        return
+    @staticmethod
+    def atom_features_from_molecule(molecule: Molecule, index: int) -> int:
+        atom = molecule.GetAtomWithIdx(index)
+        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {str(atom.GetHybridization())} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
+        return AtomFeatures.str_key_dict[key]
 
-    @classmethod
-    def from_data(cls, data: Sequence[Any]):
-        """
-        Generates AtomFeatures object from data array. Highly specific. Use from_molecule in most cases.
-        Args:
-            data (Sequence[Any]): Data to be transformed into AtomFeatures object.
-        Raises:
-            ValueError: thrown if array length != 8.
-        Returns:
-            AtomFeatures: AtomFeatures object.
-        """
-        if not len(data) == 8:
-            raise ValueError("Data has to have a length of 8.")
+    @staticmethod
+    def atom_features_from_data(data: Sequence[Any]) -> int:
+        key = f"{data[0]} {int(data[1])} {int(data[2])} {data[3]} {data[4]} {int(data[5])}"
+        return AtomFeatures.str_key_dict[key]
+
+    @staticmethod
+    def lookup_int(key: int) -> str:
+        return AtomFeatures.int_key_dict[key]
+
+    @staticmethod
+    def lookup_str(key: str) -> int:
+        return AtomFeatures.str_key_dict[key]
+
+    @staticmethod
+    def atom_features_from_molecule_w_connection_info(
+        molecule: Molecule, index: int, connected_to: Tuple[Any] = (None, None)
+    ) -> int:
+        connected_bond_type = (
+            None
+            if connected_to[1] is None
+            else str(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
+        )
+        atom = molecule.GetAtomWithIdx(index)
+        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {str(atom.GetHybridization())} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
+        return (AtomFeatures.str_key_dict[key], (connected_to[0], connected_bond_type))
+
+    @staticmethod
+    def atom_features_from_data_w_connection_info(data: Sequence[Any]) -> int:
         try:
             connected_to = (int(data[6]), 0)
         except (TypeError, ValueError):
@@ -64,234 +133,13 @@ class AtomFeatures:
             )
         except (AttributeError, ValueError):
             conenection_bond_type = None
-
-        return cls(
-            element=data[0],
-            num_bonds=data[1],
-            formal_charge=data[2],
-            hybridization=data[3],
-            is_aromatic=data[4],
-            total_num_hs=data[5],
-            connected_to=connected_to,
-            conenection_bond_type=conenection_bond_type,
+        key = f"{data[0]} {int(data[1])} {int(data[2])} {data[3]} {data[4]} {int(data[5])}"
+        return (
+            AtomFeatures.str_key_dict[key],
+            (connected_to[0], conenection_bond_type),
         )
 
-    @classmethod
-    def from_molecule(
-        cls,
-        molecule: Molecule,
-        idx: int,
-        connected_to: Optional[Tuple[Any]] = (None, None),
-    ):
-        """
-        Turns atom with idx from molecule into AtomFeatures object.
-        Args:
-            molecule (Molecule): rdkit Molecule
-            idx (int): idx of atom in molecule.
-            connected_to (Optional[Tuple[Any]], optional): Neighbouring atoms. Defaults to (None, None).
-        Returns:
-            AtomFeatures: AtomFeatures object.
-        """
-        atom = molecule.GetAtomWithIdx(int(idx))
-        connected_bond_type = (
-            None
-            if connected_to[1] is None
-            else str(molecule.GetBondBetweenAtoms(int(idx), int(connected_to[1])).GetBondType())
-        )
-        return cls(
-            element=atom.GetSymbol(),
-            num_bonds=len(atom.GetBonds()),
-            formal_charge=int(atom.GetFormalCharge()),
-            hybridization=str(atom.GetHybridization()),
-            is_aromatic=bool(atom.GetIsAromatic()),
-            total_num_hs=int(atom.GetTotalNumHs(includeNeighbors=True)),
-            connected_to=connected_to,
-            conenection_bond_type=connected_bond_type,
-        )
-
-    def __repr__(self) -> str:
-        return f"{self.element} {self.num_bonds} {self.formal_charge} {str(self.hybridization)} {self.is_aromatic} {self.total_num_hs} {self.connected_to[0]} {str(self.conenection_bond_type)}"
-
-    def __eq__(self, other: object) -> bool:
-        if self.hash == other.hash:
-            return (
-                self.element == other.element
-                and self.num_bonds == other.num_bonds
-                and self.formal_charge == other.formal_charge
-                and self.hybridization == other.hybridization
-                and self.is_aromatic == other.is_aromatic
-                and self.total_num_hs == other.total_num_hs
-                and self.connected_to[0] == other.connected_to[0]
-                and self.conenection_bond_type == other.conenection_bond_type
-            )
-        else:
-            return False
-
-    def __hash__(self) -> int:
-        return self.hash
-
-    def _hash(self) -> int:
-        return hash(repr(self))
-
-    @property
-    def element(self) -> str:
-        return self._element
-
-    @property
-    def num_bonds(self) -> int:
-        return self._num_bonds
-
-    @property
-    def formal_charge(self) -> int:
-        return self._formal_charge
-
-    @property
-    def hybridization(self) -> str:
-        return self._hybridization
-
-    @property
-    def is_aromatic(self) -> bool:
-        return self._is_aromatic
-
-    @property
-    def total_num_hs(self) -> int:
-        return self._total_num_hs
-
-    @property
-    def connected_to(self) -> Tuple[Any]:
-        return self._connected_to
-
-    @property
-    def conenection_bond_type(self) -> str:
-        return self._conenection_bond_type
-
-    @property
-    def hash(self) -> int:
-        return self._hash
-
-    @element.setter
-    def element(self, value: str) -> None:
-        if isinstance(value, str):
-            self._element = value
-            return
-        else:
-            raise TypeError("element has to be of type str")
-
-    @num_bonds.setter
-    def num_bonds(self, value: int) -> None:
-        if isinstance(value, int):
-            self._num_bonds = value
-        elif isinstance(value, float) and value.is_integer():
-            self._num_bonds = value
-        elif isinstance(value, str):
-            try:
-                value = float(value)
-                self.num_bonds = value
-            except ValueError:
-                raise TypeError("num_bonds has to be of type int")
-        else:
-            raise TypeError("num_bonds has to be of type int")
-        return
-
-    @formal_charge.setter
-    def formal_charge(self, value: int) -> None:
-        if isinstance(value, int):
-            self._formal_charge = value
-        elif isinstance(value, float) and value.is_integer():
-            self._formal_charge = value
-        elif isinstance(value, str):
-            try:
-                value = float(value)
-                self.formal_charge = value
-            except ValueError:
-                raise TypeError("formal_charge has to be of type int")
-        else:
-            raise TypeError("formal_charge has to be of type int")
-        return
-
-    @hybridization.setter
-    def hybridization(self, value: str) -> None:
-        if isinstance(value, str):
-            if value in Chem.HybridizationType.names:
-                self._hybridization = value
-            elif (
-                str(Chem.rdchem.HybridizationType.values[int(value[value.find("(") + 1 : value.find(")")])])
-                in Chem.HybridizationType.names
-            ):
-                self._hybridization = value
-            else:
-                self._hybridization = "OTHER"
-        else:
-            raise TypeError("hybridization has to be of type str")
-        return
-
-    @is_aromatic.setter
-    def is_aromatic(self, value: bool) -> None:
-        if isinstance(value, bool):
-            self._is_aromatic = value
-        elif isinstance(value, str):
-            if value.lower() in ["true", "1"]:
-                self._is_aromatic = True
-            else:
-                self._is_aromatic = False
-        else:
-            self._is_aromatic = bool(value)
-
-    @total_num_hs.setter
-    def total_num_hs(self, value: int) -> None:
-        if isinstance(value, int):
-            self._total_num_hs = value
-        elif isinstance(value, float) and value.is_integer():
-            self._total_num_hs = value
-        elif isinstance(value, str):
-            try:
-                value = float(value)
-                self.total_num_hs = value
-            except ValueError:
-                raise TypeError("total_num_hs has to be of type int")
-        else:
-            raise TypeError("total_num_hs has to be of type int")
-        return
-
-    @connected_to.setter
-    def connected_to(self, value: Tuple[Any]) -> None:
-        if isinstance(value, tuple):
-            self._connected_to = value
-        elif value == (None, None):
-            self._connected_to = value
-        else:
-            raise TypeError("connected_to has to be of type Tuple")
-        return
-
-    @conenection_bond_type.setter
-    def conenection_bond_type(self, value: str) -> None:
-        if isinstance(value, str):
-            self._conenection_bond_type = value
-        elif value is None:
-            self._conenection_bond_type = value
-        else:
-            raise TypeError("conenection_bond_type has to be of type str")
-        return
-
-    @hash.setter
-    def hash(self, value: int) -> None:
-        if isinstance(value, int):
-            self._hash = value
-        elif isinstance(value, float) and value.is_integer():
-            self._hash = value
-        elif isinstance(value, str):
-            try:
-                value = float(value)
-                self.hash = value
-            except ValueError:
-                raise TypeError("hash has to be of type int")
-        else:
-            raise TypeError("hash has to be of type int")
-        return
-
-    def _update_hash(self) -> None:
-        """
-        update stored hash.
-        """
-        self.hash = hash(self)
+    @staticmethod
+    def is_similar(feature1: int, feature2: int) -> float:
+        # TODO: MARC :)
         return

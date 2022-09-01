@@ -30,7 +30,7 @@ def get_possible_atom_features(mol, connected_atoms):
         for bond in mol.GetAtomWithIdx(atom).GetBonds():
             if bond.GetBeginAtomIdx() not in connected_atoms:
                 possible_atom_features.append(
-                    AtomFeatures.from_molecule(
+                    AtomFeatures.atom_features_from_molecule_w_connection_info(
                         mol,
                         bond.GetBeginAtomIdx(),
                         connected_to=(connected_atoms.index(atom), atom),
@@ -39,7 +39,7 @@ def get_possible_atom_features(mol, connected_atoms):
                 possible_atom_idxs.append(bond.GetBeginAtomIdx())
             if bond.GetEndAtomIdx() not in connected_atoms:
                 possible_atom_features.append(
-                    AtomFeatures.from_molecule(
+                    AtomFeatures.atom_features_from_molecule_w_connection_info(
                         mol,
                         bond.GetEndAtomIdx(),
                         connected_to=(connected_atoms.index(atom), atom),
@@ -126,7 +126,10 @@ def get_connected_atom_with_max_attention(
     """
     possible_atoms = get_possible_connected_new_atom(matrix=matrix, indices=indices)
     possible_attentions = np.take(attentions, possible_atoms)
-    return possible_atoms[np.argmax(possible_attentions)], np.max(possible_attentions)
+    try:
+        return possible_atoms[np.argmax(possible_attentions)], np.max(possible_attentions)
+    except Exception:
+        return (None, 0)
 
 
 @njit

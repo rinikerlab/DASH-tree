@@ -174,7 +174,7 @@ class Tree_constructor:
         current_node = self.root
         for i in range(layer):
             for child in current_node.children:
-                if (child.atom_features == line[i]).all():
+                if child.atom_features == line[i]:
                     return child
 
     def _find_matching_child(self, children, matrix, indices, mol_index):
@@ -185,11 +185,11 @@ class Tree_constructor:
                 possible_new_atoms.append(
                     (
                         i,
-                        np.array([self.feature_dict[mol_index][i], rel, self.bond_matrices[mol_index][abs][i]]),
+                        [self.feature_dict[mol_index][i], rel, self.bond_matrices[mol_index][abs][i]],
                     ),
                 )
             for idx, possible_new_atom in possible_new_atoms:
-                if (possible_new_atom == child.atom_features).all():
+                if possible_new_atom == child.atom_features:
                     return child, idx
         return None, None
 
@@ -219,14 +219,11 @@ class Tree_constructor:
             else:
                 current_atom_idx = int(line["connected_atom_max_attention_idx"])
                 rel, abs = get_connected_neighbor(matrix, current_atom_idx, indices)
-                new_atom_feature = np.array(
-                    [
-                        self.feature_dict[mol_index][current_atom_idx],
-                        rel,
-                        self.bond_matrices[mol_index][current_atom_idx][abs],
-                    ],
-                    dtype=np.int64,
-                )
+                new_atom_feature = [
+                    self.feature_dict[mol_index][current_atom_idx],
+                    rel,
+                    self.bond_matrices[mol_index][current_atom_idx][abs],
+                ]
                 new_node = DevelopNode(
                     atom_features=new_atom_feature,
                     level=layer + 1,
@@ -243,9 +240,9 @@ class Tree_constructor:
 
     def _find_matching_child_h(self, children, mol_index, hconnec):
         for child in children:
-            possible_new_atom = np.array([self.feature_dict[mol_index][hconnec], -1, -1], dtype=np.int64)
+            possible_new_atom = [self.feature_dict[mol_index][hconnec], -1, -1]
 
-            if (possible_new_atom == child.atom_features).all():
+            if possible_new_atom == child.atom_features:
                 return child, hconnec
         return None, None
 
@@ -272,7 +269,7 @@ class Tree_constructor:
                 return matching_child.atom_features
             else:
                 current_atom_idx = int(line["connected_atom_max_attention_idx"])
-                new_atom_feature = np.array([self.feature_dict[mol_index][current_atom_idx], -1, -1], dtype=np.int64)
+                new_atom_feature = [self.feature_dict[mol_index][current_atom_idx], -1, -1]
                 new_node = DevelopNode(
                     atom_features=new_atom_feature,
                     level=1 + 1,

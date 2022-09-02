@@ -21,10 +21,10 @@ class node:
         self.level = level
         self.atoms = None
         if atom is not None:
-            if isinstance(atom, list):
-                self.atoms = atom
-            else:
+            if isinstance(atom, int) or isinstance(atom, float):
                 self.atoms = [atom]
+            else:
+                self.atoms = atom
         self.hashes = []
 
         self.result = result
@@ -56,7 +56,7 @@ class node:
             if atom is None:
                 continue
             else:
-                hashes.append(atom.hash)
+                hashes.append(atom[0] + 1000 * atom[1] + 1000000 * atom[2])
         return hashes
 
     def add_node(self, node):
@@ -241,14 +241,16 @@ class node:
         self.atoms = []
         try:
             atoms_list = atoms_line.strip("[").strip("]").split(",")
+            atom = []
             for atom_str in atoms_list:
-                atom_split = atom_str.strip().split(" ")
-                atom = AtomFeatures.atom_features_from_data_w_connection_info(data=atom_split)
+                atom.append(int(atom_str))
                 self.atoms.append(atom)
+                # atom_split = atom_str.strip().split(" ")
+                # atom = AtomFeatures.atom_features_from_data_w_connection_info(data=atom_split)
+                # self.atoms.append(atom)
         except Exception as e:
             print(e)
             print(atoms_list)
-            print(atom_split)
             print(f"Error parsing atoms for node {self.number}\n {atoms_line}")
 
     def _df_line_parsing(self, df_line: pd.Series):

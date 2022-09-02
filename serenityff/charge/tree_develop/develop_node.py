@@ -8,7 +8,7 @@ from serenityff.charge.tree.atom_features import AtomFeatures
 class DevelopNode:
     def __init__(
         self,
-        atom_features: np.array = None,
+        atom_features: list[int, int, int] = None,
         level: int = 0,
         truth_values: Sequence[float] = None,
         attention_values: Sequence[float] = None,
@@ -26,13 +26,13 @@ class DevelopNode:
         return str(self)
 
     def __eq__(self, other: object) -> bool:
-        return self.level == other.level and (self.atom_features == other.atom_features).all()
+        return self.level == other.level and (self.atom_features == other.atom_features)
 
     def __str__(self) -> str:
         if self.level == 0:
             return f"node --- lvl: {self.level}, Num=1"
         else:
-            return f"node --- lvl: {self.level}, Num={str(self.truth_values.size)}, Mean={float(self.average):.4f}, std={np.std(self.truth_values):.4f}, fp={AtomFeatures.lookup_int(self.atom_features[0])}"
+            return f"node --- lvl: {self.level}, Num={str(len(self.truth_values))}, Mean={float(self.average):.4f}, std={np.std(self.truth_values):.4f}, fp={AtomFeatures.lookup_int(self.atom_features[0])}"
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -69,9 +69,9 @@ class DevelopNode:
         if value is None:
             self._truth_values = None
             return
-        if not isinstance(value, np.ndarray):
-            value = np.array(value)
-        self._truth_values = np.array(value)
+        if not isinstance(value, list):
+            value = [value]
+        self._truth_values = value
         return
 
     @attention_values.setter
@@ -82,9 +82,9 @@ class DevelopNode:
         if value is None:
             self._attention_values = None
             return
-        if not isinstance(value, np.ndarray):
-            value = np.array(value)
-        self._attention_values = np.array(value)
+        if not isinstance(value, list):
+            value = [value]
+        self._attention_values = value
         return
 
     @level.setter
@@ -96,7 +96,7 @@ class DevelopNode:
         return
 
     @atom_features.setter
-    def atom_features(self, value: np.array) -> None:
+    def atom_features(self, value: list) -> None:
         self._atom_features = value
 
     @parent_attention.setter
@@ -110,7 +110,10 @@ class DevelopNode:
     @average.setter
     def average(self, value: float) -> None:
         try:
-            self._average = float(value)
+            if isinstance(value, list):
+                self._average = np.mean(value)
+            else:
+                self._average = float(value)
         except ValueError:
             raise ValueError("average attention needs to be of type float")
         return
@@ -134,10 +137,12 @@ class DevelopNode:
 
     def update_average(self):
         if self.level != 0:
-            if self.truth_values.size == 1:
-                self.average = self.truth_values
-            elif self.truth_values.size > 1:
+            if len(self.truth_values) > 0:
                 self.average = np.mean(self.truth_values)
+            # if len(self.truth_values) == 1:
+            #     self.average = self.truth_values
+            # elif len(self.truth_values) > 1:
+            #     self.average = np.mean(self.truth_values)
             else:
                 self.average = np.NAN
         for child in self.children:
@@ -159,26 +164,44 @@ class DevelopNode:
         self.update_average()
         if self.level == 0:
             return (np.float32(np.nan), np.float32(np.nan), np.float32(np.nan), 0)
-        if self.truth_values.size == 1:
+        try:
             return (
-                np.float32(self.truth_values),
-                np.float32(np.nan),
-                np.float32(self.attention_values),
-                1,
+                np.mean(self.truth_values),
+                np.std(self.truth_values),
+                np.max(self.attention_values),
+                len(self.truth_values),
             )
-        if self.truth_values.size > 1:
-            selected_data = self.truth_values[(self.attention_values + self.parent_attention) > attention_percentage]
-            if selected_data.size == 0:
-                return (
-                    np.mean(self.truth_values),
-                    np.std(self.truth_values),
-                    np.mean(self.attention_values),
-                    self.truth_values.size,
-                )
-            else:
-                return (
-                    np.mean(selected_data),
-                    np.std(selected_data),
-                    np.mean(np.array(self.attention_values)[np.argsort(self.attention_values)][-3:]),
-                    selected_data.size,
-                )
+        except TypeError:
+            return (np.nan, np.nan, np.nan, 0)
+
+        # if len(self.truth_values) == 1:
+        #     return (
+        #         np.float32(self.truth_values),
+        #         np.float32(np.nan),
+        #         np.float32(self.attention_values),
+        #         1,
+        #     )
+        # if len(self.truth_values) > 1:
+        #     # selected_data = self.truth_values[(self.attention_values + self.parent_attention) > attention_percentage]
+        #     # if len(selected_data) == 0:
+        #     #     return (
+        #     #         np.mean(self.truth_values),
+        #     #         np.std(self.truth_values),
+        #     #         np.mean(self.attention_values),
+        #     #         len(self.truth_values),
+        #     #     )
+        #     # else:
+        #     #     tmp_attention_values = np.array(self.attention_values)
+        #     #     return (
+        #     #         np.mean(selected_data),
+        #     #         np.std(selected_data),
+        #     #         np.mean(tmp_attention_values[np.argsort(tmp_attention_values)][-3:]),
+        #     #         len(selected_data),
+        #     #     )
+        #     tmp_attention_values = np.array(self.attention_values)
+        #     return (
+        #         np.mean(self.truth_values),
+        #         np.std(self.truth_values),
+        #         np.mean(tmp_attention_values[np.argsort(tmp_attention_values)][-3:]),
+        #         len(self.truth_values),
+        #     )

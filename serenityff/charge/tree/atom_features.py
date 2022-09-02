@@ -1,7 +1,5 @@
 from typing import Any, Sequence, Tuple
 
-import numpy as np
-
 from rdkit import Chem
 
 from serenityff.charge.utils import Molecule
@@ -109,12 +107,12 @@ class AtomFeatures:
     ) -> int:
         connected_bond_type = (
             -1
-            if connected_to[1] is -1
+            if connected_to[1] == -1
             else str(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
         )
         atom = molecule.GetAtomWithIdx(index)
         key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {str(atom.GetHybridization())} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
-        return np.array([AtomFeatures.str_key_dict[key], connected_to[0], connected_bond_type], dtype=np.int64)
+        return [AtomFeatures.str_key_dict[key], connected_to[0], connected_bond_type]
 
     @staticmethod
     def atom_features_from_data_w_connection_info(data: Sequence[Any]) -> int:
@@ -136,7 +134,7 @@ class AtomFeatures:
         except (AttributeError, ValueError):
             conenection_bond_type = -1
         key = f"{data[0]} {int(data[1])} {int(data[2])} {data[3]} {data[4]} {int(data[5])}"
-        return np.array([AtomFeatures.str_key_dict[key], connected_to[0], conenection_bond_type], dtype=np.int64)
+        return [AtomFeatures.str_key_dict[key], connected_to[0], conenection_bond_type]
 
     @staticmethod
     def is_similar(feature1: int, feature2: int) -> float:

@@ -240,17 +240,15 @@ class node:
     def _df_parse_atoms(self, atoms_line: str):
         self.atoms = []
         try:
-            atoms_list = atoms_line.strip("[").strip("]").split(",")
-            atom = []
-            for atom_str in atoms_list:
-                atom.append(int(atom_str))
-                self.atoms.append(atom)
-                # atom_split = atom_str.strip().split(" ")
-                # atom = AtomFeatures.atom_features_from_data_w_connection_info(data=atom_split)
-                # self.atoms.append(atom)
+            self.atoms = eval(atoms_line)
+            assert isinstance(self.atoms, list)
+            for atom in self.atoms:
+                assert len(atom) == 3
+                assert isinstance(atom[0], int)
+                assert isinstance(atom[1], int)
+                assert isinstance(atom[2], int)
         except Exception as e:
             print(e)
-            print(atoms_list)
             print(f"Error parsing atoms for node {self.number}\n {atoms_line}")
 
     def _df_line_parsing(self, df_line: pd.Series):
@@ -332,7 +330,15 @@ class node:
         if self.level in [0, 1, 2]:
             return False
         if abs(self.result - other.result) < min_deviation:
-            if AtomFeatures.is_similar(self.atom, other.atom, af_similar):
+            allAFsSimilar = True
+            for af1 in self.atoms:
+                for af2 in other.atoms:
+                    if not AtomFeatures.is_similar_w_connection_info(af1, af2, af_similar):
+                        allAFsSimilar = False
+                        break
+                if not allAFsSimilar:
+                    break
+            if allAFsSimilar:
                 if self.count > other.count:
                     if self.stdDeviation < other.stdDeviation:
                         return True
@@ -341,7 +347,9 @@ class node:
                         return True
         return False
 
-    def try_to_merge_similar_branches(self, min_deviation=0.0001, children_overlap_acceptance=0.8):
+    def try_to_merge_similar_branches(
+        self, min_deviation=0.0001, children_overlap_acceptance=0.8, af_similar=0.7, merge_counter=0
+    ):
         """
         Try to merge similar branches.
 
@@ -354,26 +362,34 @@ class node:
         """
         for idx, child in enumerate(self.children):
             for other_child in self.children[idx + 1 :]:
-                if child.node_is_similar(other_child, min_deviation=min_deviation):
-                    control_bool = True
-                    child_match = 0
-                    for node_i in child.children:
-                        if node_i in other_child.children:
-                            child_match += 1
-                            if not node_i.node_is_similar(
-                                other_child.children[other_child.children.index(node_i)],
-                                min_deviation=min_deviation,
-                            ):
-                                control_bool = False
-                                break
-                    if (
-                        control_bool
-                        and len(child.children) > 0
-                        and ((child_match / len(child.children)) >= children_overlap_acceptance)
-                    ):
-                        child.add_node(other_child)
-                        self.children.remove(other_child)
-            child.try_to_merge_similar_branches(min_deviation=min_deviation)
+                if child.node_is_similar(other_child, min_deviation=min_deviation, af_similar=af_similar):
+                    # control_bool = True
+                    # child_match = 0
+                    # for node_i in child.children:
+                    #     if node_i in other_child.children:
+                    #         child_match += 1
+                    #         if not node_i.node_is_similar(
+                    #             other_child.children[other_child.children.index(node_i)],
+                    #             min_deviation=min_deviation,
+                    #             af_similar=af_similar,
+                    #         ):
+                    #             control_bool = False
+                    #             break
+                    # if (
+                    #     control_bool
+                    #     and len(child.children) > 0
+                    #     and ((child_match / len(child.children)) >= children_overlap_acceptance)
+                    # ):
+                    child.add_node(other_child)
+                    self.children.remove(other_child)
+                    merge_counter += 1
+            merge_counter += child.try_to_merge_similar_branches(
+                min_deviation=min_deviation,
+                af_similar=af_similar,
+                children_overlap_acceptance=children_overlap_acceptance,
+                merge_counter=merge_counter,
+            )
+        return merge_counter
 
     def get_tree_length(self, length_dict: Dict):
         """

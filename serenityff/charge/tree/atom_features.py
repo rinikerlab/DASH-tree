@@ -143,6 +143,22 @@ class AtomFeatures:
         return np.sum([1 for i, j in zip(fp1, fp2) if i == j]) / len(fp1)
 
     @staticmethod
+    def similarity_w_connection_info(feature1: int, feature2: int) -> float:
+        fp1 = AtomFeatures.lookup_int(feature1[0]).split(" ")
+        fp2 = AtomFeatures.lookup_int(feature2[0]).split(" ")
+        ret_val = np.sum([1 for i, j in zip(fp1, fp2) if i == j])
+        if feature1[1] == feature2[1]:
+            ret_val += 1
+        if feature1[2] == feature2[2]:
+            ret_val += 1
+        return ret_val / (len(fp1) + 2)
+
+    @staticmethod
     def is_similar(feature1: int, feature2: int, threshold: float) -> float:
         similarity = AtomFeatures.similarity(feature1, feature2)
+        return similarity >= threshold
+
+    @staticmethod
+    def is_similar_w_connection_info(feature1: int, feature2: int, threshold: float) -> float:
+        similarity = AtomFeatures.similarity_w_connection_info(feature1, feature2)
         return similarity >= threshold

@@ -360,6 +360,7 @@ class node:
         children_overlap_acceptance : float, optional
             threshold for overlap similarity, by default 0.6
         """
+        ret_merge_counter = merge_counter
         for idx, child in enumerate(self.children):
             for other_child in self.children[idx + 1 :]:
                 if child.node_is_similar(other_child, min_deviation=min_deviation, af_similar=af_similar):
@@ -383,13 +384,13 @@ class node:
                     child.add_node(other_child)
                     self.children.remove(other_child)
                     merge_counter += 1
-            merge_counter += child.try_to_merge_similar_branches(
+            ret_merge_counter = child.try_to_merge_similar_branches(
                 min_deviation=min_deviation,
                 af_similar=af_similar,
                 children_overlap_acceptance=children_overlap_acceptance,
                 merge_counter=merge_counter,
             )
-        return merge_counter
+        return ret_merge_counter
 
     def get_tree_length(self, length_dict: Dict):
         """

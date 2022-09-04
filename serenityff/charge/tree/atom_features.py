@@ -1,5 +1,5 @@
 from typing import Any, Sequence, Tuple
-
+import numpy as np
 from rdkit import Chem
 
 from serenityff.charge.utils import Molecule
@@ -137,6 +137,12 @@ class AtomFeatures:
         return [AtomFeatures.str_key_dict[key], connected_to[0], conenection_bond_type]
 
     @staticmethod
-    def is_similar(feature1: int, feature2: int) -> float:
-        # TODO: MARC :)
-        return
+    def similarity(feature1: int, feature2: int) -> float:
+        fp1 = AtomFeatures.lookup_int(feature1).split(" ")
+        fp2 = AtomFeatures.lookup_int(feature2).split(" ")
+        return np.sum([1 for i, j in zip(fp1, fp2) if i == j]) / len(fp1)
+
+    @staticmethod
+    def is_similar(feature1: int, feature2: int, threshold: float) -> float:
+        similarity = AtomFeatures.similarity(feature1, feature2)
+        return similarity >= threshold

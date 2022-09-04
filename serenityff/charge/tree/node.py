@@ -313,7 +313,7 @@ class node:
         except KeyError:
             pass
 
-    def node_is_similar(self, other, min_deviation: float = 0.001):
+    def node_is_similar(self, other, min_deviation: float = 0.001, af_similar: float = 0.7):
         """
         Check if two nodes are similar (if results are close enough)
 
@@ -329,10 +329,16 @@ class node:
         bool
             True if similar, False otherwise
         """
-        if self.level in [0, 1, 2, 3, 4]:
+        if self.level in [0, 1, 2]:
             return False
         if abs(self.result - other.result) < min_deviation:
-            return True
+            if AtomFeatures.is_similar(self.atom, other.atom, af_similar):
+                if self.count > other.count:
+                    if self.stdDeviation < other.stdDeviation:
+                        return True
+                else:
+                    if self.stdDeviation > other.stdDeviation:
+                        return True
         return False
 
     def try_to_merge_similar_branches(self, min_deviation=0.0001, children_overlap_acceptance=0.8):

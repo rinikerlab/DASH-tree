@@ -1,6 +1,8 @@
 import datetime
 import pickle
 import random
+import os
+import logging
 
 import numpy as np
 import pandas as pd
@@ -32,7 +34,20 @@ class Tree_constructor:
         num_layers_to_build=24,
         sanitize=False,
         verbose=False,
+        loggingBuild=False,
     ):
+        if loggingBuild:
+            self.loggingBuild = True
+            logging.basicConfig(
+                filename=os.path.dirname(df_path) + "/tree_constructor.log",
+                filemode="a",
+                format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+                level=logging.DEBUG,
+            )
+            self.logger = logging.getLogger("TreeConstructor")
+            self.logger.setLevel(logging.DEBUG)
+
         if verbose:
             print(f"{datetime.datetime.now()}\tInitializing Tree_constructor")
         self.sdf_suplier = mols_from_sdf(sdf_suplier)
@@ -182,10 +197,15 @@ class Tree_constructor:
             possible_new_atoms = []
             for i in get_possible_connected_new_atom(matrix, indices):
                 rel, abs = get_connected_neighbor(matrix, i, indices)
+                try:
+                    tmp_feature = self.feature_dict[mol_index][i]
+                except KeyError:
+                    raise KeyError(f"mol_index: {mol_index}, i: {i}")
+                tmp_bond_type = self.bond_matrices[mol_index][abs][i]
                 possible_new_atoms.append(
                     (
                         i,
-                        [self.feature_dict[mol_index][i], rel, self.bond_matrices[mol_index][abs][i]],
+                        [tmp_feature, rel, tmp_bond_type],
                     ),
                 )
             for idx, possible_new_atom in possible_new_atoms:
@@ -325,9 +345,15 @@ class Tree_constructor:
         self._build_layer_1()
         print(f"{datetime.datetime.now()}\tLayer {1} done", flush=True)
         for layer in range(2, self.num_layers_to_build):
+            if self.loggingBuild:
+                self.logger.info(f"\tLayer {layer} started")
+
             self.df_work["total_connected_attention"] = [
                 np.sum(row["node_attentions"][row["connected_atoms"]]) for _, row in self.df_work.iterrows()
             ]
+            if self.loggingBuild:
+                self.logger.info("\t\tAttentionSum done")
+
             self.df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
             ai, a = [], []
             for _, row in self.df_work.iterrows():
@@ -338,6 +364,8 @@ class Tree_constructor:
                 )
                 ai.append(x)
                 a.append(y)
+            if self.loggingBuild:
+                self.logger.info("\t\tMaxAttention done")
 
             self.df_work["connected_atom_max_attention_idx"] = ai
             self.df_work["connected_atom_max_attention"] = a
@@ -345,10 +373,16 @@ class Tree_constructor:
             if self.df_work.shape[0] == 0:
                 break
             self.df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
+            if self.loggingBuild:
+                self.logger.info("\t\tSorting done")
             self.df_work[layer] = [
                 self._try_to_add_new_node(row, self.matrices[row["mol_index"]], layer)
                 for _, row in self.df_work.iterrows()
             ]
+            if self.loggingBuild:
+                self.logger.info("\t\ttry to add new node done")
+            if self.loggingBuild:
+                self.logger.info("\tLayer {layer} done")
             print(f"{datetime.datetime.now()}\tLayer {layer} done", flush=True)
 
         self.root.update_average()

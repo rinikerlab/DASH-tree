@@ -14,6 +14,7 @@ class tree:
     def __init__(self):
         self.root = node(level=0)
         self.tree_lengths = defaultdict(int)
+        self.max_depth = 36
 
     ###############################################################################
     # General helper functions
@@ -52,6 +53,7 @@ class tree:
         """
         self.tree_lengths.clear()
         self.tree_lengths = self.root.get_tree_length(self.tree_lengths)
+        self.max_depth = max(self.tree_lengths.keys()) + 1
 
     def get_sum_nodes(self):
         """
@@ -88,7 +90,7 @@ class tree:
         current_correct_node = self.root
         node_path = [self.root]
         connected_atoms = []
-        for i in range(20):
+        for i in range(self.max_depth):
             try:
                 if i == 0:
                     possible_new_atom_features = [AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)]

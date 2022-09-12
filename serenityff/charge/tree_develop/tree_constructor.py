@@ -81,6 +81,10 @@ class Tree_constructor:
                 nrows=nrows,
             )
         )
+        if sanitize:
+            if verbose:
+                print(f"{datetime.datetime.now()}\tSanitizing")
+            self._clean_molecule_indices_in_df()
 
         if verbose:
             print(f"{datetime.datetime.now()}\tdf imported, starting data spliting")
@@ -128,11 +132,46 @@ class Tree_constructor:
         print(f"Number of train mols: {len(self.df.mol_index.unique())}")
         print(f"Number of test mols: {len(self.test_df.mol_index.unique())}")
 
+    def _clean_molecule_indices_in_df(self):
+        molecule_idx_in_df = self.original_df.mol_index.unique().tolist()
+        for mol_index in molecule_idx_in_df:
+            number_of_atoms_in_mol_df = len(self.original_df.loc[self.original_df.mol_index == mol_index])
+            number_of_atoms_in_mol_sdf = self.sdf_suplier[mol_index].GetNumAtoms()
+            if number_of_atoms_in_mol_df > number_of_atoms_in_mol_sdf:
+                if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 1].GetNumAtoms():
+                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 1
+                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 2].GetNumAtoms():
+                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 2
+                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 3].GetNumAtoms():
+                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 3
+                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 4].GetNumAtoms():
+                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 4
+                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 5].GetNumAtoms():
+                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 5
+                else:
+                    print(
+                        f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
+                    )
+                    print(f"shifted mol has {self.sdf_suplier[mol_index+1].GetNumAtoms()} atoms")
+                    print("--------------------------------------------------")
+                    print(self.original_df.loc[self.original_df.mol_index == mol_index])
+                    print("--------------------------------------------------")
+                    print(self.original_df.loc[self.original_df.mol_index == mol_index].iloc[0].smiles)
+                    print(Chem.MolToSmiles(self.sdf_suplier[mol_index]))
+                    print(Chem.MolToSmiles(self.sdf_suplier[mol_index + 1]))
+                    print("--------------------------------------------------")
+                    raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
+            else:
+                pass
+
     def _get_hydrogen_connectivity(self, line) -> int:
         if line["idx_in_mol"] == 0:
             self.tempmatrix = Chem.GetAdjacencyMatrix(self.sdf_suplier[line["mol_index"]])
         if line["atomtype"] == "H":
-            return int(np.where(self.tempmatrix[line["idx_in_mol"]])[0].item())
+            try:
+                return int(np.where(self.tempmatrix[line["idx_in_mol"]])[0].item())
+            except ValueError:
+                return -1
         else:
             return -1
 

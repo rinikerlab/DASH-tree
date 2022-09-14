@@ -71,7 +71,7 @@ class tree:
     # Tree assignment functions
     ###############################################################################
 
-    def match_new_atom(self, atom, mol):
+    def match_new_atom(self, atom, mol, max_depth=0):
         """
         Matches a given atom in the decision tree to a node
 
@@ -90,7 +90,9 @@ class tree:
         current_correct_node = self.root
         node_path = [self.root]
         connected_atoms = []
-        for i in range(self.max_depth):
+        if max_depth == 0:
+            max_depth = self.max_depth
+        for i in range(max_depth):
             try:
                 if i == 0:
                     possible_new_atom_features = [AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)]
@@ -117,7 +119,7 @@ class tree:
                 break
         return (current_correct_node.result, node_path)
 
-    def match_molecules_atoms(self, mol, mol_idx):
+    def match_molecules_atoms(self, mol, mol_idx, max_depth=0):
         """
         Matches all atoms in a molecule to the tree. ANd returns multiple normalized results.
 
@@ -142,7 +144,7 @@ class tree:
             return_dict["atomtype"] = atom.GetSymbol()
             return_dict["truth"] = float(atom.GetProp("molFileAlias"))
             try:
-                result, node_path = self.match_new_atom(atom_idx, mol)
+                result, node_path = self.match_new_atom(atom_idx, mol, max_depth=max_depth)
                 return_dict["tree"] = float(result)
                 return_dict["tree_std"] = node_path[-1].stdDeviation
             except Exception as e:
@@ -164,7 +166,7 @@ class tree:
 
         return return_list
 
-    def match_dataset(self, mol_sup, stop=1000000):
+    def match_dataset(self, mol_sup, stop=1000000, max_depth=0):
         """
         Matches all molecules in a dataset to the tree.
 
@@ -185,7 +187,7 @@ class tree:
         for mol in tqdm(mol_sup):
             if i >= stop:
                 break
-            tot_list.extend(self.match_molecules_atoms(mol, i))
+            tot_list.extend(self.match_molecules_atoms(mol, i, max_depth=max_depth))
             i += 1
         return pd.DataFrame(tot_list)
 
@@ -194,7 +196,7 @@ class tree:
         tot_list = []
         for mol in tqdm(mol_sup):
             if i in indices:
-                tot_list.extend(self.match_molecules_atoms(mol, i))
+                tot_list.extend(self.match_molecules_atoms(mol, i, max_depth=self.max_depth))
                 i += 1
             else:
                 i += 1

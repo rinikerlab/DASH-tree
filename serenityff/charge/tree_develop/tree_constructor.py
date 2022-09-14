@@ -27,7 +27,6 @@ class Tree_constructor:
         df_path: str,
         sdf_suplier: str,
         nrows: int,
-        read_engine: str = "python",
         attention_percentage: float = 0.99,
         data_split: float = 0.2,
         seed: int = 42,
@@ -47,6 +46,8 @@ class Tree_constructor:
             )
             self.logger = logging.getLogger("TreeConstructor")
             self.logger.setLevel(logging.DEBUG)
+        else:
+            self.loggingBuild = False
 
         if verbose:
             print(f"{datetime.datetime.now()}\tInitializing Tree_constructor")
@@ -56,30 +57,16 @@ class Tree_constructor:
         if verbose:
             print(f"{datetime.datetime.now()}\tMols imported, starting df import")
 
-        self.original_df = (
-            pd.read_csv(
-                df_path,
-                usecols=[
-                    "atomtype",
-                    "mol_index",
-                    "idx_in_mol",
-                    "node_attentions",
-                    "truth",
-                ],
-                engine="pyarrow",
-            )
-            if read_engine == "pyarrow"
-            else pd.read_csv(
-                df_path,
-                usecols=[
-                    "atomtype",
-                    "mol_index",
-                    "idx_in_mol",
-                    "node_attentions",
-                    "truth",
-                ],
-                nrows=nrows,
-            )
+        self.original_df = pd.read_csv(
+            df_path,
+            usecols=[
+                "atomtype",
+                "mol_index",
+                "idx_in_mol",
+                "node_attentions",
+                "truth",
+            ],
+            nrows=nrows,
         )
         if sanitize:
             if verbose:
@@ -229,7 +216,9 @@ class Tree_constructor:
         for i in range(layer):
             for child in current_node.children:
                 if child.atom_features == line[i]:
-                    return child
+                    current_node = child
+                    break
+        return current_node
 
     def _find_matching_child(self, children, matrix, indices, mol_index):
         for child in children:

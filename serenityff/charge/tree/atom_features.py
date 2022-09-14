@@ -108,7 +108,7 @@ class AtomFeatures:
         connected_bond_type = (
             -1
             if connected_to[1] == -1
-            else str(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
+            else int(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
         )
         atom = molecule.GetAtomWithIdx(index)
         key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {str(atom.GetHybridization())} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
@@ -125,7 +125,7 @@ class AtomFeatures:
             conenection_bond_type = (
                 bond_type_str
                 if bond_type_str in Chem.BondType.names
-                else str(
+                else int(
                     Chem.rdchem.BondType.values[
                         int(bond_type_str[bond_type_str.find("(") + 1 : bond_type_str.find(")")])
                     ]

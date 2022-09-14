@@ -32,7 +32,7 @@ class DevelopNode:
         if self.level == 0:
             return f"node --- lvl: {self.level}, Num=1"
         else:
-            return f"node --- lvl: {self.level}, Num={str(len(self.truth_values))}, Mean={float(self.average):.4f}, std={np.std(self.truth_values):.4f}, fp={AtomFeatures.lookup_int(self.atom_features[0])}"
+            return f"node --- lvl: {self.level}, Num={str(len(self.truth_values))}, Mean={float(self.average):.4f}, std={np.std(self.truth_values):.4f}, fp={AtomFeatures.lookup_int(self.atom_features[0])} ({self.atom_features[1]}, {self.atom_features[2]})"
 
     def __hash__(self) -> int:
         return hash(str(self))

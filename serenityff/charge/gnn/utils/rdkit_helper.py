@@ -65,7 +65,8 @@ def get_graph_from_mol(
     graph = grapher._featurize(mol, allowable_set).to_pyg_graph()
     if not no_y:
         graph.y = torch.tensor(
-            [at.GetPropsAsDict()["molFileAlias"] for at in mol.GetAtoms()],
+            # [at.GetPropsAsDict()["molFileAlias"] for at in mol.GetAtoms()],
+            [float(x) for x in mol.GetPropsAsDict()["MBIS_CHARGES"].split("|")],
             dtype=torch.float,
         )
     else:

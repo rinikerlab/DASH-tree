@@ -4,12 +4,17 @@ from openff.toolkit.typing.engines.smirnoff import ElectrostaticsHandler, Librar
 from openff.toolkit.typing.engines.smirnoff.parameters import _NonbondedHandler
 from openmm.unit import Quantity, elementary_charge
 
+from serenityff.charge.tree.tree import tree
+from serenityff.charge.data import default_tree_path
+
 
 class SerenityFFChargeHandler(_NonbondedHandler):
 
     _TAGNAME = "SerenityFFCharge"
     _DEPENDENCIES = [ElectrostaticsHandler, LibraryChargeHandler, vdWHandler]
     _KWARGS = ["toolkit_registry"]
+
+    sff_charge_tree = tree()
 
     def check_handler_compatibility(self, other_handler, assume_missing_is_default=True):
         """
@@ -28,13 +33,15 @@ class SerenityFFChargeHandler(_NonbondedHandler):
     def create_force(self, system, topology, **kwargs) -> None:
         force = super().create_force(system, topology, **kwargs)
 
+        # init tree if needed
+        if not self.sff_charge_tree.hasData:
+            self.sff_charge_tree.from_folder(default_tree_path)
+
         for reference_molecule in topology.reference_molecules:
 
             for topology_molecule in topology._reference_molecule_to_topology_molecules[reference_molecule]:
                 rdkit_mol = reference_molecule.to_rdkit()
-
-                # TODO: Add tree support as soon as tree is good to go
-                partial_charges = [0.0 for _ in range(rdkit_mol.GetNumAtoms())]
+                partial_charges = self.sff_charge_tree.match_molecule_atoms(mol=rdkit_mol)
 
                 for topology_particle in topology_molecule.atoms:
                     if type(topology_particle) is TopologyAtom:

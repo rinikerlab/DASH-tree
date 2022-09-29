@@ -108,6 +108,7 @@ class Extractor:
                 batch=graph.batch,
                 molecule_charge=graph.molecule_charge,
             )
+            ref_charges = mol.GetProp("MBIS_CHARGES").split("|")
             node_attentions, edge_attentions = self.explainer.explain_molecule(graph)
             for atom_iterator, atom in enumerate(mol.GetAtoms()):
                 smiles = str(Chem.MolToSmiles(mol)) if atom_iterator == 0 else np.nan
@@ -120,7 +121,8 @@ class Extractor:
                         node_attentions[atom_iterator].tolist(),
                         edge_attentions[atom_iterator].tolist(),
                         float(prediction.tolist()[atom_iterator][0]),
-                        float(float(atom.GetProp("molFileAlias"))),
+                        float(ref_charges[atom_iterator]),
+                        # float(float(atom.GetProp("molFileAlias"))),
                     ]
                 )
 

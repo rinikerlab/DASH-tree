@@ -1,4 +1,4 @@
-from serenityff.charge.gnn import ChargeCorrectedNodeWiseAttentiveFP, Extractor, Trainer
+from serenityff.charge.gnn import ChargeCorrectedNodeWiseAttentiveFP, NodeWiseAttentiveFP, Extractor, Trainer
 
 from . import _version
 
@@ -8,4 +8,5 @@ __all__ = [
     Trainer,
     Extractor,
     ChargeCorrectedNodeWiseAttentiveFP,
+    NodeWiseAttentiveFP,
 ]

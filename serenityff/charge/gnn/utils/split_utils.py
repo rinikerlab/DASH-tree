@@ -3,6 +3,7 @@ from typing import List, Optional, Sequence, Tuple
 
 import torch
 from sklearn.model_selection import KFold
+from sklearn.model_selection import GroupShuffleSplit
 
 from .custom_data import CustomData
 
@@ -50,6 +51,41 @@ def split_data_random(
     )
     return train_data, test_data
 
+
+def split_data_smiles(
+    data_list: List[CustomData],
+    train_ratio: Optional[float] = 0.8,
+    seed: Optional[int] = 13,
+) -> Tuple[torch.utils.data.Subset]:
+    """
+    Splits a List of CustomData in two Subsets, having a ration of train_ratio.
+    A seed for the randomnumber generator can be specified.
+    Difference to random split: Conformers of same molecule are not split between the sets
+
+    Args:
+        data_list (List[CustomData]): List of Data objects
+        train_ratio (Optional[float], optional): ratio of traindata over testdata. Defaults to .8.
+        seed (Optional[int], optional): Seed for random number generator. Defaults to 13.
+
+    Returns:
+        Tuple[Subset]: train and test subset.
+    """
+    smiles_list = []
+    train_data = []
+    test_data = []
+    for mol in data_list:
+        smiles_list.append(mol['smiles'])
+    gss = GroupShuffleSplit(
+        n_splits=1,
+        train_size=train_ratio,
+        random_state = seed
+    )
+    for train_idx, test_idx in gss.split(data_list, groups = smiles_list):
+        train_data= [data_list[i] for i in train_idx]
+        test_data = [data_list[i] for i in test_idx]    
+    train_data = torch.utils.data.Subset(train_data, indices = list(range(0,len(train_data))))
+    test_data = torch.utils.data.Subset(test_data, indices = list(range(0,len(test_data))))
+    return train_data, test_data
 
 def split_data_Kfold(data_list: Sequence[CustomData], n_splits: int, split: int) -> Tuple[Sequence[CustomData]]:
     """

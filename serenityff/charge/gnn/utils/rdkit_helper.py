@@ -22,6 +22,7 @@ def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[M
 
 def get_graph_from_mol(
     mol: Molecule,
+    index: int,
     allowable_set: Optional[List[str]] = [
         "C",
         "N",
@@ -75,4 +76,5 @@ def get_graph_from_mol(
     graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)
     graph.molecule_charge = Chem.GetFormalCharge(mol)
     graph.smiles = Chem.MolToSmiles(mol, canonical=True)
+    graph.sdf_idx = index
     return graph

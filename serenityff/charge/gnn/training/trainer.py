@@ -183,7 +183,7 @@ class Trainer:
             allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
         """
         mols = mols_from_sdf(sdf_file)
-        self.data = [get_graph_from_mol(mol, allowable_set) for mol in mols]
+        self.data = [get_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:
@@ -419,7 +419,7 @@ class Trainer:
         if not isinstance(data, list):
             data = [data]
         if isinstance(data[0], Molecule):
-            graphs = [get_graph_from_mol(mol, no_y=True) for mol in data]
+            graphs = [get_graph_from_mol(mol, index, no_y=True) for index, mol in enumerate(data)]
         elif isinstance(data[0], CustomData):
             graphs = data
         else:

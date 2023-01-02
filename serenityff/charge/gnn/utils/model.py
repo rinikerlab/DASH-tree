@@ -55,6 +55,7 @@ class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
             x[batch_location] = x[batch_location] - torch.mean(x[batch_location]) + charge_correction
         return x
 
+
 class NodeWiseAttentiveFP(AttentiveFP):
     def __init__(
         self,

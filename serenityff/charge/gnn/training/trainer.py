@@ -29,9 +29,11 @@ class Trainer:
         self,
         device: Optional[Union[torch.device, Literal["cpu", "cuda"]]] = "cpu",
         loss_function: Optional[Callable] = torch.nn.functional.mse_loss,
+        physicsInformed: Optional[bool] = True,
     ) -> None:
         self.device = device
         self.loss_function = loss_function
+        self.physicsInformed = physicsInformed
 
     @property
     def device(self) -> torch.device:
@@ -48,6 +50,10 @@ class Trainer:
     @property
     def loss_function(self) -> Callable:
         return self._loss_function
+
+    @property
+    def physicsInformed(self) -> bool:
+        return self._physicsInformed
 
     @property
     def data(self) -> Sequence[CustomData]:
@@ -76,13 +82,19 @@ class Trainer:
                 load.state_dict()
                 self._model = value
             except AttributeError:
-                self._model = ChargeCorrectedNodeWiseAttentiveFP()
+                if self.physicsInformed:
+                    self._model = ChargeCorrectedNodeWiseAttentiveFP()
+                else:
+                    self._model = NodeWiseAttentiveFP()
                 self._model.load_state_dict(load)
 
         elif isinstance(value, torch.nn.Module):
             self._model = value
         elif isinstance(value, OrderedDict):
-            self._model = ChargeCorrectedNodeWiseAttentiveFP()
+            if self.physicsInformed:
+                self._model = ChargeCorrectedNodeWiseAttentiveFP()
+            else:
+                self._model = NodeWiseAttentiveFP()
             self._model.load_state_dict(value)
         else:
             raise TypeError(
@@ -107,6 +119,14 @@ class Trainer:
             return
         else:
             raise TypeError("loss_function has to be of type callable")
+
+    @physicsInformed.setter
+    def physicsInformed(self, value: bool) -> None:
+        if isinstance(value, bool):
+            self._physicsInformed = value
+            return
+        else:
+            raise TypeError("physicsInformed has to be of type bool")
 
     @device.setter
     def device(self, value: Union[torch.device, Literal["cpu", "cuda"]]):
@@ -232,7 +252,7 @@ class Trainer:
 
     def prepare_training_data(
         self,
-        split_type: Optional[Literal["random", "kfold", 'smiles']] = "random",
+        split_type: Optional[Literal["random", "kfold", "smiles"]] = "random",
         train_ratio: Optional[float] = 0.8,
         n_splits: Optional[int] = 5,
         split: Optional[int] = 0,

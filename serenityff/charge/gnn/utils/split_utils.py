@@ -74,18 +74,15 @@ def split_data_smiles(
     train_data = []
     test_data = []
     for mol in data_list:
-        smiles_list.append(mol['smiles'])
-    gss = GroupShuffleSplit(
-        n_splits=1,
-        train_size=train_ratio,
-        random_state = seed
-    )
-    for train_idx, test_idx in gss.split(data_list, groups = smiles_list):
-        train_data= [data_list[i] for i in train_idx]
-        test_data = [data_list[i] for i in test_idx]    
-    train_data = torch.utils.data.Subset(train_data, indices = list(range(0,len(train_data))))
-    test_data = torch.utils.data.Subset(test_data, indices = list(range(0,len(test_data))))
+        smiles_list.append(mol["smiles"])
+    gss = GroupShuffleSplit(n_splits=1, train_size=train_ratio, random_state=seed)
+    for train_idx, test_idx in gss.split(data_list, groups=smiles_list):
+        train_data = [data_list[i] for i in train_idx]
+        test_data = [data_list[i] for i in test_idx]
+    train_data = torch.utils.data.Subset(train_data, indices=list(range(0, len(train_data))))
+    test_data = torch.utils.data.Subset(test_data, indices=list(range(0, len(test_data))))
     return train_data, test_data
+
 
 def split_data_Kfold(data_list: Sequence[CustomData], n_splits: int, split: int) -> Tuple[Sequence[CustomData]]:
     """

@@ -20,6 +20,7 @@ def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[M
     """
     return Chem.SDMolSupplier(sdf_file, removeHs=removeHs)
 
+
 def get_graph_from_mol(
     mol: Molecule,
     index: int,
@@ -65,7 +66,7 @@ def get_graph_from_mol(
     graph = grapher._featurize(mol, allowable_set).to_pyg_graph()
     if not no_y:
         graph.y = torch.tensor(
-            [float(x) for x in mol.GetProp('MBIScharge').split("|")],
+            [float(x) for x in mol.GetProp("MBIScharge").split("|")],
             dtype=torch.float,
         )
     else:

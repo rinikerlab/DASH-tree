@@ -13,11 +13,13 @@ from torch_geometric.loader import DataLoader
 
 from serenityff.charge.gnn.utils import (
     ChargeCorrectedNodeWiseAttentiveFP,
+    NodeWiseAttentiveFP,
     CustomData,
     get_graph_from_mol,
     mols_from_sdf,
     split_data_Kfold,
     split_data_random,
+    split_data_smiles,
 )
 from serenityff.charge.utils import Molecule, NotInitializedError
 
@@ -181,7 +183,7 @@ class Trainer:
             allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
         """
         mols = mols_from_sdf(sdf_file)
-        self.data = [get_graph_from_mol(mol, allowable_set) for mol in mols]
+        self.data = [get_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:
@@ -223,15 +225,20 @@ class Trainer:
         )
         return
 
+    def _smiles_split(self, train_ratio: Optional[float] = 0.8) -> None:
+
+        self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio)
+        return
+
     def prepare_training_data(
         self,
-        split_type: Optional[Literal["random", "kfold"]] = "random",
+        split_type: Optional[Literal["random", "kfold", 'smiles']] = "random",
         train_ratio: Optional[float] = 0.8,
         n_splits: Optional[int] = 5,
         split: Optional[int] = 0,
     ) -> None:
         """
-        Splits training data into test data and eval data. At the moment, random and kfold split are implemented.
+        Splits training data into test data and eval data. At the moment, random, kfold and smiles split are implemented.
 
         Args:
             split_type (Optional[Literal[&quot;random&quot;, &quot;kfold&quot;]], optional): What split type you want. Defaults to "random".
@@ -240,7 +247,7 @@ class Trainer:
             split (Optional[int], optional): which of the n_splits you want. Defaults to 0.
 
         Raises:
-            NotImplementedError: If a splittype other than 'random' or 'kfold' is chosen.
+            NotImplementedError: If a splittype other than 'random', 'kfold' or 'smiles' is chosen.
         """
         try:
             self.data
@@ -253,6 +260,8 @@ class Trainer:
         elif split_type.lower() == "kfold":
             self._kfold_split(n_splits=n_splits, split=split)
             return
+        elif split_type.lower() == "smiles":
+            self._smiles_split(train_ratio=train_ratio)
         else:
             raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
@@ -410,7 +419,7 @@ class Trainer:
         if not isinstance(data, list):
             data = [data]
         if isinstance(data[0], Molecule):
-            graphs = [get_graph_from_mol(mol, no_y=True) for mol in data]
+            graphs = [get_graph_from_mol(mol, index, no_y=True) for index, mol in enumerate(data)]
         elif isinstance(data[0], CustomData):
             graphs = data
         else:

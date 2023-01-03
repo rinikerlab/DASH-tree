@@ -130,3 +130,6 @@ dmypy.json
 
 # VSCode IDE files
 .vscode/
+
+# SerenityFF charge dev files
+dev

@@ -108,6 +108,7 @@ class Extractor:
                 batch=graph.batch,
                 molecule_charge=graph.molecule_charge,
             )
+            ref_charges = mol.GetProp("MBIS_CHARGES").split("|")
             node_attentions, edge_attentions = self.explainer.explain_molecule(graph)
             for atom_iterator, atom in enumerate(mol.GetAtoms()):
                 smiles = str(Chem.MolToSmiles(mol)) if atom_iterator == 0 else np.nan
@@ -120,7 +121,8 @@ class Extractor:
                         node_attentions[atom_iterator].tolist(),
                         edge_attentions[atom_iterator].tolist(),
                         float(prediction.tolist()[atom_iterator][0]),
-                        float(float(atom.GetProp("molFileAlias"))),
+                        float(ref_charges[atom_iterator]),
+                        # float(float(atom.GetProp("molFileAlias"))),
                     ]
                 )
 
@@ -329,7 +331,7 @@ class Extractor:
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"import extractor as e; e.Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
+        text += r"from serenityff.charge import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
         text += '"\n'
         text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:
@@ -346,7 +348,7 @@ class Extractor:
         file = "cleaner.sh" if not directory else f"{directory}/cleaner.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"import extractor as e; e.Extractor._clean_up(model=${1}, sdf_index=int(${2}), scratch='${3}')"
+        text += r"from serenityff.charge import Extractor; Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
         text += '"\n'
         with open(file, "w") as f:
             f.write(text)
@@ -379,11 +381,14 @@ class Extractor:
             combined_filename=combined_filename,
         )
         if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):
-            os.remove("id.txt")
-            os.remove("worker.sh")
-            os.remove("run_cleanup.sh")
-            os.remove("run_extraction.sh")
-            os.remove("cleaner.sh")
+            for file in [
+                "id.txt",
+                "worker.sh",
+                "run_cleanup.sh",
+                "run_extraction.sh",
+                "cleaner.sh",
+            ]:
+                os.remove(file)
             make_archive(working_dir + "/sdf_data", "zip", working_dir + "/sdf_data")
             rmtree(working_dir + "/sdf_data/")
         else:

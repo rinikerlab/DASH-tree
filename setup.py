@@ -32,7 +32,7 @@ setup(
     packages=find_packages(),
     # packages=find_namespace_packages(include=["serenityff/charge/*"]),
     include_package_data=True,
-    keywords="molecular dynamics, force field, parametrization, nonbonded parameters, explainable md",
+    keywords="molecular dynamics, force field, parametrization, nonbonded parameters, explainable ml",
     python_requires=">=3.7",
     entry_points={
         "openff.toolkit.plugins.handlers": [
@@ -40,3 +40,4 @@ setup(
         ]
     },
 )
+print("test setup.py done")

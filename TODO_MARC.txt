@@ -1,0 +1,39 @@
+Ollaaaaaaa, hoffe schribe alles da ine woni eig no han welle erreiche...
+min aktuelli branch isch dev_maedern
+
+
+Tests fuer all die sache, wo neu dezue cho sind:
+    alles im tree folder
+    alles im tree_develop folder
+
+ich han agfange gwuessi sache ueber mehreri init files wiiter zgeh, so dasmer ned immer ganz tuef ine mues
+zums importiere. han die sache parsed, wonech denke choennt mer au unabhaengig bruche. vlt. macht das kein
+sinn, chasch ja mal luege obs sinn macht und das evt. no apasse. im gnn folder isch das gmacht.
+
+denne, hanich bide init files au immer es __all__ definiert, wo alles inechund wo met import * sett mitcho.
+
+
+!!! DAS SCHISS __INIT__.py FILE IM CHARGE ORDNER LOS WERDE!!!
+
+
+im charge/utils/serenityff_charge_handler.py gids jetzt eifach mal nur 0000 fuer alli
+charges zrugg. dette s tree atom matching ine tue. hed es #TODO
+
+
+tschegge ob alli connections stimmed im df_work.
+
+getters ond setters implementiere fuer node ond tree. eigentlech au fuer tree constructor, zums chli schoener mache.
+
+
+preprocess step wo alli hydrogen charges uf ehri connected atoms transferiered.
+
+
+funktione docstrings adde wo no keini hend. numpy/google entscheide, mier hend verschedni gnoh hehe
+
+D bond types id connectivity matrix ztue hed uesi numba magic zerstoert. moesstisch en zwoiti matrix mache.
+folgendi matrix muestisch ersetze:
+
+vorem comitte au immer isort lo laufe
+
+
+Danke fuer alles! :))

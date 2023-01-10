@@ -9,7 +9,7 @@ from torch_geometric.nn import AttentiveFP
 class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
     def __init__(
         self,
-        in_channels: Optional[int] = 25,
+        in_channels: Optional[int] = 23,
         hidden_channels: Optional[int] = 200,
         out_channels: Optional[int] = 1,
         edge_dim: Optional[int] = 11,

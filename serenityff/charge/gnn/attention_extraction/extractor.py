@@ -86,7 +86,9 @@ class Extractor:
         self.model = model
         self.explainer = Explainer(model=self.model, epochs=epochs, verbose=verbose)
 
-    def _explain_molecules_in_sdf(self, sdf_file: str, scratch: str, output: Optional[str] = None) -> None:
+    def _explain_molecules_in_sdf(
+        self, sdf_file: str, scratch: str, output: Optional[str] = None, verbose: Optional[bool] = False
+    ) -> None:
         """
         ! Needs an initialized explainer (use initialize_explainer()) !
         Explains the prediction of every atom of every molecule in an .sdf file \
@@ -98,8 +100,8 @@ class Extractor:
         """
         dataframe = []
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
-        for mol_iterator, mol in enumerate(suppl):
-            graph = get_graph_from_mol(mol=mol)
+        for mol_iterator, mol in tqdm(enumerate(suppl), total=len(suppl), disable=not verbose):
+            graph = get_graph_from_mol(mol=mol, index=mol_iterator)
             graph.to(device="cpu")
             prediction = self.model(
                 graph.x,
@@ -300,7 +302,7 @@ class Extractor:
         model: Union[str, torch.nn.Module],
         sdf_index: int,
         scratch: str,
-        epochs: Optional[int] = 2000,
+        epochs: Optional[int] = 200,
         working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
     ) -> None:
@@ -405,6 +407,7 @@ class Extractor:
         output: Optional[str] = "combined.csv",
         epochs: Optional[int] = 2000,
         verbose: Optional[bool] = True,
+        verbose_every_atom: Optional[bool] = False,
     ) -> None:
         """
         Use this function if you want to run the feature extraction on your local machine.
@@ -419,8 +422,8 @@ class Extractor:
             > -s:   path to the .sdf file containing the molecules.
         """
         extractor = Extractor()
-        extractor._initialize_expaliner(model=ml_model, epochs=epochs, verbose=verbose)
-        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, output=output, scratch=None)
+        extractor._initialize_expaliner(model=ml_model, epochs=epochs, verbose=verbose_every_atom)
+        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, output=output, scratch=None, verbose=verbose)
         if not extractor._check_final_csv(sdf_file=sdf_file, csv_file=output):
             raise ExtractionError(
                 "Oops Something went wrong with the extraction. \

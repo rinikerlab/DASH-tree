@@ -429,7 +429,7 @@ class Extractor:
                 "Oops Something went wrong with the extraction. \
                 Make sure, all paths provided are correct."
             )
-        return
+        return extractor
 
     @staticmethod
     def run_extraction_lsf(args: Sequence[str]) -> None:
@@ -446,6 +446,7 @@ class Extractor:
 
         """
         files = Extractor._parse_filenames(args)
+        files.sdffile = os.path.abspath(files.sdffile.strip())
         num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
         Extractor._write_worker()
         os.mkdir("logfiles")

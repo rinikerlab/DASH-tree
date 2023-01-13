@@ -273,9 +273,12 @@ class Extractor:
             combined_filename += ".csv"
         datalist = []
         for num in tqdm(range(0, num_files)):
-            df = pd.read_csv(f"{directory}/{num + 1}.csv")
-            df["mol_index"] = df["mol_index"] + num * batch_size
-            datalist.append(df)
+            try:
+                df = pd.read_csv(f"{directory}/{num + 1}.csv")
+                df["mol_index"] = df["mol_index"] + num * batch_size
+                datalist.append(df)
+            except FileNotFoundError:
+                print(f"File {num + 1} not found.")
         df = pd.concat(datalist, axis=0, ignore_index=True)
         df.to_csv(combined_filename, index=False)
 
@@ -379,7 +382,7 @@ class Extractor:
         Extractor._summarize_csvs(
             num_files=num_files,
             batch_size=batch_size,
-            directory=working_dir + "/sdf_data",
+            directory="./sdf_data" if working_dir is None else working_dir + "/sdf_data",
             combined_filename=combined_filename,
         )
         if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):

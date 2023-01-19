@@ -122,6 +122,10 @@ class AtomFeatures:
     str_key_dict = {v: k for k, v in int_key_dict.items()}
 
     @staticmethod
+    def get_number_of_features() -> int:
+        return len(AtomFeatures.feature_list)
+
+    @staticmethod
     def atom_features_from_molecule(molecule: Molecule, index: int) -> int:
         atom = molecule.GetAtomWithIdx(index)
         key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {str(atom.GetHybridization())} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"

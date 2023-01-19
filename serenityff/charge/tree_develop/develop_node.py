@@ -32,6 +32,8 @@ class DevelopNode:
         if self.level == 0:
             return f"node --- lvl: {self.level}, Num=1"
         else:
+            if self.truth_values is None:
+                return f"node --- lvl: {self.level}, empty node, fp={AtomFeatures.lookup_int(self.atom_features[0])} ({self.atom_features[1]}, {self.atom_features[2]})"
             return f"node --- lvl: {self.level}, Num={str(len(self.truth_values))}, Mean={float(self.average):.4f}, std={np.std(self.truth_values):.4f}, fp={AtomFeatures.lookup_int(self.atom_features[0])} ({self.atom_features[1]}, {self.atom_features[2]})"
 
     def __hash__(self) -> int:
@@ -136,7 +138,7 @@ class DevelopNode:
         return
 
     def update_average(self):
-        if self.level != 0:
+        if self.level != 0 and self.truth_values is not None:
             if len(self.truth_values) > 0:
                 self.average = np.mean(self.truth_values)
             # if len(self.truth_values) == 1:

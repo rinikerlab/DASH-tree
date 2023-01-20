@@ -1,4 +1,4 @@
-import datetime
+# import datetime
 import numpy as np
 from serenityff.charge.tree.atom_features import AtomFeatures
 
@@ -197,8 +197,8 @@ class Tree_constructor_parallel_worker:
         try:
             df_work = self.df_af_split[af]
             self._build_layer_1(af=af)
-            if self.verbose:
-                print(f"{datetime.datetime.now()}\tAF={af} - Layer {1} done", flush=True)
+            # if self.verbose:
+            #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {1} done", flush=True)
             for layer in range(2, self.num_layers_to_build):
                 if self.loggingBuild:
                     self.logger.info(f"\tLayer {layer} started")

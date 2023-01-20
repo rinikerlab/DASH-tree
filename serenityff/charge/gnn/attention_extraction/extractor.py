@@ -433,7 +433,7 @@ class Extractor:
                 "Oops Something went wrong with the extraction. \
                 Make sure, all paths provided are correct."
             )
-        return
+        return extractor
 
     @staticmethod
     def run_extraction_lsf(args: Sequence[str]) -> None:

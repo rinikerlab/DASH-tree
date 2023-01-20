@@ -6,12 +6,38 @@ from serenityff.charge.utils import Molecule
 
 
 class AtomFeatures:
+    """
+    AtomFeatures class is a mostly static class that contains all atom features included in the tree.
+    A atom feature contains the following information:
+        > Element type (e.g. C, N, O, ...)
+        > Number of bonds (e.g. 1, 2, 3, ...)
+        > Formal charge (e.g. -1, 0, 1, ...)
+        > Hybridization (e.g. SP, SP2, SP3, ...)
+        > Aromaticity (True or False)
+        > Number of Hydrogens (e.g. 0, 1, 2, ...) (includeNeighbors=True)
+
+    It has a single atom form, or a form with the connection information like the relative index of the connected atom and the bond type.
+    a atom with connection information can be called for example with the function atom_features_from_molecule_w_connection_info() and a
+    example would be:
+    ["C 3 0 SP2 False 0", 0, "SINGLE"]
+    Wich is a carbon atom with 3 bonds, 0 formal charge, SP2 hybridization, not aromatic and 0 hydrogens connected to an atom
+    with index 0 via a single bond.
+    """
+
     feature_list = [
+        "B 3 -1 SP2 True 0",
+        "B 3 0 SP2 False 0",
+        "B 3 0 SP2 False 2",
+        "B 4 -1 SP3 False 0",
+        "B 4 -1 SP3 False 2",
         "Br 1 0 SP3 False 0",
+        "C 1 -1 SP False 0",
         "C 2 0 SP False 0",
         "C 2 0 SP False 1",
+        "C 2 0 SP True 0",
         "C 3 -1 SP2 False 0",
         "C 3 -1 SP2 True 0",
+        "C 3 -1 SP2 False 1",
         "C 3 -1 SP2 True 1",
         "C 3 -1 SP3 False 0",
         "C 3 0 SP2 False 0",
@@ -31,6 +57,10 @@ class AtomFeatures:
         "I 1 0 SP3 False 0",
         "N 1 -1 SP2 False 0",
         "N 1 0 SP False 0",
+        "N 2 -1 SP2 False 0",
+        "N 2 -1 SP2 False 1",
+        "N 2 -1 SP2 True 0",
+        "N 2 -1 SP3 False 0",
         "N 2 0 SP2 False 0",
         "N 2 0 SP2 False 1",
         "N 2 0 SP2 True 0",
@@ -46,6 +76,8 @@ class AtomFeatures:
         "N 3 1 SP2 False 0",
         "N 3 1 SP2 True 0",
         "N 4 1 SP3 False 0",
+        "N 4 1 SP3 False 1",
+        "N 4 1 SP3 False 2",
         "N 4 1 SP3 False 3",
         "O 1 -1 SP2 False 0",
         "O 1 -1 SP3 False 0",
@@ -55,9 +87,12 @@ class AtomFeatures:
         "O 2 0 SP2 True 0",
         "O 2 0 SP3 False 0",
         "O 2 0 SP3 False 1",
+        "O 2 0 SP3 False 2",
         "O 2 1 SP2 False 0",
         "O 2 1 SP2 False 1",
         "O 2 1 SP2 True 0",
+        "O 3 1 SP3 False 0",
+        "O 3 1 SP3 False 1",
         "P 2 0 SP2 False 0",
         "P 2 0 SP2 False 1",
         "P 2 0 SP2 True 0",
@@ -65,6 +100,9 @@ class AtomFeatures:
         "P 4 0 SP3 False 0",
         "P 4 0 SP3 False 1",
         "P 4 1 SP3 False 0",
+        "P 5 0 SP3D False 0",
+        "P 5 0 SP3D False 1",
+        "S 1 -1 SP2 False 0",
         "S 1 0 SP2 False 0",
         "S 2 0 SP2 False 0",
         "S 2 0 SP2 True 0",
@@ -76,6 +114,7 @@ class AtomFeatures:
         "S 3 1 SP2 True 0",
         "S 3 1 SP3 False 0",
         "S 4 0 SP3 False 0",
+        "S 4 0 SP3 False 1",
         "S 4 0 SP3D False 0",
         "S 4 1 SP3 False 0",
     ]
@@ -83,10 +122,20 @@ class AtomFeatures:
     str_key_dict = {v: k for k, v in int_key_dict.items()}
 
     @staticmethod
+    def get_number_of_features() -> int:
+        return len(AtomFeatures.feature_list)
+
+    @staticmethod
     def atom_features_from_molecule(molecule: Molecule, index: int) -> int:
         atom = molecule.GetAtomWithIdx(index)
         key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {str(atom.GetHybridization())} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
         return AtomFeatures.str_key_dict[key]
+
+    @staticmethod
+    def return_atom_feature_key_from_molecule(molecule: Molecule, index: int) -> str:
+        atom = molecule.GetAtomWithIdx(index)
+        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {str(atom.GetHybridization())} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
+        return key
 
     @staticmethod
     def atom_features_from_data(data: Sequence[Any]) -> int:

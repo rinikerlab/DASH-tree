@@ -32,17 +32,19 @@ class DevelopNode:
         if self.level == 0:
             return f"node --- lvl: {self.level}, Num=1"
         else:
+            if self.truth_values is None:
+                return f"node --- lvl: {self.level}, empty node, fp={AtomFeatures.lookup_int(self.atom_features[0])} ({self.atom_features[1]}, {self.atom_features[2]})"
             return f"node --- lvl: {self.level}, Num={str(len(self.truth_values))}, Mean={float(self.average):.4f}, std={np.std(self.truth_values):.4f}, fp={AtomFeatures.lookup_int(self.atom_features[0])} ({self.atom_features[1]}, {self.atom_features[2]})"
 
     def __hash__(self) -> int:
         return hash(str(self))
 
     @property
-    def truth_values(self) -> np.ndarray:
+    def truth_values(self) -> Sequence[float]:
         return self._truth_values
 
     @property
-    def attention_values(self) -> np.ndarray:
+    def attention_values(self) -> Sequence[float]:
         return self._attention_values
 
     @property
@@ -127,8 +129,8 @@ class DevelopNode:
         for node in branch:
             if node in current_parent.children:
                 correct_child = current_parent.children[current_parent.children.index(node)]
-                correct_child.truth_values = np.append(correct_child.truth_values, node.truth_values)
-                correct_child.attention_values = np.append(correct_child.attention_values, node.attention_values)
+                correct_child.truth_values.extend(node.truth_values)
+                correct_child.attention_values.extend(node.attention_values)
                 current_parent = correct_child
             else:
                 current_parent.add_child(node)
@@ -136,7 +138,7 @@ class DevelopNode:
         return
 
     def update_average(self):
-        if self.level != 0:
+        if self.level != 0 and self.truth_values is not None:
             if len(self.truth_values) > 0:
                 self.average = np.mean(self.truth_values)
             # if len(self.truth_values) == 1:

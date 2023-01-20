@@ -1,9 +1,8 @@
 import datetime
-import pickle
 import numpy as np
+from serenityff.charge.tree.atom_features import AtomFeatures
 
 from serenityff.charge.tree.tree_utils import (
-    create_new_node_from_develop_node,
     get_connected_atom_with_max_attention,
     get_connected_neighbor,
     get_possible_connected_new_atom,
@@ -12,13 +11,8 @@ from serenityff.charge.tree_develop.develop_node import DevelopNode
 
 try:
     from multiprocessing import Pool
-
-    # from pathos.multiprocessing import ProcessingPool as Pool
-    # import dask
-    # import dask.dataframe as dd
-    # from dask.distributed import Client  # , LocalCluster
 except ImportError:
-    print("Dask not installed, parallelization not possible")
+    print("multiprocessing not installed, parallelization not possible")
 
 
 class Tree_constructor_parallel_worker:
@@ -242,34 +236,15 @@ class Tree_constructor_parallel_worker:
                 ]
                 if self.loggingBuild:
                     self.logger.info("\tAF={af} - Layer {layer} done")
-                if self.verbose:
-                    print(f"{datetime.datetime.now()}\tAF={af} - Layer {layer} done", flush=True)
+                # if self.verbose:
+                #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {layer} done", flush=True)
             return self.roots[af]
         except Exception as e:
             print(f"Error in AF {af} - {e}")
 
-    def build_tree(self):  # , dask_client:Client = Client()):
-        # for af in range(AtomFeatures.get_number_of_features()):
-        # self._build_tree_single_AF(af=af)
-        # dask_client.submit(self._build_tree_single_AF, af=af)
-        with Pool(6) as p:
-            res = p.map(self._build_tree_single_AF, [16, 17, 18, 28])  # range(AtomFeatures.get_number_of_features())
+    def build_tree(self, num_processes: int = 6):
+        with Pool(num_processes) as p:
+            res = p.map(self._build_tree_single_AF, range(AtomFeatures.get_number_of_features()))
         self.root = DevelopNode()
         self.root.children = res
         self.root.update_average()
-
-    def convert_tree_to_node(self, delDevelop=False):
-        self.new_root = create_new_node_from_develop_node(self.root)
-        if delDevelop:
-            del self.root
-            self.root = None
-
-    def calculate_tree_length(self):
-        self.tree_length = self.new_root.calculate_tree_length()
-
-    def pickle_tree(self, file_name):
-        with open(file_name, "wb") as f:
-            pickle.dump(self.root, f)
-
-    def write_tree_to_file(self, file_name):
-        self.new_root.to_file(file_name)

@@ -228,7 +228,7 @@ class Tree_constructor:
             df_work[0] = df_work["atom_feature"]
         print(f"{datetime.datetime.now()}\tLayer 0 done")
 
-    def build_tree(self):  # , dask_client:Client):
+    def build_tree(self, num_processes):
         tree_worker = Tree_constructor_parallel_worker(
             df_af_split=self.df_af_split,
             matrices=self.matrices,
@@ -240,7 +240,7 @@ class Tree_constructor:
             verbose=self.verbose,
             loggingBuild=self.loggingBuild,
         )
-        tree_worker.build_tree()  # dask_client=dask_client)
+        tree_worker.build_tree(num_processes=num_processes)
         self.root = tree_worker.root
 
     def convert_tree_to_node(self, delDevelop=False):

@@ -40,11 +40,11 @@ class DevelopNode:
         return hash(str(self))
 
     @property
-    def truth_values(self) -> np.ndarray:
+    def truth_values(self) -> Sequence[float]:
         return self._truth_values
 
     @property
-    def attention_values(self) -> np.ndarray:
+    def attention_values(self) -> Sequence[float]:
         return self._attention_values
 
     @property
@@ -129,8 +129,8 @@ class DevelopNode:
         for node in branch:
             if node in current_parent.children:
                 correct_child = current_parent.children[current_parent.children.index(node)]
-                correct_child.truth_values = np.append(correct_child.truth_values, node.truth_values)
-                correct_child.attention_values = np.append(correct_child.attention_values, node.attention_values)
+                correct_child.truth_values.extend(node.truth_values)
+                correct_child.attention_values.extend(node.attention_values)
                 current_parent = correct_child
             else:
                 current_parent.add_child(node)

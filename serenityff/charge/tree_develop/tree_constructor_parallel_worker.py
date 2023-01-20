@@ -200,47 +200,52 @@ class Tree_constructor_parallel_worker:
             # if self.verbose:
             #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {1} done", flush=True)
             for layer in range(2, self.num_layers_to_build):
-                if self.loggingBuild:
-                    self.logger.info(f"\tLayer {layer} started")
+                try:
+                    if self.loggingBuild:
+                        self.logger.info(f"\tLayer {layer} started")
 
-                df_work["total_connected_attention"] = [
-                    np.sum(row["node_attentions"][row["connected_atoms"]]) for _, row in df_work.iterrows()
-                ]
-                if self.loggingBuild:
-                    self.logger.info("\t\tAttentionSum done")
+                    df_work["total_connected_attention"] = [
+                        np.sum(row["node_attentions"][row["connected_atoms"]]) for _, row in df_work.iterrows()
+                    ]
+                    if self.loggingBuild:
+                        self.logger.info("\t\tAttentionSum done")
 
-                df_work = df_work.loc[df_work["total_connected_attention"] < self.attention_percentage]
-                ai, a = [], []
-                for _, row in df_work.iterrows():
-                    x, y = get_connected_atom_with_max_attention(
-                        matrix=self.matrices[int(row["mol_index"])],
-                        attentions=np.array(row["node_attentions"]),
-                        indices=np.array(row["connected_atoms"]),
-                    )
-                    ai.append(x)
-                    a.append(y)
-                if self.loggingBuild:
-                    self.logger.info("\t\tMaxAttention done")
+                    df_work = df_work.loc[df_work["total_connected_attention"] < self.attention_percentage]
+                    ai, a = [], []
+                    for _, row in df_work.iterrows():
+                        x, y = get_connected_atom_with_max_attention(
+                            matrix=self.matrices[int(row["mol_index"])],
+                            attentions=np.array(row["node_attentions"]),
+                            indices=np.array(row["connected_atoms"]),
+                        )
+                        ai.append(x)
+                        a.append(y)
+                    if self.loggingBuild:
+                        self.logger.info("\t\tMaxAttention done")
 
-                df_work["connected_atom_max_attention_idx"] = ai
-                df_work["connected_atom_max_attention"] = a
-                df_work = df_work.loc[df_work["connected_atom_max_attention_idx"].notnull()]
-                if df_work.shape[0] == 0:
+                    df_work["connected_atom_max_attention_idx"] = ai
+                    df_work["connected_atom_max_attention"] = a
+                    df_work = df_work.loc[df_work["connected_atom_max_attention_idx"].notnull()]
+                    if df_work.shape[0] == 0:
+                        break
+                    df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
+                    if self.loggingBuild:
+                        self.logger.info("\t\tSorting done")
+                    df_work[layer] = [
+                        self._try_to_add_new_node(row, self.matrices[row["mol_index"]], layer)
+                        for _, row in df_work.iterrows()
+                    ]
+                    if self.loggingBuild:
+                        self.logger.info("\tAF={af} - Layer {layer} done")
+                except Exception as e:
+                    print(f"Error in AF {af} - Layer {layer} - {e}")
                     break
-                df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
-                if self.loggingBuild:
-                    self.logger.info("\t\tSorting done")
-                df_work[layer] = [
-                    self._try_to_add_new_node(row, self.matrices[row["mol_index"]], layer)
-                    for _, row in df_work.iterrows()
-                ]
-                if self.loggingBuild:
-                    self.logger.info("\tAF={af} - Layer {layer} done")
                 # if self.verbose:
                 #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {layer} done", flush=True)
             return self.roots[af]
         except Exception as e:
             print(f"Error in AF {af} - {e}")
+            return DevelopNode()
 
     def build_tree(self, num_processes: int = 6):
         with Pool(num_processes) as p:

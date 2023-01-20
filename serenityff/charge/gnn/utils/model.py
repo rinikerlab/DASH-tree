@@ -3,8 +3,8 @@ from typing import Optional
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch_geometric.nn import AttentiveFP
-
+#from torch_geometric.nn import AttentiveFP
+from serenityff.charge.gnn.utils.attentive_fp import AttentiveFP
 
 class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
     def __init__(

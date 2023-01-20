@@ -36,6 +36,7 @@ class Extractor:
             try:
                 load.state_dict()
                 self._model = load
+                print(self._model.state_dict().keys())
             except AttributeError:
                 self._model = ChargeCorrectedNodeWiseAttentiveFP()
                 self._model.load_state_dict(load)
@@ -273,9 +274,12 @@ class Extractor:
             combined_filename += ".csv"
         datalist = []
         for num in tqdm(range(0, num_files)):
-            df = pd.read_csv(f"{directory}/{num + 1}.csv")
-            df["mol_index"] = df["mol_index"] + num * batch_size
-            datalist.append(df)
+            try:
+                df = pd.read_csv(f"{directory}/{num + 1}.csv")
+                df["mol_index"] = df["mol_index"] + num * batch_size
+                datalist.append(df)
+            except FileNotFoundError:
+                print(f"File {num + 1} not found.")
         df = pd.concat(datalist, axis=0, ignore_index=True)
         df.to_csv(combined_filename, index=False)
 
@@ -379,7 +383,7 @@ class Extractor:
         Extractor._summarize_csvs(
             num_files=num_files,
             batch_size=batch_size,
-            directory=working_dir + "/sdf_data",
+            directory="./sdf_data" if working_dir is None else working_dir + "/sdf_data",
             combined_filename=combined_filename,
         )
         if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):
@@ -446,10 +450,12 @@ class Extractor:
 
         """
         files = Extractor._parse_filenames(args)
+        files.sdffile = os.path.abspath(files.sdffile.strip())
+        print(f"sdf path =|{files.sdffile}|")
         num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
         Extractor._write_worker()
         os.mkdir("logfiles")
-        lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 12:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
+        lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 24:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
         id = Extractor._get_job_id("id.txt")

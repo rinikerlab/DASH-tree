@@ -110,6 +110,7 @@ class AtomFeatures:
         "S 2 0 SP3 False 1",
         "S 2 1 SP2 True 0",
         "S 3 0 SP2 False 0",
+        "S 3 0 SP2D False 0",
         "S 3 0 SP3 False 0",
         "S 3 1 SP2 True 0",
         "S 3 1 SP3 False 0",

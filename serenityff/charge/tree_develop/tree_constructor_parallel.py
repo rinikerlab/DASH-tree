@@ -199,9 +199,7 @@ class Tree_constructor:
         print("Creating Adjacency matrices:")
         self.matrices = []
         self.bond_matrices = []
-        for i, mol in enumerate(self.sdf_suplier_wo_h):  # tqdm(self.sdf_suplier_wo_h):
-            if i > 110:
-                break
+        for mol in tqdm(self.sdf_suplier_wo_h):  # i, mol in enumerate(self.sdf_suplier_wo_h):  #
             matrix = self._create_single_adjacency_matrix(mol)
             self.bond_matrices.append(matrix)
         # self.bond_matrices = self.dask_client.gather(self.bond_matrices)

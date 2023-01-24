@@ -26,7 +26,7 @@ class Tree_constructor_parallel_worker:
         num_layers_to_build,
         attention_percentage,
         verbose=False,
-        loggingBuild=False,
+        logger=None,
     ):
         self.df_af_split = df_af_split
         self.matrices = matrices
@@ -36,7 +36,11 @@ class Tree_constructor_parallel_worker:
         self.num_layers_to_build = num_layers_to_build
         self.attention_percentage = attention_percentage
         self.verbose = verbose
-        self.loggingBuild = loggingBuild
+        if logger is None:
+            self.loggingBuild = False
+        else:
+            self.loggingBuild = True
+            self.logger = logger
         # self.dask_client = Client()
         # if verbose:
         #    print(self.dask_client)
@@ -242,10 +246,26 @@ class Tree_constructor_parallel_worker:
                     break
                 # if self.verbose:
                 #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {layer} done", flush=True)
+            try:
+                del ai, a
+                for layer in range(2, self.num_layers_to_build):
+                    df_work.drop(layer, axis=1, inplace=True)
+                df_work.drop("total_connected_attention", axis=1, inplace=True)
+                df_work.drop("connected_atom_max_attention_idx", axis=1, inplace=True)
+                df_work.drop("connected_atom_max_attention", axis=1, inplace=True)
+                df_work.drop("connected_atoms", axis=1, inplace=True)
+                del df_work
+            except Exception as e:
+                self.logger.info(f"Error in AF {af} - Deleting error - {e}")
+            print(f"AF {af} done")
             return self.roots[af]
         except Exception as e:
             print(f"Error in AF {af} - {e}")
-            return DevelopNode()
+            # raise e
+            try:
+                return self.roots[af]
+            except Exception:
+                return DevelopNode()
 
     def build_tree(self, num_processes: int = 6):
         with Pool(num_processes) as p:

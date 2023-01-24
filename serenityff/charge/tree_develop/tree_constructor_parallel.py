@@ -125,7 +125,7 @@ class Tree_constructor:
         self.roots = {}
         for af in AtomFeatures.feature_list:
             af_key = AtomFeatures.lookup_str(af)
-            self.roots[af_key] = DevelopNode(atom_features=[af_key, 0, 0], level=1)
+            self.roots[af_key] = DevelopNode(atom_features=[af_key, -1, -1], level=1)
         self.new_root = node(level=0)
 
         self._create_adjacency_matrices()
@@ -236,7 +236,7 @@ class Tree_constructor:
             num_layers_to_build=self.num_layers_to_build,
             attention_percentage=self.attention_percentage,
             verbose=self.verbose,
-            loggingBuild=self.loggingBuild,
+            logger=[self.logger if self.loggingBuild else None],
         )
         tree_worker.build_tree(num_processes=num_processes)
         self.root = tree_worker.root

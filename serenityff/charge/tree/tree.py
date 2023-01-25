@@ -122,7 +122,16 @@ class tree:
                 break
         return (current_correct_node.result, node_path)
 
-    def match_molecule_atoms(self, mol, norm_method="std_weighted", max_depth=0, verbose=False):
+    def match_molecule_atoms(
+        self,
+        mol,
+        norm_method="std_weighted",
+        max_depth=0,
+        verbose=False,
+        return_raw=False,
+        return_std=False,
+        return_match_depth=False,
+    ):
         """
         Matches all atoms in a molecule to the tree. And returns normalized results.
 
@@ -144,16 +153,19 @@ class tree:
         return_list = []
         tree_raw_charges = []
         tree_charge_std = []
+        tree_match_depth = []
         for atom in mol.GetAtoms():
             atom_idx = atom.GetIdx()
             try:
                 result, node_path = self.match_new_atom(atom_idx, mol, max_depth=max_depth)
                 tree_raw_charges.append(float(result))
                 tree_charge_std.append(float(node_path[-1].stdDeviation))
+                tree_match_depth.append(len(node_path))
             except Exception as e:
                 print(e)
                 tree_raw_charges.append(np.NaN)
                 tree_charge_std.append(np.NaN)
+                tree_match_depth.append(-1)
 
         if verbose:
             print("Tree raw charges: {}".format(tree_raw_charges))
@@ -175,7 +187,14 @@ class tree:
             raise ValueError("norm_method must be one of 'none', 'symmetric', 'std_weighted'")
         if verbose:
             print("Tree normalized charges: {}".format(return_list))
-        return return_list
+        return_data = [return_list]
+        if return_raw:
+            return_data.append(tree_raw_charges)
+        if return_std:
+            return_data.append(tree_charge_std)
+        if return_match_depth:
+            return_data.append(tree_match_depth)
+        return return_data
 
     def _match_molecules_atoms_dev(self, mol, mol_idx, max_depth=0):
         """

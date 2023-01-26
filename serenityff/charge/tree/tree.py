@@ -100,6 +100,17 @@ class tree:
                 if i == 0:
                     possible_new_atom_features = [AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)]
                     possible_new_atom_idxs = [atom]
+                elif (
+                    i == 1 and mol.GetAtomWithIdx(atom).GetSymbol() == "H"
+                ):  # special case for H -> only connect to heavy atom and ignore H
+                    h_connected_heavy_atom = (
+                        mol.GetAtomWithIdx(atom).GetNeighbors()[0].GetIdx()
+                    )  # get connected heavy atom
+                    possible_new_atom_features = [
+                        AtomFeatures.atom_features_from_molecule_w_connection_info(mol, h_connected_heavy_atom)
+                    ]
+                    possible_new_atom_idxs = [h_connected_heavy_atom]
+                    connected_atoms = []  # reset connected atoms so that heavy atom is 0 and H is ignored
                 else:
                     possible_new_atom_features, possible_new_atom_idxs = get_possible_atom_features(
                         mol, [int(x) for x in connected_atoms]
@@ -131,6 +142,7 @@ class tree:
         return_raw=False,
         return_std=False,
         return_match_depth=False,
+        default_std_value=0.1,
     ):
         """
         Matches all atoms in a molecule to the tree. And returns normalized results.
@@ -159,7 +171,8 @@ class tree:
             try:
                 result, node_path = self.match_new_atom(atom_idx, mol, max_depth=max_depth)
                 tree_raw_charges.append(float(result))
-                tree_charge_std.append(float(node_path[-1].stdDeviation))
+                tmp_tree_std = float(node_path[-1].stdDeviation)
+                tree_charge_std.append(tmp_tree_std if tmp_tree_std > 0 else default_std_value)
                 tree_match_depth.append(len(node_path))
             except Exception as e:
                 print(e)

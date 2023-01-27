@@ -171,7 +171,7 @@ class Tree_constructor:
     def _check_charge_sanity(self):
         self.wrong_charged_mols_list = []
         for mol_index in tqdm(self.original_df.mol_index.unique()):
-            charges = self.original_df.loc[self.original_df.mol_index == mol_index].charge.values
+            charges = self.original_df.loc[self.original_df.mol_index == mol_index].truth.values
             elements = self.original_df.loc[self.original_df.mol_index == mol_index].atomtype.values
             for element, charge in zip(elements, charges):
                 if element == "H" and charge < -0.01:

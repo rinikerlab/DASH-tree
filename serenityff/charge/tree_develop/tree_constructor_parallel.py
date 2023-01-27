@@ -75,6 +75,9 @@ class Tree_constructor:
             if verbose:
                 print(f"{datetime.datetime.now()}\tSanitizing")
             self._clean_molecule_indices_in_df()
+            if verbose:
+                print(f"{datetime.datetime.now()}\tCheck charge sanity")
+            self._check_charge_sanity()
 
         if verbose:
             print(f"{datetime.datetime.now()}\tdf imported, starting data spliting")
@@ -164,6 +167,23 @@ class Tree_constructor:
                     raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
             else:
                 pass
+
+    def _check_charge_sanity(self):
+        self.wrong_charged_mols_list = []
+        for mol_index in tqdm(self.original_df.mol_index.unique()):
+            charges = self.original_df.loc[self.original_df.mol_index == mol_index].charge.values
+            elements = self.original_df.loc[self.original_df.mol_index == mol_index].atomtype.values
+            for element, charge in zip(elements, charges):
+                if element == "H" and charge < -0.01:
+                    self.original_df.drop(
+                        self.original_df.loc[self.original_df.mol_index == mol_index].index, inplace=True
+                    )
+                    self.wrong_charged_mols_list.append(mol_index)
+                    break
+        if self.verbose:
+            print(
+                f"Number of wrong charged mols: {len(self.wrong_charged_mols_list)} of {len(self.original_df.mol_index.unique())} mols"
+            )
 
     def _get_hydrogen_connectivity(self, line) -> int:
         if line["idx_in_mol"] == 0:

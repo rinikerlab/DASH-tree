@@ -170,16 +170,17 @@ class Tree_constructor:
 
     def _check_charge_sanity(self):
         self.wrong_charged_mols_list = []
+        indices_to_drop = []
         for mol_index in tqdm(self.original_df.mol_index.unique()):
-            charges = self.original_df.loc[self.original_df.mol_index == mol_index].truth.values
-            elements = self.original_df.loc[self.original_df.mol_index == mol_index].atomtype.values
+            df_with_mol_index = self.original_df.loc[self.original_df.mol_index == mol_index]
+            charges = df_with_mol_index.truth.values
+            elements = df_with_mol_index.atomtype.values
             for element, charge in zip(elements, charges):
                 if element == "H" and charge < -0.01:
-                    self.original_df.drop(
-                        self.original_df.loc[self.original_df.mol_index == mol_index].index, inplace=True
-                    )
+                    indices_to_drop.extend(df_with_mol_index.index.to_list())
                     self.wrong_charged_mols_list.append(mol_index)
                     break
+        self.original_df.drop(indices_to_drop, inplace=True)
         if self.verbose:
             print(
                 f"Number of wrong charged mols: {len(self.wrong_charged_mols_list)} of {len(self.original_df.mol_index.unique())} mols"

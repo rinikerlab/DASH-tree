@@ -180,6 +180,18 @@ class Tree_constructor:
                     indices_to_drop.extend(df_with_mol_index.index.to_list())
                     self.wrong_charged_mols_list.append(mol_index)
                     break
+                elif element == "C" and (charge < -2 or charge > 4):
+                    indices_to_drop.extend(df_with_mol_index.index.to_list())
+                    self.wrong_charged_mols_list.append(mol_index)
+                    break
+                elif element == "N" and (charge < -4 or charge > 6):
+                    indices_to_drop.extend(df_with_mol_index.index.to_list())
+                    self.wrong_charged_mols_list.append(mol_index)
+                    break
+                elif element == "O" and (charge < -4 or charge > 6):
+                    indices_to_drop.extend(df_with_mol_index.index.to_list())
+                    self.wrong_charged_mols_list.append(mol_index)
+                    break
         self.original_df.drop(indices_to_drop, inplace=True)
         if self.verbose:
             print(

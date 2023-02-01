@@ -5,6 +5,13 @@ from rdkit import Chem
 from serenityff.charge.utils import Molecule
 
 
+def is_atom_bonded_conjugate(atom: Chem.Atom) -> bool:
+    for bond in atom.GetBonds():
+        if bond.GetIsConjugated():
+            return True
+    return False
+
+
 class AtomFeatures:
     """
     AtomFeatures class is a mostly static class that contains all atom features included in the tree.
@@ -117,18 +124,18 @@ class AtomFeatures:
     @staticmethod
     def atom_features_from_molecule(molecule: Molecule, index: int) -> int:
         atom = molecule.GetAtomWithIdx(index)
-        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
+        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {is_atom_bonded_conjugate(atom)} {atom.GetTotalNumHs(includeNeighbors=True)}"
         return AtomFeatures.str_key_dict[key]
 
     @staticmethod
     def return_atom_feature_key_from_molecule(molecule: Molecule, index: int) -> str:
         atom = molecule.GetAtomWithIdx(index)
-        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
+        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {is_atom_bonded_conjugate(atom)} {atom.GetTotalNumHs(includeNeighbors=True)}"
         return key
 
     @staticmethod
     def atom_features_from_data(data: Sequence[Any]) -> int:
-        key = f"{data[0]} {int(data[1])} {int(data[2])} {data[3]} {data[4]} {int(data[5])}"
+        key = f"{data[0]} {int(data[1])} {int(data[2])} {data[3]} {int(data[4])}"
         return AtomFeatures.str_key_dict[key]
 
     @staticmethod
@@ -149,17 +156,17 @@ class AtomFeatures:
             else int(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
         )
         atom = molecule.GetAtomWithIdx(index)
-        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {atom.GetIsAromatic()} {atom.GetTotalNumHs(includeNeighbors=True)}"
+        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {is_atom_bonded_conjugate(atom)} {atom.GetTotalNumHs(includeNeighbors=True)}"
         return [AtomFeatures.str_key_dict[key], connected_to[0], connected_bond_type]
 
     @staticmethod
     def atom_features_from_data_w_connection_info(data: Sequence[Any]) -> int:
         try:
-            connected_to = (int(data[6]), 0)
+            connected_to = (int(data[5]), 0)
         except (TypeError, ValueError):
             connected_to = (-1, -1)
         try:
-            bond_type_str = data[7]
+            bond_type_str = data[6]
             conenection_bond_type = (
                 bond_type_str
                 if bond_type_str in Chem.BondType.names
@@ -171,7 +178,7 @@ class AtomFeatures:
             )
         except (AttributeError, ValueError):
             conenection_bond_type = -1
-        key = f"{data[0]} {int(data[1])} {int(data[2])} {data[3]} {data[4]} {int(data[5])}"
+        key = f"{data[0]} {int(data[1])} {int(data[2])} {data[3]} {int(data[4])}"
         return [AtomFeatures.str_key_dict[key], connected_to[0], conenection_bond_type]
 
     @staticmethod

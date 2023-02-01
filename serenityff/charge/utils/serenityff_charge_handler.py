@@ -41,7 +41,7 @@ class SerenityFFChargeHandler(_NonbondedHandler):
 
             for topology_molecule in topology._reference_molecule_to_topology_molecules[reference_molecule]:
                 rdkit_mol = reference_molecule.to_rdkit()
-                partial_charges = self.sff_charge_tree.match_molecule_atoms(mol=rdkit_mol)
+                partial_charges = [float(x) for x in self.sff_charge_tree.match_molecule_atoms(mol=rdkit_mol)[0]]
 
                 for topology_particle in topology_molecule.atoms:
                     if type(topology_particle) is TopologyAtom:

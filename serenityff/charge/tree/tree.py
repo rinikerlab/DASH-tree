@@ -209,54 +209,6 @@ class tree:
             return_data.append(tree_match_depth)
         return return_data
 
-    def _match_molecules_atoms_dev(self, mol, mol_idx, max_depth=0):
-        """
-        Matches all atoms in a molecule to the tree. ANd returns multiple normalized results.
-
-        Parameters
-        ----------
-        mol : rdkit.Chem.rdchem.Mol
-            molecule to be matched
-        mol_idx : int
-            index of the molecule in the dataset
-
-        Returns
-        -------
-        list[dict[]]
-            A dict for every atom with the atom properties and the result of the match.
-        """
-        return_list = []
-        mbis_charges = mol.GetProp("MBIS_CHARGES").split("|")
-        for atom in mol.GetAtoms():
-            return_dict = {}
-            atom_idx = atom.GetIdx()
-            return_dict["mol_idx"] = int(mol_idx)
-            return_dict["atom_idx"] = int(atom_idx)
-            return_dict["atomtype"] = atom.GetSymbol()
-            return_dict["truth"] = float(mbis_charges[atom_idx])
-            try:
-                result, node_path = self.match_new_atom(atom_idx, mol, max_depth=max_depth)
-                return_dict["tree"] = float(result)
-                return_dict["tree_std"] = node_path[-1].stdDeviation
-            except Exception as e:
-                print(e)
-                return_dict["tree"] = np.NAN
-                return_dict["tree_std"] = np.NAN
-            return_list.append(return_dict)
-
-        # normalize_charge symmetric
-        tot_charge_truth = np.round(np.sum([float(x) for x in mbis_charges]))
-        tot_charge_tree = np.sum([x["tree"] for x in return_list])
-        for x in return_list:
-            x["tree_norm1"] = x["tree"] - ((tot_charge_tree - tot_charge_truth) / mol.GetNumAtoms())
-
-        # normalize_charge std weighted
-        tot_std = np.sum([x["tree_std"] for x in return_list])
-        for x in return_list:
-            x["tree_norm2"] = x["tree"] + (tot_charge_truth - tot_charge_tree) * (x["tree_std"] / tot_std)
-
-        return return_list
-
     def _match_dataset_dev(self, mol_sup, stop=1000000, max_depth=0):
         """
         Matches all molecules in a dataset to the tree.
@@ -278,16 +230,22 @@ class tree:
         for mol in tqdm(mol_sup):
             if i >= stop:
                 break
-            tot_list.extend(self._match_molecules_atoms_dev(mol, i, max_depth=max_depth))
+            charges = self.match_molecule_atoms(mol, i, max_depth=max_depth)[0]
+            elements = [x.GetSymbol() for x in mol.GetAtoms()]
+            atom_idxs = [x.GetIdx() for x in mol.GetAtoms()]
+            mol_idx = [i] * len(charges)
+            tot_list.append(
+                pd.DataFrame({"mol_idx": mol_idx, "atom_idx": atom_idxs, "element": elements, "charge": charges})
+            )
             i += 1
-        return pd.DataFrame(tot_list)
+        return pd.concat(tot_list)
 
     def _match_dataset_with_indices_dev(self, mol_sup, indices, verbose=True):
         i = 0
         tot_list = []
         for mol in tqdm(mol_sup) if verbose else mol_sup:
             if i in indices:
-                tot_list.extend(self._match_molecules_atoms_dev(mol, i, max_depth=self.max_depth))
+                tot_list.extend(self.match_molecule_atoms(mol, i, max_depth=self.max_depth))
                 i += 1
             else:
                 i += 1

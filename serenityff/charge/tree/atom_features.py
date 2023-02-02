@@ -42,6 +42,7 @@ class AtomFeatures:
         "C 2 0 False 0",
         "C 2 0 False 1",
         "C 2 0 True 0",
+        "C 2 0 True 1",
         "C 3 -1 False 0",
         "C 3 -1 True 0",
         "C 3 -1 False 1",

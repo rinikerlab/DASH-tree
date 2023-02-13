@@ -1,4 +1,4 @@
-from typing import Any, Sequence, Tuple
+from typing import Any, Sequence, Tuple, Union
 import numpy as np
 from rdkit import Chem
 
@@ -77,15 +77,18 @@ class AtomFeatures:
         "N 2 0 True 0",
         "N 2 0 True 1",
         "N 2 1 False 0",
+        "N 2 1 False 1",
         "N 2 1 True 0",
+        "N 2 1 True 1",
         "N 3 0 False 0",
         "N 3 0 False 1",
         "N 3 0 False 2",
         "N 3 0 True 0",
         "N 3 0 True 1",
         "N 3 0 True 2",
-        "N 3 1 False 0",
+        "N 3 1 False 0" "N 3 1 False 1",
         "N 3 1 True 0",
+        "N 3 1 True 1",
         "N 4 1 False 0",
         "N 4 1 False 1",
         "N 4 1 False 2",
@@ -165,6 +168,15 @@ class AtomFeatures:
     @staticmethod
     def lookup_str(key: str) -> int:
         return AtomFeatures.str_key_dict[key]
+
+    @staticmethod
+    def get_split_feature_typed_from_key(key: Union[int, str]) -> int:
+        if isinstance(key, int):
+            af_string = AtomFeatures.int_key_dict[key]
+        else:
+            af_string = key
+        element, num_bonds, charge, conjugated, num_hydrogens = af_string.split(" ")
+        return (element, int(num_bonds), int(charge), True if conjugated == "True" else False, int(num_hydrogens))
 
     @staticmethod
     def atom_features_from_molecule_w_connection_info(

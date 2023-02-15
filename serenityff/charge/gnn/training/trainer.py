@@ -365,6 +365,7 @@ class Trainer:
         self,
         epochs: int,
         batch_size: Optional[int] = 64,
+        verbose: Optional[bool] = False,
     ) -> Tuple[Sequence[float]]:
         """
         Trains self.model if everything is initialized.
@@ -386,7 +387,7 @@ class Trainer:
         train_loss = []
         eval_losses = []
 
-        for _ in range(epochs):
+        for epo in range(epochs):
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
@@ -410,6 +411,8 @@ class Trainer:
                     torch.cuda.empty_cache()
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
+            if verbose:
+                print(f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}")
 
         self._save_training_data(train_loss, eval_losses)
         torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")

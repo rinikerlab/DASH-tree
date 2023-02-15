@@ -15,6 +15,7 @@ class SerenityFFChargeHandler(_NonbondedHandler):
     _KWARGS = ["toolkit_registry"]
 
     sff_charge_tree = tree()
+    attention_threshold = 0.9
 
     def check_handler_compatibility(self, other_handler, assume_missing_is_default=True):
         """
@@ -41,7 +42,12 @@ class SerenityFFChargeHandler(_NonbondedHandler):
 
             for topology_molecule in topology._reference_molecule_to_topology_molecules[reference_molecule]:
                 rdkit_mol = reference_molecule.to_rdkit()
-                partial_charges = [float(x) for x in self.sff_charge_tree.match_molecule_atoms(mol=rdkit_mol)[0]]
+                partial_charges = [
+                    float(x)
+                    for x in self.sff_charge_tree.match_molecule_atoms(
+                        mol=rdkit_mol, attention_threshold=self.attention_threshold
+                    )[0]
+                ]
 
                 for topology_particle in topology_molecule.atoms:
                     if type(topology_particle) is TopologyAtom:

@@ -74,7 +74,7 @@ class tree:
     # Tree assignment functions
     ###############################################################################
 
-    def match_new_atom(self, atom, mol, max_depth=0):
+    def match_new_atom(self, atom, mol, max_depth=0, attention_threshold=10):
         """
         Matches a given atom in the decision tree to a node
 
@@ -93,6 +93,7 @@ class tree:
         current_correct_node = self.root
         node_path = [self.root]
         connected_atoms = []
+        total_attention = 0
         if max_depth == 0:
             max_depth = self.max_depth
         for i in range(max_depth):
@@ -126,8 +127,11 @@ class tree:
                             current_correct_node = current_node
                             connected_atoms.append(possible_atom_idx)
                             node_path.append(current_node)
+                            total_attention += current_node.attention
                             found_match = True
                             break
+                if total_attention > attention_threshold:
+                    break
             except Exception as e:
                 print(e)
                 break
@@ -138,6 +142,7 @@ class tree:
         mol,
         norm_method="std_weighted",
         max_depth=0,
+        attention_threshold=10,
         verbose=False,
         return_raw=False,
         return_std=False,
@@ -169,7 +174,9 @@ class tree:
         for atom in mol.GetAtoms():
             atom_idx = atom.GetIdx()
             try:
-                result, node_path = self.match_new_atom(atom_idx, mol, max_depth=max_depth)
+                result, node_path = self.match_new_atom(
+                    atom_idx, mol, max_depth=max_depth, attention_threshold=attention_threshold
+                )
                 tree_raw_charges.append(float(result))
                 tmp_tree_std = float(node_path[-1].stdDeviation)
                 tree_charge_std.append(tmp_tree_std if tmp_tree_std > 0 else default_std_value)
@@ -209,7 +216,7 @@ class tree:
             return_data.append(tree_match_depth)
         return return_data
 
-    def _match_dataset_dev(self, mol_sup, stop=1000000, max_depth=0):
+    def _match_dataset_dev(self, mol_sup, stop=1000000, max_depth=0, attention_threshold=10):
         """
         Matches all molecules in a dataset to the tree.
 
@@ -230,7 +237,7 @@ class tree:
         for mol in tqdm(mol_sup):
             if i >= stop:
                 break
-            charges = self.match_molecule_atoms(mol, i, max_depth=max_depth)[0]
+            charges = self.match_molecule_atoms(mol, i, max_depth=max_depth, attention_threshold=attention_threshold)[0]
             elements = [x.GetSymbol() for x in mol.GetAtoms()]
             atom_idxs = [x.GetIdx() for x in mol.GetAtoms()]
             mol_idx = [i] * len(charges)

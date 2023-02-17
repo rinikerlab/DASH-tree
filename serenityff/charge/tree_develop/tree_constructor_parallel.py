@@ -32,6 +32,7 @@ class Tree_constructor:
         sanitize=False,
         verbose=False,
         loggingBuild=False,
+        split_indices_path=None,
     ):
         if loggingBuild:
             self.loggingBuild = True
@@ -83,11 +84,15 @@ class Tree_constructor:
             print(f"{datetime.datetime.now()}\tdf imported, starting data spliting")
 
         random.seed(seed)
-        unique_mols = self.original_df.mol_index.unique().tolist()
-        test_set = random.sample(
-            unique_mols,
-            int(len(unique_mols) * data_split),
-        )
+        if split_indices_path is None:
+            unique_mols = self.original_df.mol_index.unique().tolist()
+            test_set = random.sample(
+                unique_mols,
+                int(len(unique_mols) * data_split),
+            )
+        else:
+            df_test_set = pd.read_csv(split_indices_path)
+            test_set = df_test_set["sdf_idx"].tolist()
         self.df = self.original_df.loc[~self.original_df.mol_index.isin(test_set)].copy()
         self.test_df = self.original_df.loc[self.original_df.mol_index.isin(test_set)].copy()
 

@@ -90,9 +90,12 @@ class Tree_constructor:
                 unique_mols,
                 int(len(unique_mols) * data_split),
             )
+            test_set = set(test_set)
         else:
             df_test_set = pd.read_csv(split_indices_path)
             test_set = df_test_set["sdf_idx"].tolist()
+            test_set = [int(i) for i in test_set]
+            test_set = set(test_set)
         self.df = self.original_df.loc[~self.original_df.mol_index.isin(test_set)].copy()
         self.test_df = self.original_df.loc[self.original_df.mol_index.isin(test_set)].copy()
 

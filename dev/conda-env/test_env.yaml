@@ -35,5 +35,5 @@ dependencies:
   - openff-toolkit = 0.10.0
   - rdkit
   ## Machine Learning
-  - pytorch = 1.13
-  - pyg = 2.2
+  - pytorch #= 1.13
+  - pyg #= 2.2

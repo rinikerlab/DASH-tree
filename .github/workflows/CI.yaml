@@ -32,17 +32,23 @@ jobs:
         df -h
         ulimit -a
 
-
-    - uses: mamba-org/provision-with-micromamba@main
+    - uses: conda-incubator/setup-miniconda@v2
       with:
         python-version: ${{ matrix.python-version }}
-        environment-file:  dev/conda-env/test_env.yaml
-        channels: conda-forge,defaults
-
+        channels: conda-forge,defaults,pytorch,pyg
         activate-environment: serenityff-charge-test
-        auto-update-conda: true
-        auto-activate-base: false
-        show-channel-urls: true
+        environment-file:  dev/conda-env/test_env.yaml
+        auto-active-base: false
+
+    #- uses: mamba-org/provision-with-micromamba@main
+    #  with:
+    #    python-version: ${{ matrix.python-version }}
+    #    environment-file:  dev/conda-env/test_env.yaml
+    #    channels: conda-forge,defaults
+    #    activate-environment: serenityff-charge-test
+    #    auto-update-conda: true
+    #    auto-activate-base: false
+    #    show-channel-urls: true
 
     - name: Install package
 

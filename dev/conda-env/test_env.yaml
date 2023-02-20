@@ -25,6 +25,7 @@ dependencies:
   - mpmath
   - pandas
   - pytables
+  - pyarrow
   - numpy
   - sympy
   - scipy

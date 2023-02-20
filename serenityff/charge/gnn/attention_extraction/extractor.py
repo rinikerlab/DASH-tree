@@ -86,7 +86,9 @@ class Extractor:
         self.model = model
         self.explainer = Explainer(model=self.model, epochs=epochs, verbose=verbose)
 
-    def _explain_molecules_in_sdf(self, sdf_file: str, scratch: str, output: Optional[str] = None) -> None:
+    def _explain_molecules_in_sdf(
+        self, sdf_file: str, scratch: str, output: Optional[str] = None, verbose: Optional[bool] = False
+    ) -> None:
         """
         ! Needs an initialized explainer (use initialize_explainer()) !
         Explains the prediction of every atom of every molecule in an .sdf file \
@@ -98,8 +100,8 @@ class Extractor:
         """
         dataframe = []
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
-        for mol_iterator, mol in enumerate(suppl):
-            graph = get_graph_from_mol(mol=mol)
+        for mol_iterator, mol in tqdm(enumerate(suppl), total=len(suppl), disable=not verbose):
+            graph = get_graph_from_mol(mol=mol, index=mol_iterator)
             graph.to(device="cpu")
             prediction = self.model(
                 graph.x,
@@ -108,6 +110,7 @@ class Extractor:
                 batch=graph.batch,
                 molecule_charge=graph.molecule_charge,
             )
+            ref_charges = mol.GetProp("MBIS_CHARGES").split("|")
             node_attentions, edge_attentions = self.explainer.explain_molecule(graph)
             for atom_iterator, atom in enumerate(mol.GetAtoms()):
                 smiles = str(Chem.MolToSmiles(mol)) if atom_iterator == 0 else np.nan
@@ -120,7 +123,8 @@ class Extractor:
                         node_attentions[atom_iterator].tolist(),
                         edge_attentions[atom_iterator].tolist(),
                         float(prediction.tolist()[atom_iterator][0]),
-                        float(float(atom.GetProp("molFileAlias"))),
+                        float(ref_charges[atom_iterator]),
+                        # float(float(atom.GetProp("molFileAlias"))),
                     ]
                 )
 
@@ -269,9 +273,12 @@ class Extractor:
             combined_filename += ".csv"
         datalist = []
         for num in tqdm(range(0, num_files)):
-            df = pd.read_csv(f"{directory}/{num + 1}.csv")
-            df["mol_index"] = df["mol_index"] + num * batch_size
-            datalist.append(df)
+            try:
+                df = pd.read_csv(f"{directory}/{num + 1}.csv")
+                df["mol_index"] = df["mol_index"] + num * batch_size
+                datalist.append(df)
+            except FileNotFoundError:
+                print(f"File {num + 1} not found.")
         df = pd.concat(datalist, axis=0, ignore_index=True)
         df.to_csv(combined_filename, index=False)
 
@@ -298,7 +305,7 @@ class Extractor:
         model: Union[str, torch.nn.Module],
         sdf_index: int,
         scratch: str,
-        epochs: Optional[int] = 2000,
+        epochs: Optional[int] = 200,
         working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
     ) -> None:
@@ -329,7 +336,7 @@ class Extractor:
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"import extractor as e; e.Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
+        text += r"from serenityff.charge import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
         text += '"\n'
         text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:
@@ -346,7 +353,7 @@ class Extractor:
         file = "cleaner.sh" if not directory else f"{directory}/cleaner.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"import extractor as e; e.Extractor._clean_up(model=${1}, sdf_index=int(${2}), scratch='${3}')"
+        text += r"from serenityff.charge import Extractor; Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
         text += '"\n'
         with open(file, "w") as f:
             f.write(text)
@@ -375,15 +382,18 @@ class Extractor:
         Extractor._summarize_csvs(
             num_files=num_files,
             batch_size=batch_size,
-            directory=working_dir + "/sdf_data",
+            directory="./sdf_data" if working_dir is None else working_dir + "/sdf_data",
             combined_filename=combined_filename,
         )
         if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):
-            os.remove("id.txt")
-            os.remove("worker.sh")
-            os.remove("run_cleanup.sh")
-            os.remove("run_extraction.sh")
-            os.remove("cleaner.sh")
+            for file in [
+                "id.txt",
+                "worker.sh",
+                "run_cleanup.sh",
+                "run_extraction.sh",
+                "cleaner.sh",
+            ]:
+                os.remove(file)
             make_archive(working_dir + "/sdf_data", "zip", working_dir + "/sdf_data")
             rmtree(working_dir + "/sdf_data/")
         else:
@@ -400,6 +410,7 @@ class Extractor:
         output: Optional[str] = "combined.csv",
         epochs: Optional[int] = 2000,
         verbose: Optional[bool] = True,
+        verbose_every_atom: Optional[bool] = False,
     ) -> None:
         """
         Use this function if you want to run the feature extraction on your local machine.
@@ -414,14 +425,14 @@ class Extractor:
             > -s:   path to the .sdf file containing the molecules.
         """
         extractor = Extractor()
-        extractor._initialize_expaliner(model=ml_model, epochs=epochs, verbose=verbose)
-        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, output=output, scratch=None)
+        extractor._initialize_expaliner(model=ml_model, epochs=epochs, verbose=verbose_every_atom)
+        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, output=output, scratch=None, verbose=verbose)
         if not extractor._check_final_csv(sdf_file=sdf_file, csv_file=output):
             raise ExtractionError(
                 "Oops Something went wrong with the extraction. \
                 Make sure, all paths provided are correct."
             )
-        return
+        return extractor
 
     @staticmethod
     def run_extraction_lsf(args: Sequence[str]) -> None:
@@ -438,6 +449,7 @@ class Extractor:
 
         """
         files = Extractor._parse_filenames(args)
+        files.sdffile = os.path.abspath(files.sdffile.strip())
         num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
         Extractor._write_worker()
         os.mkdir("logfiles")

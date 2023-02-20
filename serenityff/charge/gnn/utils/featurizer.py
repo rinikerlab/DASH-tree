@@ -394,7 +394,8 @@ def _construct_atom_feature(
     atom_type = one_hot_encode(atom.GetSymbol(), allowable_set, True)
     formal_charge = [float(atom.GetFormalCharge())]
     hybridization = one_hot_encode(str(atom.GetHybridization()), DEFAULT_HYBRIDIZATION_SET, False)
-    acceptor_donor = get_atom_hydrogen_bonding_one_hot(atom, h_bond_infos)
+    # remove
+    # acceptor_donor = get_atom_hydrogen_bonding_one_hot(atom, h_bond_infos)
     aromatic = [float(atom.GetIsAromatic())]
     degree = one_hot_encode(atom.GetTotalDegree(), DEFAULT_TOTAL_DEGREE_SET, True)
     atom_feat = np.concatenate(
@@ -402,7 +403,7 @@ def _construct_atom_feature(
             atom_type,
             formal_charge,
             hybridization,
-            acceptor_donor,
+            #    acceptor_donor,
             aromatic,
             degree,
         ]
@@ -573,7 +574,8 @@ class MolGraphConvFeaturizer(MolecularFeaturizer):
                     raise ImportError("This class requires RDKit to be installed.")
 
         # construct atom (node) feature
-        h_bond_infos = construct_hydrogen_bonding_info(datapoint)
+        # h_bond_infos = construct_hydrogen_bonding_info(datapoint)
+        h_bond_infos = [(i, "Donor") for i in range(datapoint.GetNumAtoms())]
         atom_features = np.asarray(
             [
                 _construct_atom_feature(

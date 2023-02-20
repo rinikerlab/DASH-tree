@@ -13,11 +13,13 @@ from torch_geometric.loader import DataLoader
 
 from serenityff.charge.gnn.utils import (
     ChargeCorrectedNodeWiseAttentiveFP,
+    NodeWiseAttentiveFP,
     CustomData,
     get_graph_from_mol,
     mols_from_sdf,
     split_data_Kfold,
     split_data_random,
+    split_data_smiles,
 )
 from serenityff.charge.utils import Molecule, NotInitializedError
 
@@ -27,9 +29,11 @@ class Trainer:
         self,
         device: Optional[Union[torch.device, Literal["cpu", "cuda"]]] = "cpu",
         loss_function: Optional[Callable] = torch.nn.functional.mse_loss,
+        physicsInformed: Optional[bool] = True,
     ) -> None:
         self.device = device
         self.loss_function = loss_function
+        self.physicsInformed = physicsInformed
 
     @property
     def device(self) -> torch.device:
@@ -46,6 +50,10 @@ class Trainer:
     @property
     def loss_function(self) -> Callable:
         return self._loss_function
+
+    @property
+    def physicsInformed(self) -> bool:
+        return self._physicsInformed
 
     @property
     def data(self) -> Sequence[CustomData]:
@@ -74,13 +82,19 @@ class Trainer:
                 load.state_dict()
                 self._model = value
             except AttributeError:
-                self._model = ChargeCorrectedNodeWiseAttentiveFP()
+                if self.physicsInformed:
+                    self._model = ChargeCorrectedNodeWiseAttentiveFP()
+                else:
+                    self._model = NodeWiseAttentiveFP()
                 self._model.load_state_dict(load)
 
         elif isinstance(value, torch.nn.Module):
             self._model = value
         elif isinstance(value, OrderedDict):
-            self._model = ChargeCorrectedNodeWiseAttentiveFP()
+            if self.physicsInformed:
+                self._model = ChargeCorrectedNodeWiseAttentiveFP()
+            else:
+                self._model = NodeWiseAttentiveFP()
             self._model.load_state_dict(value)
         else:
             raise TypeError(
@@ -105,6 +119,14 @@ class Trainer:
             return
         else:
             raise TypeError("loss_function has to be of type callable")
+
+    @physicsInformed.setter
+    def physicsInformed(self, value: bool) -> None:
+        if isinstance(value, bool):
+            self._physicsInformed = value
+            return
+        else:
+            raise TypeError("physicsInformed has to be of type bool")
 
     @device.setter
     def device(self, value: Union[torch.device, Literal["cpu", "cuda"]]):
@@ -181,7 +203,7 @@ class Trainer:
             allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
         """
         mols = mols_from_sdf(sdf_file)
-        self.data = [get_graph_from_mol(mol, allowable_set) for mol in mols]
+        self.data = [get_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:
@@ -223,15 +245,20 @@ class Trainer:
         )
         return
 
+    def _smiles_split(self, train_ratio: Optional[float] = 0.8) -> None:
+
+        self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio)
+        return
+
     def prepare_training_data(
         self,
-        split_type: Optional[Literal["random", "kfold"]] = "random",
+        split_type: Optional[Literal["random", "kfold", "smiles"]] = "random",
         train_ratio: Optional[float] = 0.8,
         n_splits: Optional[int] = 5,
         split: Optional[int] = 0,
     ) -> None:
         """
-        Splits training data into test data and eval data. At the moment, random and kfold split are implemented.
+        Splits training data into test data and eval data. At the moment, random, kfold and smiles split are implemented.
 
         Args:
             split_type (Optional[Literal[&quot;random&quot;, &quot;kfold&quot;]], optional): What split type you want. Defaults to "random".
@@ -240,7 +267,7 @@ class Trainer:
             split (Optional[int], optional): which of the n_splits you want. Defaults to 0.
 
         Raises:
-            NotImplementedError: If a splittype other than 'random' or 'kfold' is chosen.
+            NotImplementedError: If a splittype other than 'random', 'kfold' or 'smiles' is chosen.
         """
         try:
             self.data
@@ -253,6 +280,8 @@ class Trainer:
         elif split_type.lower() == "kfold":
             self._kfold_split(n_splits=n_splits, split=split)
             return
+        elif split_type.lower() == "smiles":
+            self._smiles_split(train_ratio=train_ratio)
         else:
             raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
@@ -336,6 +365,7 @@ class Trainer:
         self,
         epochs: int,
         batch_size: Optional[int] = 64,
+        verbose: Optional[bool] = False,
     ) -> Tuple[Sequence[float]]:
         """
         Trains self.model if everything is initialized.
@@ -357,7 +387,7 @@ class Trainer:
         train_loss = []
         eval_losses = []
 
-        for _ in range(epochs):
+        for epo in range(epochs):
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
@@ -381,6 +411,8 @@ class Trainer:
                     torch.cuda.empty_cache()
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
+            if verbose:
+                print(f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}")
 
         self._save_training_data(train_loss, eval_losses)
         torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")
@@ -410,7 +442,7 @@ class Trainer:
         if not isinstance(data, list):
             data = [data]
         if isinstance(data[0], Molecule):
-            graphs = [get_graph_from_mol(mol, no_y=True) for mol in data]
+            graphs = [get_graph_from_mol(mol, index, no_y=True) for index, mol in enumerate(data)]
         elif isinstance(data[0], CustomData):
             graphs = data
         else:

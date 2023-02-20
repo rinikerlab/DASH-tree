@@ -111,7 +111,7 @@ class Extractor:
                 batch=graph.batch,
                 molecule_charge=graph.molecule_charge,
             )
-            ref_charges = mol.GetProp("MBIS_CHARGES").split("|")
+            ref_charges = mol.GetProp("MBIScharge").split("|")
             node_attentions, edge_attentions = self.explainer.explain_molecule(graph)
             for atom_iterator, atom in enumerate(mol.GetAtoms()):
                 smiles = str(Chem.MolToSmiles(mol)) if atom_iterator == 0 else np.nan

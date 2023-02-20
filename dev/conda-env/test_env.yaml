@@ -29,9 +29,11 @@ dependencies:
   - numpy
   - sympy
   - scipy
+  - numba
+  - multiprocessing
   ## Chemie
   - openff-toolkit = 0.10.0
   - rdkit
   ## Machine Learning
-  - pytorch
-  - pyg
+  - pytorch = 1.13
+  - pyg = 2.2

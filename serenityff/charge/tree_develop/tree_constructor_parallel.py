@@ -9,7 +9,6 @@ import pandas as pd
 from rdkit import Chem
 from tqdm import tqdm
 
-from serenityff.charge.gnn.utils import mols_from_sdf
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import (
@@ -52,8 +51,8 @@ class Tree_constructor:
         self.verbose = verbose
         if verbose:
             print(f"{datetime.datetime.now()}\tInitializing Tree_constructor")
-        self.sdf_suplier = mols_from_sdf(sdf_suplier, removeHs=False)
-        self.sdf_suplier_wo_h = mols_from_sdf(sdf_suplier, removeHs=True)
+        self.sdf_suplier = Chem.SDMolSupplier(sdf_suplier, removeHs=False)
+        self.sdf_suplier_wo_h = Chem.SDMolSupplier(sdf_suplier, removeHs=True)
         self.feature_dict = dict()
         # self.dask_client = Client()
         # if verbose:

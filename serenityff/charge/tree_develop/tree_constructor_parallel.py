@@ -30,6 +30,7 @@ class Tree_constructor:
         seed: int = 42,
         num_layers_to_build=24,
         sanitize=False,
+        sanitize_charges=False,
         verbose=False,
         loggingBuild=False,
         split_indices_path=None,
@@ -76,9 +77,10 @@ class Tree_constructor:
             if verbose:
                 print(f"{datetime.datetime.now()}\tSanitizing")
             self._clean_molecule_indices_in_df()
-            if verbose:
-                print(f"{datetime.datetime.now()}\tCheck charge sanity")
-            self._check_charge_sanity()
+            if sanitize_charges:
+                if verbose:
+                    print(f"{datetime.datetime.now()}\tCheck charge sanity")
+                self._check_charge_sanity()
 
         if verbose:
             print(f"{datetime.datetime.now()}\tdf imported, starting data spliting")

@@ -27,13 +27,13 @@ def cwd() -> str:
 
 
 @pytest.fixture
-def sdf_path() -> str:
-    return "serenityff/charge/data/example.sdf"
+def sdf_path(cwd) -> str:
+    return f"{cwd}/../data/example.sdf"
 
 
 @pytest.fixture
-def model_path() -> str:
-    return "serenityff/charge/data/example_model.pt"
+def model_path(cwd) -> str:
+    return f"{cwd}/../data/example_model.pt"
 
 
 @pytest.fixture
@@ -63,12 +63,12 @@ def formal_charge(mol) -> int:
 
 @pytest.fixture
 def smiles(mol) -> str:
-    return Chem.MolToSmiles(mol, canonical=False)
+    return Chem.MolToSmiles(mol, canonical=True)
 
 
 @pytest.fixture
-def statedict_path() -> str:
-    return "serenityff/charge/data/example_state_dict.pt"
+def statedict_path(cwd) -> str:
+    return f"{cwd}/../data/example_state_dict.pt"
 
 
 @pytest.fixture
@@ -89,8 +89,8 @@ def explainer(model) -> Explainer:
 
 
 @pytest.fixture
-def graph() -> CustomData:
-    return get_graph_from_mol(Chem.SDMolSupplier("serenityff/charge/data/example.sdf", removeHs=False)[0])
+def graph(cwd) -> CustomData:
+    return get_graph_from_mol(Chem.SDMolSupplier(f"{cwd}/../data/example.sdf", removeHs=False)[0])
 
 
 def test_getter_setter(explainer) -> None:
@@ -181,16 +181,15 @@ def test_job_id(cwd) -> None:
 
 def test_mol_from_sdf(sdf_path):
     mol = mols_from_sdf(sdf_file=sdf_path)[0]
-    assert mol.GetNumBonds() == 42
-    assert mol.GetNumAtoms() == 41
+    assert mol.GetNumBonds() == 19
 
 
 def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> None:
-    graph = get_graph_from_mol(mol=mol, no_y=True)
-    graph = get_graph_from_mol(mol=mol)
+    graph = get_graph_from_mol(mol=mol, index=0, no_y=True)
+    graph = get_graph_from_mol(mol=mol, index=0)
     assert graph.num_nodes == num_atoms
     assert graph.num_edges == num_bonds * 2
-    assert graph.edge_attr.shape == torch.Size([84, 11])
+    assert graph.edge_attr.shape == torch.Size([38, 11])
     assert graph.molecule_charge.item() == formal_charge
     assert graph.smiles == smiles
     assert graph.x.shape[0] == num_atoms

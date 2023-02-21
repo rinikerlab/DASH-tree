@@ -14,23 +14,28 @@ from serenityff.charge.utils import NotInitializedError
 
 
 @pytest.fixture
-def sdf_path() -> str:
-    return "serenityff/charge/data/example.sdf"
+def cwd() -> str:
+    return os.path.dirname(__file__)
 
 
 @pytest.fixture
-def pt_path() -> str:
-    return "serenityff/charge/data/example_graphs.pt"
+def sdf_path(cwd) -> str:
+    return f"{cwd}/../data/example.sdf"
 
 
 @pytest.fixture
-def model_path() -> str:
-    return "serenityff/charge/data/example_model.pt"
+def pt_path(cwd) -> str:
+    return f"{cwd}../data/example_graphs.pt"
 
 
 @pytest.fixture
-def statedict_path() -> str:
-    return "serenityff/charge/data/example_state_dict.pt"
+def model_path(cwd) -> str:
+    return f"{cwd}../data/example_model.pt"
+
+
+@pytest.fixture
+def statedict_path(cwd) -> str:
+    return f"{cwd}../data/example_state_dict.pt"
 
 
 @pytest.fixture
@@ -45,7 +50,7 @@ def molecule(sdf_path) -> CustomData:
 
 @pytest.fixture
 def graph(molecule) -> CustomData:
-    return get_graph_from_mol(molecule)
+    return get_graph_from_mol(molecule, index=0)
 
 
 @pytest.fixture
@@ -82,7 +87,7 @@ def test_init_and_forward_model(model, graph) -> None:
         graph.edge_attr,
         graph.molecule_charge,
     )
-    assert len(out) == 41
+    assert len(out) == 18
     return
 
 

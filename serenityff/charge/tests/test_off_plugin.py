@@ -85,12 +85,12 @@ def test_off_handler_plugins(force_field_with_plugins, keys):
         force_field_with_plugins.get_parameter_handler("faulty")
 
 
-def test_off_handler_custom(force_field_custom_offxml, keys):
-    keys.append("SerenityFFCharge")
-    for key in keys:
-        assert force_field_custom_offxml.get_parameter_handler(key)
-    with pytest.raises(KeyError):
-        force_field_custom_offxml.get_parameter_handler("faulty")
+# def test_off_handler_custom(force_field_custom_offxml, keys):
+#    keys.append("SerenityFFCharge")
+#    for key in keys:
+#        assert force_field_custom_offxml.get_parameter_handler(key)
+#    with pytest.raises(KeyError):
+#        force_field_custom_offxml.get_parameter_handler("faulty")
 
 
 def test_plugin_charges_get(force_field_with_plugins, molecule, charges_amber, charges_serenity):

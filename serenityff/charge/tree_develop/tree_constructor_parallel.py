@@ -23,7 +23,7 @@ class Tree_constructor:
         self,
         df_path: str,
         sdf_suplier: str,
-        nrows: int,
+        nrows: int = None,
         attention_percentage: float = 0.99,
         data_split: float = 0.2,
         seed: int = 42,

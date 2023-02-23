@@ -1,5 +1,6 @@
 # import datetime
 import numpy as np
+import pandas as pd
 from serenityff.charge.tree.atom_features import AtomFeatures
 
 from serenityff.charge.tree.tree_utils import (
@@ -204,9 +205,9 @@ class Tree_constructor_parallel_worker:
             for _, row in df_work.iterrows()
         ]
 
-    def _build_tree_single_AF(self, af: int):
+    def _build_tree_single_AF(self, af: int, df_work: pd.DataFrame):
         try:
-            df_work = self.df_af_split[af]
+            # df_work = self.df_af_split[af]
             self._build_layer_1(af=af)
             # if self.verbose:
             #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {1} done", flush=True)
@@ -276,8 +277,9 @@ class Tree_constructor_parallel_worker:
                 return DevelopNode()
 
     def build_tree(self, num_processes: int = 6):
+        all_args = [(x, self.df_af_split[x]) for x in range(AtomFeatures.get_number_of_features())]
         with Pool(num_processes) as p:
-            res = p.map(self._build_tree_single_AF, range(AtomFeatures.get_number_of_features()))
+            res = p.starmap(self._build_tree_single_AF, all_args)
         self.root = DevelopNode()
         self.root.children = res
         self.root.update_average()

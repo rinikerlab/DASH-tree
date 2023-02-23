@@ -3,6 +3,8 @@ from typing import Tuple
 import numpy as np
 from numba import njit
 
+from rdkit import Chem
+
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree_develop.develop_node import DevelopNode
@@ -135,18 +137,54 @@ def get_connected_atom_with_max_attention(
 @njit
 def get_connected_neighbor(matrix: np.ndarray, idx: int, indices: np.ndarray):
     """
-    #TODO: MARC PLS HELP
+    Get the relative and (rdkit) absolute index of the smallest neighbor of idx that is in the subgraph (indices)
 
     Args:
         matrix (np.ndarray): connectivity matrix of molecule
-        idx (int):
-        indices (np.ndarray): _description_
+        idx (int): index of the atom
+        indices (np.ndarray): list of atom indices of the subgraph
 
     Returns:
-        _type_: _description_
+        (int, int): relative index of the neighbor, absolute index of the neighbor
     """
     neighbors = np.where(matrix[idx])[0]
     for rel_index, absolute_index in enumerate(indices):
         where = np.where(absolute_index == neighbors)[0]
         if where.size > 0:
             return rel_index, absolute_index
+
+
+def get_rdkit_fragment_from_node_path(node_path) -> Chem.RWMol:
+    """
+    Get the rdkit fragment from a node path as rdkit molecule.
+
+    Args:
+        node_path (list[node]): A list of nodes, forming the subgraph/path in the tree.
+
+    Returns:
+        Chem.RWMol: The rdkit molecule of the subgraph/path.
+    """
+    # start with an empty molecule
+    mol = Chem.RWMol()
+    # add the first atom
+    element, numBonds, charge, isConjugated, numHs = AtomFeatures.get_split_feature_typed_from_key(
+        node_path[0].atoms[0][0]
+    )
+    atom = Chem.Atom(element)
+    atom.SetFormalCharge(charge)
+    atom.SetNumExplicitHs(numHs)
+    mol.AddAtom(atom)
+    # add the rest of the atoms
+    for i in range(1, len(node_path)):
+        element, numBonds, charge, isConjugated, numHs = AtomFeatures.get_split_feature_typed_from_key(
+            node_path[i].atoms[0][0]
+        )
+        atom = Chem.Atom(element)
+        atom.SetFormalCharge(charge)
+        atom.SetNumExplicitHs(numHs)
+        mol.AddAtom(atom)
+        # add the bond
+        bonded_atom = node_path[i].atoms[0][1]
+        bond_type_number = node_path[i].atoms[0][2]
+        mol.AddBond(i, bonded_atom, Chem.rdchem.BondType.values[bond_type_number])
+    return mol

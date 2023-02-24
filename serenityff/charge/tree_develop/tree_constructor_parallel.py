@@ -50,7 +50,7 @@ class Tree_constructor:
 
         self.verbose = verbose
         if verbose:
-            print(f"{datetime.datetime.now()}\tInitializing Tree_constructor")
+            print(f"{datetime.datetime.now()}\tInitializing Tree_constructor", flush=True)
         self.sdf_suplier = Chem.SDMolSupplier(sdf_suplier, removeHs=False)
         self.sdf_suplier_wo_h = Chem.SDMolSupplier(sdf_suplier, removeHs=True)
         self.feature_dict = dict()
@@ -59,7 +59,7 @@ class Tree_constructor:
         #    print(self.dask_client)
 
         if verbose:
-            print(f"{datetime.datetime.now()}\tMols imported, starting df import")
+            print(f"{datetime.datetime.now()}\tMols imported, starting df import", flush=True)
 
         self.original_df = pd.read_csv(
             df_path,
@@ -74,15 +74,15 @@ class Tree_constructor:
         )
         if sanitize:
             if verbose:
-                print(f"{datetime.datetime.now()}\tSanitizing")
+                print(f"{datetime.datetime.now()}\tSanitizing", flush=True)
             self._clean_molecule_indices_in_df()
             if sanitize_charges:
                 if verbose:
-                    print(f"{datetime.datetime.now()}\tCheck charge sanity")
+                    print(f"{datetime.datetime.now()}\tCheck charge sanity", flush=True)
                 self._check_charge_sanity()
 
         if verbose:
-            print(f"{datetime.datetime.now()}\tdf imported, starting data spliting")
+            print(f"{datetime.datetime.now()}\tdf imported, starting data spliting", flush=True)
 
         random.seed(seed)
         if split_indices_path is None:
@@ -93,20 +93,26 @@ class Tree_constructor:
             )
             test_set = set(test_set)
         else:
+            if verbose:
+                print(f"{datetime.datetime.now()}\tUsing split indices from {split_indices_path}", flush=True)
             df_test_set = pd.read_csv(split_indices_path)
             test_set = df_test_set["sdf_idx"].tolist()
             test_set = [int(i) for i in test_set]
             test_set = set(test_set)
+        if verbose:
+            print(f"{datetime.datetime.now()}\tSplitting data", flush=True)
         self.df = self.original_df.loc[~self.original_df.mol_index.isin(test_set)].copy()
         self.test_df = self.original_df.loc[self.original_df.mol_index.isin(test_set)].copy()
 
+        if verbose:
+            print(f"{datetime.datetime.now()}\tData split, delete original", flush=True)
         delattr(self, "original_df")
         self.df["node_attentions"] = self.df["node_attentions"].apply(eval)
 
         h, c, t, n, af = [], [], [], [], []
 
         if verbose:
-            print(f"{datetime.datetime.now()}\tStarting table filling")
+            print(f"{datetime.datetime.now()}\tStarting table filling", flush=True)
 
         self.tempmatrix = Chem.GetAdjacencyMatrix(self.sdf_suplier[0])
 
@@ -140,6 +146,8 @@ class Tree_constructor:
             self.roots[af_key] = DevelopNode(atom_features=[af_key, -1, -1], level=1)
         self.new_root = node(level=0)
 
+        if verbose:
+            print(f"{datetime.datetime.now()}\tTable filled, starting adjacency matrix creation", flush=True)
         self._create_adjacency_matrices()
 
         print(f"Number of train mols: {len(self.df.mol_index.unique())}")

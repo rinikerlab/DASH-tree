@@ -1,9 +1,11 @@
 import glob
+import os
 from collections import defaultdict
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from multiprocessing import Pool
 
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.node import node
@@ -33,21 +35,52 @@ class tree:
         self.root.from_file(file_path, nrows=nrows)
         self.hasData = True
 
-    def from_folder(self, folder_path: str, verbose=False):
+    def _branch_from_file(self, file_path: str, verbose=False) -> node:
+        """
+        Reads a tree branch from a file. This is a helper function for from_folder.
+
+        Parameters
+        ----------
+        file_path : str
+            The path to the file. (file must be readable by pandas)
+        """
+        new_node = node(level=0)
+        try:
+            new_node.from_file(file_path)
+            if verbose:
+                print("Added {}".format(file_path))
+        except Exception as e:
+            print(e)
+        return new_node
+
+    def from_folder(self, folder_path: str, num_processes=8, verbose=False):
+        """
+        Reads a tree from a folder, with each file being a branch.
+        This is the preferred way to read a tree, since it can be done in parallel.
+
+        Parameters
+        ----------
+        folder_path : str
+            The path to the folder with files for each branch.
+        num_processes : int, optional
+            The number of processes to use, by default 8
+        verbose : bool, optional
+            Whether to print the progress, by default False
+        """
         self.root = node(level=0)
         all_files_in_folder = glob.glob(folder_path + "/tree*.csv")
         if verbose:
             print("Found {} files in folder".format(len(all_files_in_folder)))
-        for file_path in all_files_in_folder:
-            try:
-                new_node = node(level=0)
-                new_node.from_file(file_path)
+        if num_processes <= 1:
+            for file_path in all_files_in_folder:
+                self._branch_from_file(file_path, verbose=verbose)
+        else:
+            # sort files by size so that the largest files are processed first
+            all_files_in_folder = sorted(all_files_in_folder, key=lambda x: os.path.getsize(x))
+            with Pool(num_processes) as p:
+                res = p.map(self._branch_from_file, all_files_in_folder)
+            for new_node in res:
                 self.root.children.append(new_node)
-                if verbose:
-                    print("Added {}".format(file_path))
-            except Exception as e:
-                print(e)
-                continue
         self.hasData = True
 
     def update_tree_length(self):

@@ -230,6 +230,7 @@ class node:
                     "count": np.int32,
                     "num_children": np.int32,
                     "number": np.int32,
+                    "parent_number": np.int32,
                 },
                 nrows=nrows,
             )

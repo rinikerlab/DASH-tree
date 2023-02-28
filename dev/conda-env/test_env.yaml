@@ -1,3 +1,4 @@
+# TODO: CUDA not installed by default
 name: serenityff-charge-test
 channels:
   - pytorch

@@ -1,5 +1,6 @@
 import glob
 import os
+import pickle
 from collections import defaultdict
 
 import numpy as np
@@ -82,6 +83,15 @@ class tree:
             for new_node in res:
                 self.root.children.append(new_node)
         self.hasData = True
+
+    def from_folder_pickle(self, folder_path: str, verbose=False):
+        self.root = node(level=0)
+        all_files_in_folder = glob.glob(folder_path + "/tree*.pkl")
+        if verbose:
+            print("Found {} files in folder".format(len(all_files_in_folder)))
+        for file_path in all_files_in_folder:
+            branch = pickle.load(open(file_path, "rb"))
+            self.root.children.append(branch)
 
     def update_tree_length(self):
         """

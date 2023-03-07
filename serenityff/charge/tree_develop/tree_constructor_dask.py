@@ -271,17 +271,19 @@ class Tree_constructor:
     def _create_adjacency_matrices(self):
         print("Creating Adjacency matrices:")
         self.matrices = []
-        self.bond_matrices = []
-        for mol in tqdm(self.sdf_suplier_wo_h):  # i, mol in enumerate(self.sdf_suplier_wo_h):  #
+        self.bond_matrices = {}
+        for i, mol in tqdm(
+            enumerate(self.sdf_suplier_wo_h), total=len(self.sdf_suplier_wo_h)
+        ):  # mol in tqdm(self.sdf_suplier_wo_h):  #
             matrix = self._create_single_adjacency_matrix(mol)
-            self.bond_matrices.append(matrix)
+            self.bond_matrices[i] = matrix
         # self.bond_matrices = self.dask_client.gather(self.bond_matrices)
 
     def create_tree_level_0(self):
         print("Preparing Dataframe:")
         self.df_af_split = {}
         for af in range(AtomFeatures.get_number_of_features()):
-            self.df_af_split[af] = self.df.loc[self.df.atom_feature == af].copy()
+            self.df_af_split[af] = self.df.loc[self.df.atom_feature == af].copy(deep=True)
 
         print("Creating Tree Level 0:")
         for af in tqdm(range(AtomFeatures.get_number_of_features())):

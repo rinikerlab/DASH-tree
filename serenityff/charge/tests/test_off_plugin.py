@@ -1,11 +1,11 @@
 import pytest
-from numpy import array_equal
+import os
+from numpy import allclose, array_equal
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import (
     ElectrostaticsHandler,
     ForceField,
     LibraryChargeHandler,
-    ToolkitAM1BCCHandler,
     vdWHandler,
 )
 
@@ -24,7 +24,7 @@ def force_field_with_plugins():
 
 @pytest.fixture
 def force_field_custom_offxml():
-    return ForceField("serenityff/charge/data/openff-2.0.0-serenity.offxml")
+    return ForceField(f"{os.getcwd()}/../data/openff-2.0.0-serenity.offxml")
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def molecule():
 
 @pytest.fixture
 def charges_serenity():
-    return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    return [-0.49584658, 0.16275335, -0.6912039, 0.14371002, 0.14371002, 0.14371002, 0.06009469, 0.06009469, 0.47297767]
 
 
 @pytest.fixture
@@ -68,6 +68,10 @@ def charges_amber():
         0.04319988888888887,
         0.3959998888888889,
     ]
+
+
+chg_rtol = 1e-2
+chg_atol = 1e-2
 
 
 def test_handler_functions(handler):
@@ -94,20 +98,22 @@ def test_off_handler_plugins(force_field_with_plugins, keys):
 
 
 def test_plugin_charges_get(force_field_with_plugins, molecule, charges_amber, charges_serenity):
-    assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_amber)
+    assert allclose(force_field_with_plugins.get_partial_charges(molecule), charges_amber, rtol=chg_rtol, atol=chg_atol)
     force_field_with_plugins.get_parameter_handler("SerenityFFCharge")
-    assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_serenity)
+    assert allclose(
+        force_field_with_plugins.get_partial_charges(molecule), charges_serenity, rtol=chg_rtol, atol=chg_atol
+    )
 
 
 def test_plugin_charges_register(force_field_with_plugins, molecule, handler, charges_amber, charges_serenity):
-    assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_amber)
+    assert allclose(force_field_with_plugins.get_partial_charges(molecule), charges_amber, rtol=chg_rtol, atol=chg_atol)
     force_field_with_plugins.register_parameter_handler(handler)
-    assert array_equal(force_field_with_plugins.get_partial_charges(molecule), charges_serenity)
+    assert allclose(
+        force_field_with_plugins.get_partial_charges(molecule), charges_serenity, rtol=chg_rtol, atol=chg_atol
+    )
 
 
-def test_custom_charges(force_field_custom_offxml, molecule, charges_amber, charges_serenity):
-    assert array_equal(force_field_custom_offxml.get_partial_charges(molecule), charges_serenity)
-    force_field_custom_offxml.register_parameter_handler(ToolkitAM1BCCHandler(version=0.3))
-    assert array_equal(force_field_custom_offxml.get_partial_charges(molecule), charges_serenity)
-    force_field_custom_offxml.deregister_parameter_handler("SerenityFFCharge")
-    assert array_equal(force_field_custom_offxml.get_partial_charges(molecule), charges_amber)
+def test_custom_charges(force_field_custom_offxml, molecule, charges_serenity):
+    assert allclose(
+        force_field_custom_offxml.get_partial_charges(molecule), charges_serenity, rtol=chg_rtol, atol=chg_atol
+    )

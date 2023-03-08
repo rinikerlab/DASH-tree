@@ -138,10 +138,11 @@ class Trainer:
             return
         elif isinstance(value, str):
             # I think that would be a nice conveniance option
-            if value == 'available' and torch.cuda.is_available():
-                value = 'cuda'
-            else:
-                value = 'cpu'
+            if value == 'available':
+                if torch.cuda.is_available():
+                    value = 'cuda'
+                else:
+                    value = 'cpu'
             if value.lower() in ["cpu", "cuda"]:
                 self._device = torch.device(value.lower())
                 self._update_device()

@@ -425,7 +425,7 @@ class Trainer:
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
             if verbose:
-                print(f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}")
+                print(f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",flush=True)
 
         self._save_training_data(train_loss, eval_losses)
         torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")

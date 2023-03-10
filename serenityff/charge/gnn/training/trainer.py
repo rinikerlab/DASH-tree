@@ -6,7 +6,7 @@ try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
-
+import time
 import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
@@ -401,6 +401,7 @@ class Trainer:
         eval_losses = []
 
         for epo in range(epochs):
+            start = time.time()
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
@@ -425,6 +426,7 @@ class Trainer:
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
             if verbose:
+                print(time.time() - start,flush=True)
                 print(f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",flush=True)
 
         self._save_training_data(train_loss, eval_losses)

@@ -228,7 +228,7 @@ class Extractor:
         batchsize = ceil(len(suppl) / 10000)
         writer = None
         file_iterator = 0
-        for molidx, mol in tqdm(enumerate(suppl)):
+        for molidx, mol in tqdm(enumerate(suppl), total=len(suppl)):
             if not molidx % batchsize:
                 file_iterator += 1
                 writer = Extractor._open_next_file(writer=writer, file_name=str(file_iterator), directory=directory)
@@ -454,7 +454,8 @@ class Extractor:
         print(f"sdf path =|{files.sdffile}|")
         num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
         Extractor._write_worker()
-        os.mkdir("logfiles")
+        if not os.path.exists("logfiles"):
+            os.mkdir("logfiles")
         lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 120:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)

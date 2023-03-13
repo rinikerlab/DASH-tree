@@ -337,7 +337,7 @@ class Extractor:
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
+        text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
         text += '"\n'
         text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:

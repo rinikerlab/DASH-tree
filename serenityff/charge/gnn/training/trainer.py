@@ -6,7 +6,7 @@ try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
-
+import time
 import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
@@ -25,9 +25,10 @@ from serenityff.charge.utils import Molecule, NotInitializedError
 
 
 class Trainer:
+    # TODO: Add short description of the class
     def __init__(
         self,
-        device: Optional[Union[torch.device, Literal["cpu", "cuda"]]] = "cpu",
+        device: Optional[Union[torch.device, Literal["cpu", "cuda", "available"]]] = "available",
         loss_function: Optional[Callable] = torch.nn.functional.mse_loss,
         physicsInformed: Optional[bool] = True,
     ) -> None:
@@ -51,6 +52,7 @@ class Trainer:
     def loss_function(self) -> Callable:
         return self._loss_function
 
+    #TODO: PhysicsInformed unused could be removed
     @property
     def physicsInformed(self) -> bool:
         return self._physicsInformed
@@ -129,12 +131,18 @@ class Trainer:
             raise TypeError("physicsInformed has to be of type bool")
 
     @device.setter
-    def device(self, value: Union[torch.device, Literal["cpu", "cuda"]]):
+    def device(self, value: Union[torch.device, Literal["cpu", "cuda","available"]]):
         if isinstance(value, torch.device):
             self._device = value
             self._update_device()
             return
         elif isinstance(value, str):
+            # I think that would be a nice conveniance option
+            if value == 'available':
+                if torch.cuda.is_available():
+                    value = 'cuda'
+                else:
+                    value = 'cpu'
             if value.lower() in ["cpu", "cuda"]:
                 self._device = torch.device(value.lower())
                 self._update_device()
@@ -216,20 +224,21 @@ class Trainer:
         self.data = torch.load(pt_file)
         return
 
-    def _random_split(self, train_ratio: Optional[float] = 0.8) -> None:
+    def _random_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
         """
         performs a random split on self.data.
 
         Args:
             train_ratio (Optional[float], optional): train/eval set ratio. Defaults to 0.8.
         """
-        self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio)
+        self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio, seed=seed)
         return
 
     def _kfold_split(
         self,
         n_splits: Optional[int] = 5,
         split: Optional[int] = 0,
+        seed: Optional[int] = 1613311
     ) -> None:
         """
         performs a kfold split on self.data
@@ -242,12 +251,13 @@ class Trainer:
             data_list=self.data,
             n_splits=n_splits,
             split=split,
+            seed=seed
         )
         return
 
-    def _smiles_split(self, train_ratio: Optional[float] = 0.8) -> None:
+    def _smiles_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
 
-        self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio)
+        self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio, seed=seed)
         return
 
     def prepare_training_data(
@@ -256,6 +266,7 @@ class Trainer:
         train_ratio: Optional[float] = 0.8,
         n_splits: Optional[int] = 5,
         split: Optional[int] = 0,
+        seed: Optional[int] = 161311 # TODO: Ich wuerde hier den seed passen, da er sonst ueber die trainier class nicht aederbar waere -> alle random splits gleich
     ) -> None:
         """
         Splits training data into test data and eval data. At the moment, random, kfold and smiles split are implemented.
@@ -265,6 +276,7 @@ class Trainer:
             train_ratio (Optional[float], optional): ratio of train/eval in random split. Defaults to 0.8.
             n_splits (Optional[int], optional): number of splits in the kfold split. Defaults to 5.
             split (Optional[int], optional): which of the n_splits you want. Defaults to 0.
+            seed (Optional[int], optional): random number seed for splits
 
         Raises:
             NotImplementedError: If a splittype other than 'random', 'kfold' or 'smiles' is chosen.
@@ -275,13 +287,13 @@ class Trainer:
             warn("No data has been loaded to this trainer. Load Data firstt!")
             return
         if split_type.lower() == "random":
-            self._random_split(train_ratio=train_ratio)
+            self._random_split(train_ratio=train_ratio, seed=seed)
             return
         elif split_type.lower() == "kfold":
-            self._kfold_split(n_splits=n_splits, split=split)
+            self._kfold_split(n_splits=n_splits, split=split, seed=seed)
             return
         elif split_type.lower() == "smiles":
-            self._smiles_split(train_ratio=train_ratio)
+            self._smiles_split(train_ratio=train_ratio, seed=seed)
         else:
             raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
@@ -322,6 +334,7 @@ class Trainer:
                      and a loss_function have been set in this instance!"
             )
 
+    # TODO: Could be a property
     def _on_gpu(self) -> bool:
         """
         Returns true if self.device is equal to torch.device('cuda')
@@ -388,6 +401,7 @@ class Trainer:
         eval_losses = []
 
         for epo in range(epochs):
+            start = time.time()
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
@@ -412,7 +426,8 @@ class Trainer:
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
             if verbose:
-                print(f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}")
+                print(time.time() - start,flush=True)
+                print(f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",flush=True)
 
         self._save_training_data(train_loss, eval_losses)
         torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")

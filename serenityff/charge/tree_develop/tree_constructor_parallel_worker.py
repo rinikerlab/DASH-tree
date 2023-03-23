@@ -17,6 +17,7 @@ except ImportError:
 
 
 class Tree_constructor_parallel_worker:
+    # TODO: Add Dokumentation
     def __init__(
         self,
         df_af_split,
@@ -42,6 +43,7 @@ class Tree_constructor_parallel_worker:
         else:
             self.loggingBuild = True
             self.logger = logger
+        #TODO: Remove comments
         # self.dask_client = Client()
         # if verbose:
         #    print(self.dask_client)
@@ -57,12 +59,17 @@ class Tree_constructor_parallel_worker:
 
     def _find_matching_child(self, children, matrix, indices, mol_index):
         possible_new_atoms = []
+        #TODO: Remove comments
+        # bond_matrix = self.bond_matrices[mol_index].to_array()
+        # matrix = matrix.to_array()
         for i in get_possible_connected_new_atom(matrix, indices):
             rel, abs = get_connected_neighbor(matrix, i, indices)
-            try:
-                tmp_feature = self.feature_dict[mol_index][i]
-            except KeyError:
-                raise KeyError(f"mol_index: {mol_index}, i: {i}")
+            # TODO: remove try except
+            # try:
+            tmp_feature = self.feature_dict[mol_index][i]
+            # except KeyError:
+            #     raise KeyError(f"mol_index: {mol_index}, i: {i}")
+            # TODO: remove bond_matrices to top
             tmp_bond_type = self.bond_matrices[mol_index][abs][i]
             possible_new_atoms.append(
                 (
@@ -169,6 +176,9 @@ class Tree_constructor_parallel_worker:
             raise e
 
     def _build_layer_1(self, af: int):
+        # TODO: Remove comments
+        # TODO: Add documentation why layer 1 is necessary
+
         ci, ca = [], []
         df_work = self.df_af_split[af]
         df_work["total_connected_attention"] = [

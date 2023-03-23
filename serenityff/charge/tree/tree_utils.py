@@ -164,6 +164,7 @@ def get_rdkit_fragment_from_node_path(node_path) -> Chem.RWMol:
     Returns:
         Chem.RWMol: The rdkit molecule of the subgraph/path.
     """
+    #TODO: Remove comments
     # start with an empty molecule
     mol = Chem.RWMol()
     # add the first atom

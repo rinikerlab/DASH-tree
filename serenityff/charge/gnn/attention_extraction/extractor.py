@@ -125,7 +125,6 @@ class Extractor:
                         edge_attentions[atom_iterator].tolist(),
                         float(prediction.tolist()[atom_iterator][0]),
                         float(ref_charges[atom_iterator]),
-                        # float(float(atom.GetProp("molFileAlias"))),
                     ]
                 )
 

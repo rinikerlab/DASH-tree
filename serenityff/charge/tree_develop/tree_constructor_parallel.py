@@ -17,8 +17,13 @@ from serenityff.charge.tree.tree_utils import (
 from serenityff.charge.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor_parallel_worker import Tree_constructor_parallel_worker
 
+# from scipy import sparse
+
 
 class Tree_constructor:
+    # TODO: Add description
+    # TODO: Bei den wichtigsten Funktions waere eine description denke ich sehr gut.
+    # Vielleicht waere es uebersichtlicher die Schritte in Funktions zu schreiben und dann aufzurufen.
     def __init__(
         self,
         df_path: str,
@@ -54,6 +59,7 @@ class Tree_constructor:
         self.sdf_suplier = Chem.SDMolSupplier(sdf_suplier, removeHs=False)
         self.sdf_suplier_wo_h = Chem.SDMolSupplier(sdf_suplier, removeHs=True)
         self.feature_dict = dict()
+        # TODO: Remove comment
         # self.dask_client = Client()
         # if verbose:
         #    print(self.dask_client)
@@ -154,38 +160,62 @@ class Tree_constructor:
         print(f"Number of test mols: {len(self.test_df.mol_index.unique())}")
 
     def _clean_molecule_indices_in_df(self):
+        # TODO: add a description and divide in functions
         molecule_idx_in_df = self.original_df.mol_index.unique().tolist()
         for mol_index in molecule_idx_in_df:
             number_of_atoms_in_mol_df = len(self.original_df.loc[self.original_df.mol_index == mol_index])
             number_of_atoms_in_mol_sdf = self.sdf_suplier[mol_index].GetNumAtoms()
             if number_of_atoms_in_mol_df > number_of_atoms_in_mol_sdf:
-                if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 1].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 1
-                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 2].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 2
-                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 3].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 3
-                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 4].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 4
-                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 5].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 5
-                else:
-                    print(
-                        f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
-                    )
-                    print(f"shifted mol has {self.sdf_suplier[mol_index+1].GetNumAtoms()} atoms")
-                    print("--------------------------------------------------")
-                    print(self.original_df.loc[self.original_df.mol_index == mol_index])
-                    print("--------------------------------------------------")
-                    print(self.original_df.loc[self.original_df.mol_index == mol_index].iloc[0].smiles)
-                    print(Chem.MolToSmiles(self.sdf_suplier[mol_index]))
-                    print(Chem.MolToSmiles(self.sdf_suplier[mol_index + 1]))
-                    print("--------------------------------------------------")
-                    raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
+                for i in range(5):
+                    if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 1 + i].GetNumAtoms():
+                        self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 1 + i
+                        break
+
+                    # if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 1].GetNumAtoms():
+                    #     self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 1
+                    # elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 2].GetNumAtoms():
+                    #     self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 2
+                    # elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 3].GetNumAtoms():
+                    #     self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 3
+                    # elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 4].GetNumAtoms():
+                    #     self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 4
+                    # elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 5].GetNumAtoms():
+                    #     self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 5
+                    if i == 4:
+                        self._raise_error(mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf)
+                        # print(
+                        #     f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
+                        # )
+                        # print(f"shifted mol has {self.sdf_suplier[mol_index+1].GetNumAtoms()} atoms")
+                        # print("--------------------------------------------------")
+                        # print(self.original_df.loc[self.original_df.mol_index == mol_index])
+                        # print("--------------------------------------------------")
+                        # print(self.original_df.loc[self.original_df.mol_index == mol_index].iloc[0].smiles)
+                        # print(Chem.MolToSmiles(self.sdf_suplier[mol_index]))
+                        # print(Chem.MolToSmiles(self.sdf_suplier[mol_index + 1]))
+                        # print("--------------------------------------------------")
+                        # raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
             else:
                 pass
 
+    def _raise_error(self, mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf):
+        print(
+            f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
+        )
+        print(f"shifted mol has {self.sdf_suplier[mol_index+1].GetNumAtoms()} atoms")
+        print("--------------------------------------------------")
+        print(self.original_df.loc[self.original_df.mol_index == mol_index])
+        print("--------------------------------------------------")
+        print(self.original_df.loc[self.original_df.mol_index == mol_index].iloc[0].smiles)
+        print(Chem.MolToSmiles(self.sdf_suplier[mol_index]))
+        print(Chem.MolToSmiles(self.sdf_suplier[mol_index + 1]))
+        print("--------------------------------------------------")
+        raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
+
     def _check_charge_sanity(self):
+        # TODO: Vielleicht hier etwas aufteilen unf code duplications reduzieren
+        # Vielleicht als dict
+        # No check for other element times, Halogene sollten vielleicht nicht positiv sein?
         self.wrong_charged_mols_list = []
         indices_to_drop = []
         for mol_index in tqdm(self.original_df.mol_index.unique()):
@@ -193,32 +223,57 @@ class Tree_constructor:
             charges = df_with_mol_index.truth.values
             elements = df_with_mol_index.atomtype.values
             for element, charge in zip(elements, charges):
-                if element == "H" and charge < -0.01:
-                    indices_to_drop.extend(df_with_mol_index.index.to_list())
-                    self.wrong_charged_mols_list.append(mol_index)
-                    break
-                elif element == "C" and (charge < -2 or charge > 4):
-                    indices_to_drop.extend(df_with_mol_index.index.to_list())
-                    self.wrong_charged_mols_list.append(mol_index)
-                    break
-                elif element == "N" and (charge < -4 or charge > 6):
-                    indices_to_drop.extend(df_with_mol_index.index.to_list())
-                    self.wrong_charged_mols_list.append(mol_index)
-                    break
-                elif element == "O" and (charge < -4 or charge > 6):
-                    indices_to_drop.extend(df_with_mol_index.index.to_list())
-                    self.wrong_charged_mols_list.append(mol_index)
-                    break
+                self._check_charges(element, charge, indices_to_drop, df_with_mol_index, mol_index)
+                # if element == "H" and charge < -0.01:
+                #     # TODO: Groesser als 1 koennte man vielleicht auch exkludieren.
+                #     indices_to_drop.extend(df_with_mol_index.index.to_list())
+                #     self.wrong_charged_mols_list.append(mol_index)
+                #     break
+                # elif element == "C" and (charge < -2 or charge > 4):
+                #     indices_to_drop.extend(df_with_mol_index.index.to_list())
+                #     self.wrong_charged_mols_list.append(mol_index)
+                #     break
+                # elif element == "N" and (charge < -4 or charge > 6):
+                #     indices_to_drop.extend(df_with_mol_index.index.to_list())
+                #     self.wrong_charged_mols_list.append(mol_index)
+                #     break
+                # elif element == "O" and (charge < -4 or charge > 6):
+                #     indices_to_drop.extend(df_with_mol_index.index.to_list())
+                #     self.wrong_charged_mols_list.append(mol_index)
+                #     break
         self.original_df.drop(indices_to_drop, inplace=True)
         if self.verbose:
             print(
                 f"Number of wrong charged mols: {len(self.wrong_charged_mols_list)} of {len(self.original_df.mol_index.unique())} mols"
             )
 
+    def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index):
+
+        check_charge_dict = {
+            "H": (-0.01, 1),
+            "C": (-2, 4),
+            "N": (-4, 6),
+            "O": (-4, 6),
+            "S": (-10, 10),
+            "P": (-10, 10),
+            "F": (-10, 0.01),
+            "Cl": (-10, 0.01),
+            "Br": (-10, 0.01),
+            "I": (-10, 0.01),
+        }
+
+        lower_bound, upper_bound = check_charge_dict[element]
+        if charge < lower_bound or charge > upper_bound:
+            indices_to_drop.extend(df_with_mol_index.index.to_list())
+            self.wrong_charged_mols_list.append(mol_index)
+
     def _get_hydrogen_connectivity(self, line) -> int:
         if line["idx_in_mol"] == 0:
             self.tempmatrix = Chem.GetAdjacencyMatrix(self.sdf_suplier[line["mol_index"]])
         if line["atomtype"] == "H":
+            # TODO: Error handling koennte man vielleicht besser machen
+            # Heisst das obwohl ein error geworfen wird, wird trotzdem returned als ob es ein nicht H waere?
+            # Was waere denn ein H wo es keine einzige connection gibt?
             try:
                 return int(np.where(self.tempmatrix[line["idx_in_mol"]])[0].item())
             except ValueError:
@@ -232,17 +287,31 @@ class Tree_constructor:
         )
 
     def _create_single_adjacency_matrix(self, mol: Chem.Mol) -> np.ndarray:
+        # TODO: Die Matrix ist denke ich symmetrisch, also waere es vielleicht gut nur eine Haelfte zu rechnen
+        # Unter Umstaenden muesste man auch nur die Haelfte speichern.
+
+        # TODO: Die Matrix ist sehr sparse -> vielleicht koennte man sparse matrices verwenden um memory zu sparen?
         bonddict = {v: k for k, v in Chem.rdchem.BondType.values.items()}
         matrix = np.array(Chem.GetAdjacencyMatrix(mol), np.bool_)
         np.fill_diagonal(matrix, True)
         self.matrices.append(matrix)
         matrix = matrix.astype(np.int8)
         for i in range(matrix.shape[0]):
-            for j in range(matrix.shape[1]):
-                if i == j:
-                    continue
+            for j in np.arange(i + 1, matrix.shape[1]):
                 if matrix[i][j]:
                     matrix[i][j] = bonddict[mol.GetBondBetweenAtoms(int(i), int(j)).GetBondType()]
+                    matrix[j][i] = matrix[i][j]
+
+        # Man koennte vielleicht converten
+        # matrix_spr = sparse.csr_matrix(matrix)
+        # und wenn man ausliest matrix_spr.to_array()
+
+        # for i in range(matrix.shape[0]):
+        #     for j in range(matrix.shape[1]):
+        #         if i == j:
+        #             continue
+        #         if matrix[i][j]:
+        #             matrix[i][j] = bonddict[mol.GetBondBetweenAtoms(int(i), int(j)).GetBondType()]
         return matrix
 
     def _create_adjacency_matrices(self):
@@ -252,6 +321,7 @@ class Tree_constructor:
         for mol in tqdm(self.sdf_suplier_wo_h):  # i, mol in enumerate(self.sdf_suplier_wo_h):  #
             matrix = self._create_single_adjacency_matrix(mol)
             self.bond_matrices.append(matrix)
+        # TODO: remove comment
         # self.bond_matrices = self.dask_client.gather(self.bond_matrices)
 
     def create_tree_level_0(self):
@@ -264,6 +334,7 @@ class Tree_constructor:
         for af in tqdm(range(AtomFeatures.get_number_of_features())):
             df_work = self.df_af_split[af]
             current_node = self.roots[af]
+            # TODO: maybe get rid of try except by checking df before?
             try:
                 truth_values = df_work["truth"].to_list()
                 attention_values = df_work.apply(lambda x: x["node_attentions"][x["idx_in_mol"]], axis=1).to_list()
@@ -271,12 +342,15 @@ class Tree_constructor:
                 current_node.attention_values = attention_values
                 current_node.update_average()
             except (KeyError, AttributeError):
+                # TODO: remove comment
                 # print(f"Layer 0: {af} has no truth values")
                 pass
             df_work[0] = df_work["atom_feature"]
         print(f"{datetime.datetime.now()}\tLayer 0 done")
 
     def build_tree(self, num_processes):
+        # TODO: Ich faende es vielleicht besser, wenn man hier create_tree_level_0 triggered und nicht
+        # manuell aufrufen muss. Oder man checkt ob es schon getriggered wurde.
         tree_worker = Tree_constructor_parallel_worker(
             df_af_split=self.df_af_split,
             matrices=self.matrices,

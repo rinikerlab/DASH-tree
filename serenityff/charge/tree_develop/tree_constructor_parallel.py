@@ -250,7 +250,7 @@ class Tree_constructor:
     def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index):
 
         check_charge_dict = {
-            "H": (-0.01, 1),
+            "H": (-0.01, 1.01),
             "C": (-2, 4),
             "N": (-4, 6),
             "O": (-4, 6),

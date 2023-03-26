@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from rdkit import Chem
 from tqdm import tqdm
+from collections import defaultdict
 
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.node import node
@@ -249,7 +250,7 @@ class Tree_constructor:
 
     def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index):
 
-        check_charge_dict = {
+        check_charge_dict_temp = {
             "H": (-0.01, 1.01),
             "C": (-2, 4),
             "N": (-4, 6),
@@ -261,7 +262,7 @@ class Tree_constructor:
             "Br": (-10, 0.01),
             "I": (-10, 0.01),
         }
-
+        check_charge_dict = defaultdict(lambda: (-10, 10), check_charge_dict_temp)
         lower_bound, upper_bound = check_charge_dict[element]
         if charge < lower_bound or charge > upper_bound:
             indices_to_drop.extend(df_with_mol_index.index.to_list())

@@ -3,6 +3,7 @@ import pickle
 import random
 import os
 import logging
+import time
 
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ from serenityff.charge.tree.tree_utils import (
 )
 from serenityff.charge.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor_parallel_worker import Tree_constructor_parallel_worker
+from serenityff.charge.tree_develop.tree_constructor_singleJB_worker import Tree_constructor_singleJB_worker
 
 # from scipy import sparse
 
@@ -349,7 +351,34 @@ class Tree_constructor:
             df_work[0] = df_work["atom_feature"]
         print(f"{datetime.datetime.now()}\tLayer 0 done")
 
-    def build_tree(self, num_processes):
+    def _build_with_seperate_slurm_jobs(self, tree_worker: Tree_constructor_parallel_worker):
+        pickle_path = "tree_worker.pkl"
+        with open(pickle_path, "wb") as f:
+            pickle.dump(tree_worker, f)
+        out_folder = "tree_out"
+        if not os.path.exists(out_folder):
+            os.makedirs(out_folder)
+        for af in range(AtomFeatures.get_number_of_features() + 2):
+            try:
+                temp = pickle.load(open(f"{out_folder}/{af}.pkl", "rb"))
+                assert temp is not None
+                assert temp.level is not None
+            except (FileNotFoundError, AssertionError):
+                Tree_constructor_singleJB_worker.run_singleJB(pickle_path, af)
+        time.sleep(200)
+        num_slurm_jobs = int(os.popen("squeue | grep  't_' | wc -l").read())
+        while num_slurm_jobs > 0:
+            time.sleep(200)
+            num_slurm_jobs = int(os.popen("squeue | grep  't_' | wc -l").read())
+        # collect all pickle files
+        for af in range(AtomFeatures.get_number_of_features() + 2):
+            try:
+                with open(f"{out_folder}/{af}.pkl", "rb") as f:
+                    self.root.children.append(pickle.load(f))
+            except FileNotFoundError:
+                print(f"File {af}.pkl not found")
+
+    def build_tree(self, num_processes=1, build_with_sperate_jobs=False):
         # TODO: Ich faende es vielleicht besser, wenn man hier create_tree_level_0 triggered und nicht
         # manuell aufrufen muss. Oder man checkt ob es schon getriggered wurde.
         tree_worker = Tree_constructor_parallel_worker(
@@ -363,8 +392,11 @@ class Tree_constructor:
             verbose=self.verbose,
             logger=[self.logger if self.loggingBuild else None],
         )
-        tree_worker.build_tree(num_processes=num_processes)
-        self.root = tree_worker.root
+        if build_with_sperate_jobs:
+            self._build_with_seperate_slurm_jobs(tree_worker)
+        else:
+            tree_worker.build_tree(num_processes=num_processes)
+            self.root = tree_worker.root
 
     def convert_tree_to_node(self, delDevelop=False):
         self.new_root = create_new_node_from_develop_node(self.root)

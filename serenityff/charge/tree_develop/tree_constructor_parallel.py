@@ -41,7 +41,6 @@ class Tree_constructor:
         verbose=False,
         loggingBuild=False,
         split_indices_path=None,
-        load_cleaned_df_path=None,
         save_cleaned_df_path=None,
     ):
         if loggingBuild:
@@ -92,10 +91,6 @@ class Tree_constructor:
                     print(f"{datetime.datetime.now()}\tCheck charge sanity", flush=True)
                 self._check_charge_sanity()
 
-        if load_cleaned_df_path is not None:
-            if verbose:
-                print(f"{datetime.datetime.now()}\tLoading cleaned df", flush=True)
-            self.original_df = pd.read_csv(load_cleaned_df_path)
         if save_cleaned_df_path is not None:
             if verbose:
                 print(f"{datetime.datetime.now()}\tSaving cleaned df", flush=True)

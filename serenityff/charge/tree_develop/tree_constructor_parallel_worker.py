@@ -1,4 +1,5 @@
 # import datetime
+from typing import List
 import numpy as np
 import pandas as pd
 from serenityff.charge.tree.atom_features import AtomFeatures
@@ -43,7 +44,7 @@ class Tree_constructor_parallel_worker:
         else:
             self.loggingBuild = True
             self.logger = logger
-        #TODO: Remove comments
+        # TODO: Remove comments
         # self.dask_client = Client()
         # if verbose:
         #    print(self.dask_client)
@@ -59,7 +60,7 @@ class Tree_constructor_parallel_worker:
 
     def _find_matching_child(self, children, matrix, indices, mol_index):
         possible_new_atoms = []
-        #TODO: Remove comments
+        # TODO: Remove comments
         # bond_matrix = self.bond_matrices[mol_index].to_array()
         # matrix = matrix.to_array()
         for i in get_possible_connected_new_atom(matrix, indices):
@@ -286,10 +287,15 @@ class Tree_constructor_parallel_worker:
             except Exception:
                 return DevelopNode()
 
-    def build_tree(self, num_processes: int = 6):
-        all_args = [(x, self.df_af_split[x]) for x in range(AtomFeatures.get_number_of_features())]
-        with Pool(num_processes) as p:
-            res = p.starmap(self._build_tree_single_AF, all_args)
+    def build_tree(self, num_processes: int = 6, af_list: List[int] = None):
+        if af_list is None:
+            af_list = list(range(AtomFeatures.get_number_of_features()))
+        all_args = [(x, self.df_af_split[x]) for x in af_list]
+        if num_processes == 1:
+            res = [self._build_tree_single_AF(*x) for x in all_args]
+        else:
+            with Pool(num_processes) as p:
+                res = p.starmap(self._build_tree_single_AF, all_args)
         self.root = DevelopNode()
         self.root.children = res
         self.root.update_average()

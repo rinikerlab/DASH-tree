@@ -333,7 +333,7 @@ class Tree_constructor:
         # TODO: remove comment
         # self.bond_matrices = self.dask_client.gather(self.bond_matrices)
 
-    def create_tree_level_0(self):
+    def create_tree_level_0(self, save_dfs_prefix: str = None):
         print("Preparing Dataframe:")
         self.df_af_split = {}
         for af in range(AtomFeatures.get_number_of_features()):
@@ -355,6 +355,8 @@ class Tree_constructor:
                 # print(f"Layer 0: {af} has no truth values")
                 pass
             df_work[0] = df_work["atom_feature"]
+            if save_dfs_prefix is not None:
+                df_work.to_csv(f"{save_dfs_prefix}_layer_0_{af}.csv")
         print(f"{datetime.datetime.now()}\tLayer 0 done")
 
     def _build_with_seperate_slurm_jobs(self, tree_worker: Tree_constructor_parallel_worker):

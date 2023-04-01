@@ -42,6 +42,7 @@ class Tree_constructor:
         loggingBuild=False,
         split_indices_path=None,
         save_cleaned_df_path=None,
+        save_feature_dict_path=None,
     ):
         if loggingBuild:
             self.loggingBuild = True
@@ -152,6 +153,12 @@ class Tree_constructor:
 
         del h, c, n, t, af
         delattr(self, "tempmatrix")
+
+        if save_feature_dict_path is not None:
+            if verbose:
+                print(f"{datetime.datetime.now()}\tSaving feature dict", flush=True)
+            with open(save_feature_dict_path, "wb") as f:
+                pickle.dump(self.feature_dict, f)
 
         self.attention_percentage = attention_percentage
         self.num_layers_to_build = num_layers_to_build

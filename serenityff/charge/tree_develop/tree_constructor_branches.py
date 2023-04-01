@@ -1,6 +1,7 @@
 import datetime
 import os
 import logging
+import pickle
 
 import pandas as pd
 import numpy as np
@@ -21,6 +22,7 @@ class Tree_constructor_branch(Tree_constructor):
         self,
         df_path: str,
         sdf_suplier: str,
+        feature_dict_path: str,
         attention_percentage: float = 0.99,
         num_layers_to_build=24,
         verbose=False,
@@ -46,7 +48,7 @@ class Tree_constructor_branch(Tree_constructor):
             print(f"{datetime.datetime.now()}\tInitializing Tree_constructor", flush=True)
         self.sdf_suplier = Chem.SDMolSupplier(sdf_suplier, removeHs=False)
         self.sdf_suplier_wo_h = Chem.SDMolSupplier(sdf_suplier, removeHs=True)
-        self.feature_dict = dict()
+        self.feature_dict = pickle.load(open(feature_dict_path, "rb"))
 
         if verbose:
             print(f"{datetime.datetime.now()}\tMols imported, starting df import", flush=True)

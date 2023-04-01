@@ -1,4 +1,5 @@
 # import datetime
+import traceback
 from typing import List
 import numpy as np
 import pandas as pd
@@ -262,6 +263,7 @@ class Tree_constructor_parallel_worker:
                     #    self.logger.info("\tAF={af} - Layer {layer} done")
                 except Exception as e:
                     print(f"Error in AF {af} - Layer {layer} - {e}")
+                    print(traceback.format_exc())
                     break
                 # if self.verbose:
                 #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {layer} done", flush=True)
@@ -281,6 +283,7 @@ class Tree_constructor_parallel_worker:
             return self.roots[af]
         except Exception as e:
             print(f"Error in AF {af} - {e}")
+            print(traceback.format_exc())
             # raise e
             try:
                 return self.roots[af]

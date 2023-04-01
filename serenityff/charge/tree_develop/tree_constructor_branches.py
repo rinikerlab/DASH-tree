@@ -3,6 +3,7 @@ import os
 import logging
 
 import pandas as pd
+import numpy as np
 from rdkit import Chem
 
 from serenityff.charge.tree.atom_features import AtomFeatures
@@ -78,7 +79,7 @@ class Tree_constructor_branch(Tree_constructor):
             },
         )
         self.df["node_attentions"] = self.df["node_attentions"].apply(
-            lambda x: [float(y.strip()) for y in x.strip("[]").split()]
+            lambda x: np.array([float(y.strip()) for y in x.strip("[]").split()])
         )
         self.df["connected_atoms"] = self.df["connected_atoms"].apply(
             lambda x: [int(y.strip()) for y in x.strip("[]").split()]

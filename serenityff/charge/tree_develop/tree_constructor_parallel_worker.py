@@ -294,6 +294,7 @@ class Tree_constructor_parallel_worker:
         if af_list is None:
             af_list = list(range(AtomFeatures.get_number_of_features()))
         all_args = [(x, self.df_af_split[x]) for x in af_list]
+        res = []
         if num_processes == 1:
             res = [self._build_tree_single_AF(*x) for x in all_args]
         else:
@@ -301,4 +302,7 @@ class Tree_constructor_parallel_worker:
                 res = p.starmap(self._build_tree_single_AF, all_args)
         self.root = DevelopNode()
         self.root.children = res
+        if self.verbose:
+            print(f"tree in build, {len(self.root.children)} children", flush=True)
+            print(f"child 0 in build, {self.root.children[0]}", flush=True)
         self.root.update_average()

@@ -49,8 +49,36 @@ class Tree_constructor_branch(Tree_constructor):
 
         if verbose:
             print(f"{datetime.datetime.now()}\tMols imported, starting df import", flush=True)
-
-        self.df = pd.read_csv(df_path)
+        # atomtype,idx_in_mol,mol_index,node_attentions,truth,h_connectivity,connected_atoms,total_connected_attention,atom_feature,0
+        self.df = pd.read_csv(
+            df_path,
+            usecols=[
+                "atomtype",
+                "idx_in_mol",
+                "mol_index",
+                "node_attentions",
+                "truth",
+                "h_connectivity",
+                "connected_atoms",
+                "total_connected_attention",
+                "atom_feature",
+                "0",
+            ],
+            dtype={
+                "atomtype": str,
+                "idx_in_mol": int,
+                "mol_index": int,
+                "node_attentions": str,
+                "truth": float,
+                "h_connectivity": int,
+                "connected_atoms": str,
+                "total_connected_attention": float,
+                "atom_feature": str,
+                "0": str,
+            },
+        )
+        self.df["node_attentions"] = self.df["node_attentions"].apply(eval())
+        self.df["node_truth_values"] = self.df["node_truth_values"].apply(eval())
 
         self.attention_percentage = attention_percentage
         self.num_layers_to_build = num_layers_to_build

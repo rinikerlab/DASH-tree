@@ -77,8 +77,12 @@ class Tree_constructor_branch(Tree_constructor):
                 "0": int,
             },
         )
-        self.df["node_attentions"] = self.df["node_attentions"].apply(eval)
-        self.df["connected_atoms"] = self.df["connected_atoms"].apply(eval)
+        self.df["node_attentions"] = self.df["node_attentions"].apply(
+            lambda x: [float(y) for y in x.strip("[]").split("\t")]
+        )
+        self.df["connected_atoms"] = self.df["connected_atoms"].apply(
+            lambda x: [int(y) for y in x.strip("[]").split("\t")]
+        )
 
         self.attention_percentage = attention_percentage
         self.num_layers_to_build = num_layers_to_build

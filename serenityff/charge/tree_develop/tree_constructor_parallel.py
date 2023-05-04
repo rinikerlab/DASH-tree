@@ -11,7 +11,7 @@ from rdkit import Chem
 from tqdm import tqdm
 from collections import defaultdict
 
-from serenityff.charge.tree.atom_features import AtomFeatures
+from serenityff.charge.tree.atom_features import AtomFeatures, get_connection_info_bond_type
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import (
     create_new_node_from_develop_node,
@@ -307,7 +307,7 @@ class Tree_constructor:
         # Unter Umstaenden muesste man auch nur die Haelfte speichern.
 
         # TODO: Die Matrix ist sehr sparse -> vielleicht koennte man sparse matrices verwenden um memory zu sparen?
-        bonddict = {v: k for k, v in Chem.rdchem.BondType.values.items()}
+        # bonddict = {v: k for k, v in Chem.rdchem.BondType.values.items()}
         matrix = np.array(Chem.GetAdjacencyMatrix(mol), np.bool_)
         np.fill_diagonal(matrix, True)
         self.matrices.append(matrix)
@@ -315,7 +315,8 @@ class Tree_constructor:
         for i in range(matrix.shape[0]):
             for j in np.arange(i + 1, matrix.shape[1]):
                 if matrix[i][j]:
-                    matrix[i][j] = bonddict[mol.GetBondBetweenAtoms(int(i), int(j)).GetBondType()]
+                    # matrix[i][j] = bonddict[mol.GetBondBetweenAtoms(int(i), int(j)).GetBondType()]
+                    matrix[i][j] = get_connection_info_bond_type(mol, i, j)
                     matrix[j][i] = matrix[i][j]
 
         # Man koennte vielleicht converten

@@ -8,7 +8,7 @@ from torch import device, load
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
 
-from serenityff.charge.gnn import Trainer
+from serenityff.charge.gnn.training import Trainer
 from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, CustomData, get_graph_from_mol
 from serenityff.charge.utils import NotInitializedError
 

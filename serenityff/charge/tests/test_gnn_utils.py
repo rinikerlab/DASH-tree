@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from rdkit import Chem
 
-from serenityff.charge.gnn import MolGraphConvFeaturizer
+from serenityff.charge.gnn.utils import MolGraphConvFeaturizer
 from serenityff.charge.gnn.utils.custom_data import CustomData, CustomGraphData, GraphData
 from serenityff.charge.gnn.utils.featurizer import (
     Featurizer,

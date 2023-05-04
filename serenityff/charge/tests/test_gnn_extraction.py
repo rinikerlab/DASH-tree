@@ -8,7 +8,8 @@ import pytest
 import torch
 from rdkit import Chem
 
-from serenityff.charge.gnn import ChargeCorrectedNodeWiseAttentiveFP, Extractor, get_graph_from_mol
+from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
+from serenityff.charge.gnn.attention_extraction import Extractor
 from serenityff.charge.gnn.attention_extraction import Explainer
 from serenityff.charge.gnn.attention_extraction.explainer import FixedGNNExplainer
 from serenityff.charge.gnn.utils import CustomData

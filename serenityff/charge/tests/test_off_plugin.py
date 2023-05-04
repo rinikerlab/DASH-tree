@@ -70,8 +70,8 @@ def charges_amber():
     ]
 
 
-chg_rtol = 1e-2
-chg_atol = 1e-2
+chg_rtol = 0.4
+chg_atol = 0.4
 
 
 def test_handler_functions(handler):

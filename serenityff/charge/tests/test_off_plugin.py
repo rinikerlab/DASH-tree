@@ -24,7 +24,7 @@ def force_field_with_plugins():
 
 @pytest.fixture
 def force_field_custom_offxml():
-    return ForceField(f"{os.getcwd()}/../data/openff-2.0.0-serenity.offxml")
+    return ForceField(f"{os.path.dirname(os.path.realpath(__file__))}/../data/openff-2.0.0-serenity.offxml")
 
 
 @pytest.fixture

@@ -1,4 +1,5 @@
 import glob
+import lzma
 import os
 import pickle
 from collections import defaultdict
@@ -92,6 +93,19 @@ class tree:
         for file_path in all_files_in_folder:
             branch = pickle.load(open(file_path, "rb"))
             self.root.children.append(branch)
+
+    def from_folder_pickle_lzma(self, folder_path: str, verbose=False):
+        self.root = node(level=0)
+        all_files_in_folder = glob.glob(folder_path + "/tree*.pkl")
+        if verbose:
+            print("Found {} files in folder".format(len(all_files_in_folder)))
+        for file_path in all_files_in_folder:
+            branch = pickle.load(lzma.open(file_path, "rb"))
+            self.root.children.append(branch)
+
+    def to_folder_pickle_lzmaz(self, folder_path: str, verbose=False):
+        for i, branch in enumerate(self.root.children):
+            pickle.dump(branch, lzma.open(f"{folder_path}/tree_{i}.pkl", "wb"))
 
     def update_tree_length(self):
         """

@@ -3,22 +3,22 @@ import pickle
 import random
 import os
 import logging
+import time
 
 import numpy as np
 import pandas as pd
 from rdkit import Chem
 from tqdm import tqdm
+from collections import defaultdict
 
-from serenityff.charge.gnn.utils import mols_from_sdf
-from serenityff.charge.tree.atom_features import AtomFeatures
+from serenityff.charge.tree.atom_features import AtomFeatures, get_connection_info_bond_type
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import (
     create_new_node_from_develop_node,
-    get_connected_atom_with_max_attention,
-    get_connected_neighbor,
-    get_possible_connected_new_atom,
 )
 from serenityff.charge.tree_develop.develop_node import DevelopNode
+from serenityff.charge.tree_develop.tree_constructor_parallel_worker import Tree_constructor_parallel_worker
+from serenityff.charge.tree_develop.tree_constructor_singleJB_worker import Tree_constructor_singleJB_worker
 
 
 class Tree_constructor:
@@ -26,15 +26,59 @@ class Tree_constructor:
         self,
         df_path: str,
         sdf_suplier: str,
-        nrows: int,
-        attention_percentage: float = 0.99,
-        data_split: float = 0.2,
+        nrows: int = None,
+        attention_percentage: float = 1000,
+        data_split: float = 0.1,
         seed: int = 42,
         num_layers_to_build=24,
         sanitize=False,
+        sanitize_charges=False,
         verbose=False,
         loggingBuild=False,
+        split_indices_path=None,
+        save_cleaned_df_path=None,
+        save_feature_dict_path=None,
     ):
+        """Initialize Tree_constructor object for DASH tree building (SerenityFF)
+        This constructor can:
+        I)  load a dataframe from a csv file and a sdf file
+        II) sanitize the dataframe
+        III) split the dataframe into a train and test set (randomly or by indices provided)
+        IV) create all adjacency matrices and atom features for all molecules
+        V) prepare everything for the tree building (seperate functions "create_tree_level_0" and "build_tree" are needed for the actual tree building)
+
+        Parameters
+        ----------
+        df_path : str
+            path to the csv file containing the dataframe with the attention data (format see examples)
+        sdf_suplier : str
+            path to the sdf file containing the molecules
+        nrows : int, optional
+            number of rows to read from the csv file, by default None (read all)
+        attention_percentage : float, optional
+            make attention_percentage to build the tree, by default 1000
+        data_split : float, optional
+            random split of the data into train and test set, by default 0.1
+        seed : int, optional
+            seed for the random split, by default 42
+        num_layers_to_build : int, optional
+            max number of layers to build, by default 24
+        sanitize : bool, optional
+            check if sdf and df are consistent, by default False
+        sanitize_charges : bool, optional
+            check if charges are consistent, by default False
+        verbose : bool, optional
+            Do you want to read a story? Once upon a time... , by default False
+        loggingBuild : bool, optional
+            Debugging, by default False
+        split_indices_path : _type_, optional
+            Provide indices for the split (to be consistent with GNN), overrides random split, by default None
+        save_cleaned_df_path : _type_, optional
+            Debug option for skipping steps, by default None
+        save_feature_dict_path : _type_, optional
+            Debug option for skipping steps, by default None
+        """
+        # init
         if loggingBuild:
             self.loggingBuild = True
             logging.basicConfig(
@@ -49,14 +93,16 @@ class Tree_constructor:
         else:
             self.loggingBuild = False
 
+        self.verbose = verbose
         if verbose:
-            print(f"{datetime.datetime.now()}\tInitializing Tree_constructor")
-        self.sdf_suplier = mols_from_sdf(sdf_suplier)
-        self.sdf_suplier_wo_h = mols_from_sdf(sdf_suplier, removeHs=True)
+            print(f"{datetime.datetime.now()}\tInitializing Tree_constructor", flush=True)
+        self.sdf_suplier = Chem.SDMolSupplier(sdf_suplier, removeHs=False)
+        self.sdf_suplier_wo_h = Chem.SDMolSupplier(sdf_suplier, removeHs=True)
+        self.feature_dict = dict()
 
+        # load data
         if verbose:
-            print(f"{datetime.datetime.now()}\tMols imported, starting df import")
-
+            print(f"{datetime.datetime.now()}\tMols imported, starting df import", flush=True)
         self.original_df = pd.read_csv(
             df_path,
             usecols=[
@@ -68,90 +114,177 @@ class Tree_constructor:
             ],
             nrows=nrows,
         )
+
+        # clean data
         if sanitize:
             if verbose:
-                print(f"{datetime.datetime.now()}\tSanitizing")
+                print(f"{datetime.datetime.now()}\tSanitizing", flush=True)
             self._clean_molecule_indices_in_df()
+            if sanitize_charges:
+                if verbose:
+                    print(f"{datetime.datetime.now()}\tCheck charge sanity", flush=True)
+                self._check_charge_sanity()
+
+        if save_cleaned_df_path is not None:
+            if verbose:
+                print(f"{datetime.datetime.now()}\tSaving cleaned df", flush=True)
+            self.original_df.to_csv(save_cleaned_df_path, index=False)
 
         if verbose:
-            print(f"{datetime.datetime.now()}\tdf imported, starting data spliting")
+            print(f"{datetime.datetime.now()}\tdf imported, starting data spliting", flush=True)
 
+        # split data in train and validation set
         random.seed(seed)
-        unique_mols = self.original_df.mol_index.unique().tolist()
-        test_set = random.sample(
-            unique_mols,
-            int(len(unique_mols) * data_split),
-        )
+        if split_indices_path is None:
+            unique_mols = self.original_df.mol_index.unique().tolist()
+            test_set = random.sample(
+                unique_mols,
+                int(len(unique_mols) * data_split),
+            )
+            test_set = set(test_set)
+        else:
+            if verbose:
+                print(f"{datetime.datetime.now()}\tUsing split indices from {split_indices_path}", flush=True)
+            df_test_set = pd.read_csv(split_indices_path)
+            test_set = df_test_set["sdf_idx"].tolist()
+            test_set = [int(i) for i in test_set]
+            test_set = set(test_set)
+        if verbose:
+            print(f"{datetime.datetime.now()}\tSplitting data", flush=True)
         self.df = self.original_df.loc[~self.original_df.mol_index.isin(test_set)].copy()
         self.test_df = self.original_df.loc[self.original_df.mol_index.isin(test_set)].copy()
 
+        if verbose:
+            print(f"{datetime.datetime.now()}\tData split, delete original", flush=True)
         delattr(self, "original_df")
         self.df["node_attentions"] = self.df["node_attentions"].apply(eval)
 
-        h, c, t, n = [], [], [], []
-
+        # create feature dict and adjacency matrix
+        h, c, t, n, af = [], [], [], [], []
         if verbose:
-            print(f"{datetime.datetime.now()}\tStarting table filling")
-
+            print(f"{datetime.datetime.now()}\tStarting table filling", flush=True)
         self.tempmatrix = Chem.GetAdjacencyMatrix(self.sdf_suplier[0])
-
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
             n.append(np.array(row["node_attentions"]) / sum(row["node_attentions"]))
             h.append(self._get_hydrogen_connectivity(row))
             c.append(([] if row["atomtype"] == "H" else [row["idx_in_mol"]]))
             t.append(row["node_attentions"][row["idx_in_mol"]])
-
+            tmp_af = AtomFeatures.atom_features_from_molecule(self.sdf_suplier[row["mol_index"]], row["idx_in_mol"])
+            af.append(tmp_af)
+            if row["idx_in_mol"] == 0:
+                self.feature_dict[row["mol_index"]] = dict()
+                self.feature_dict[row["mol_index"]][row["idx_in_mol"]] = tmp_af
+            else:
+                self.feature_dict[row["mol_index"]][row["idx_in_mol"]] = tmp_af
         self.df["h_connectivity"] = h
         self.df["connected_atoms"] = c
         self.df["total_connected_attention"] = t
         self.df["node_attentions"] = n
-
-        del h, c, n, t
-
+        self.df["atom_feature"] = af
+        del h, c, n, t, af
         delattr(self, "tempmatrix")
 
+        # Advanced/Debug options
+        if save_feature_dict_path is not None:
+            if verbose:
+                print(f"{datetime.datetime.now()}\tSaving feature dict", flush=True)
+            with open(save_feature_dict_path, "wb") as f:
+                pickle.dump(self.feature_dict, f)
+
+        # Initialize tree root
         self.attention_percentage = attention_percentage
         self.num_layers_to_build = num_layers_to_build
-        self.feature_dict = dict()
-        self.root = DevelopNode()
+        self.roots = {}
+        for af in AtomFeatures.feature_list:
+            af_key = AtomFeatures.lookup_str(af)
+            self.roots[af_key] = DevelopNode(atom_features=[af_key, -1, -1], level=1)
         self.new_root = node(level=0)
+
+        if verbose:
+            print(f"{datetime.datetime.now()}\tTable filled, starting adjacency matrix creation", flush=True)
+        self._create_adjacency_matrices()
 
         print(f"Number of train mols: {len(self.df.mol_index.unique())}")
         print(f"Number of test mols: {len(self.test_df.mol_index.unique())}")
 
     def _clean_molecule_indices_in_df(self):
+        """
+        Brute force method to clean molecule indices in df and sdf_suplier
+        """
         molecule_idx_in_df = self.original_df.mol_index.unique().tolist()
         for mol_index in molecule_idx_in_df:
             number_of_atoms_in_mol_df = len(self.original_df.loc[self.original_df.mol_index == mol_index])
             number_of_atoms_in_mol_sdf = self.sdf_suplier[mol_index].GetNumAtoms()
             if number_of_atoms_in_mol_df > number_of_atoms_in_mol_sdf:
-                if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 1].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 1
-                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 2].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 2
-                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 3].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 3
-                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 4].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 4
-                elif number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 5].GetNumAtoms():
-                    self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 5
-                else:
-                    print(
-                        f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
-                    )
-                    print(f"shifted mol has {self.sdf_suplier[mol_index+1].GetNumAtoms()} atoms")
-                    print("--------------------------------------------------")
-                    print(self.original_df.loc[self.original_df.mol_index == mol_index])
-                    print("--------------------------------------------------")
-                    print(self.original_df.loc[self.original_df.mol_index == mol_index].iloc[0].smiles)
-                    print(Chem.MolToSmiles(self.sdf_suplier[mol_index]))
-                    print(Chem.MolToSmiles(self.sdf_suplier[mol_index + 1]))
-                    print("--------------------------------------------------")
-                    raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
+                for i in range(5):
+                    if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 1 + i].GetNumAtoms():
+                        self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 1 + i
+                        break
+                    if i == 4:
+                        self._raise_index_missmatch_error(
+                            mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf
+                        )
             else:
                 pass
 
+    def _raise_index_missmatch_error(self, mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf):
+        print(
+            f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
+        )
+        print(f"shifted mol has {self.sdf_suplier[mol_index+1].GetNumAtoms()} atoms")
+        print("--------------------------------------------------")
+        print(self.original_df.loc[self.original_df.mol_index == mol_index])
+        print("--------------------------------------------------")
+        print(self.original_df.loc[self.original_df.mol_index == mol_index].iloc[0].smiles)
+        print(Chem.MolToSmiles(self.sdf_suplier[mol_index]))
+        print(Chem.MolToSmiles(self.sdf_suplier[mol_index + 1]))
+        print("--------------------------------------------------")
+        raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
+
+    def _check_charge_sanity(self):
+        """
+        Checks if the charges in the original_df are reasonable. Deletes mols with unphysical charges
+        """
+        self.wrong_charged_mols_list = []
+        indices_to_drop = []
+        for mol_index in tqdm(self.original_df.mol_index.unique()):
+            df_with_mol_index = self.original_df.loc[self.original_df.mol_index == mol_index]
+            charges = df_with_mol_index.truth.values
+            elements = df_with_mol_index.atomtype.values
+            for element, charge in zip(elements, charges):
+                self._check_charges(element, charge, indices_to_drop, df_with_mol_index, mol_index)
+        self.original_df.drop(indices_to_drop, inplace=True)
+        if self.verbose:
+            print(
+                f"Number of wrong charged mols: {len(self.wrong_charged_mols_list)} of {len(self.original_df.mol_index.unique())} mols"
+            )
+
+    def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index):
+        """
+        Thresholds for reasonable charges
+        """
+        check_charge_dict_temp = {
+            "H": (-0.01, 1.01),
+            "C": (-2, 4),
+            "N": (-4, 6),
+            "O": (-4, 6),
+            "S": (-10, 10),
+            "P": (-10, 10),
+            "F": (-10, 0.01),
+            "Cl": (-10, 0.01),
+            "Br": (-10, 0.01),
+            "I": (-10, 0.01),
+        }
+        check_charge_dict = defaultdict(lambda: (-10, 10), check_charge_dict_temp)
+        lower_bound, upper_bound = check_charge_dict[element]
+        if charge < lower_bound or charge > upper_bound:
+            indices_to_drop.extend(df_with_mol_index.index.to_list())
+            self.wrong_charged_mols_list.append(mol_index)
+
     def _get_hydrogen_connectivity(self, line) -> int:
+        """
+        Returns the index of the atom to which the hydrogen is connected else -1
+        """
         if line["idx_in_mol"] == 0:
             self.tempmatrix = Chem.GetAdjacencyMatrix(self.sdf_suplier[line["mol_index"]])
         if line["atomtype"] == "H":
@@ -167,255 +300,119 @@ class Tree_constructor:
             self.sdf_suplier[line["mol_index"]], line["idx_in_mol"]
         )
 
+    def _create_single_adjacency_matrix(self, mol: Chem.Mol) -> np.ndarray:
+        """
+        Create storage of all adjacency matrices with bond type information for later lookup without rdkit
+        """
+        matrix = np.array(Chem.GetAdjacencyMatrix(mol), np.bool_)
+        np.fill_diagonal(matrix, True)
+        self.matrices.append(matrix)
+        matrix = matrix.astype(np.int8)
+        for i in range(matrix.shape[0]):
+            for j in np.arange(i + 1, matrix.shape[1]):
+                if matrix[i][j]:
+                    matrix[i][j] = get_connection_info_bond_type(mol, i, j)
+                    matrix[j][i] = matrix[i][j]
+        # warning for future developers. Don't try to be smart and use sparse matrices. It will be slower
+        return matrix
+
     def _create_adjacency_matrices(self):
-        bonddict = {v: k for k, v in Chem.rdchem.BondType.values.items()}
+        """
+        For all mols:
+            (Create storage of all adjacency matrices with bond type information for later lookup without rdkit)
+        """
         print("Creating Adjacency matrices:")
         self.matrices = []
         self.bond_matrices = []
         for mol in tqdm(self.sdf_suplier_wo_h):
-            matrix = np.array(Chem.GetAdjacencyMatrix(mol), np.bool_)
-            np.fill_diagonal(matrix, True)
-            self.matrices.append(matrix)
-            matrix = matrix.astype(np.int8)
-            for i in range(matrix.shape[0]):
-                for j in range(matrix.shape[1]):
-                    if i == j:
-                        continue
-                    if matrix[i][j]:
-                        matrix[i][j] = bonddict[mol.GetBondBetweenAtoms(int(i), int(j)).GetBondType()]
+            matrix = self._create_single_adjacency_matrix(mol)
             self.bond_matrices.append(matrix)
 
-    def create_tree_level_0(self):
-        print("Preparing Dataframe:")
-        features = []
-        for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
-            feat = self._create_atom_features(row)
-            features.append(feat)
-            if row["idx_in_mol"] == 0:
-                self.feature_dict[row["mol_index"]] = dict()
-                self.feature_dict[row["mol_index"]][row["idx_in_mol"]] = feat[0]
-            else:
-                self.feature_dict[row["mol_index"]][row["idx_in_mol"]] = feat[0]
+    def create_tree_level_0(self, save_dfs_prefix: str = None):
+        """
+        Creates the tree level 0 for all atom features
 
-            self.root.add_node(
-                [
-                    DevelopNode(
-                        atom_features=feat,
-                        level=1,
-                        truth_values=row["truth"],
-                        attention_values=row["node_attentions"][row["idx_in_mol"]],
-                    )
-                ]
-            )
-        self.df[0] = features
-        self._create_adjacency_matrices()
+        First level is a separate function due to the different function body and option to restart building from here
+        """
+        print("Preparing Dataframe:")
+        self.df_af_split = {}
+        for af in range(AtomFeatures.get_number_of_features()):
+            self.df_af_split[af] = self.df.loc[self.df.atom_feature == af].copy()
+
+        print("Creating Tree Level 0:")
+        for af in tqdm(range(AtomFeatures.get_number_of_features())):
+            df_work = self.df_af_split[af]
+            current_node = self.roots[af]
+            try:
+                truth_values = df_work["truth"].to_list()
+                attention_values = df_work.apply(lambda x: x["node_attentions"][x["idx_in_mol"]], axis=1).to_list()
+                current_node.truth_values = truth_values
+                current_node.attention_values = attention_values
+                current_node.update_average()
+            except (KeyError, AttributeError):
+                pass
+            df_work[0] = df_work["atom_feature"]
+            if save_dfs_prefix is not None:
+                df_work.to_csv(f"{save_dfs_prefix}_layer_0_{af}.csv")
         print(f"{datetime.datetime.now()}\tLayer 0 done")
 
-    def _match_atom(self, layer, line):
-        current_node = self.root
-        for i in range(layer):
-            for child in current_node.children:
-                if child.atom_features == line[i]:
-                    current_node = child
-                    break
-        return current_node
+    def _build_with_seperate_slurm_jobs(self, tree_worker: Tree_constructor_parallel_worker):
+        """
+        Helper function to build each branch with a different slurm job
+        """
+        pickle_path = "tree_worker.pkl"
+        with open(pickle_path, "wb") as f:
+            pickle.dump(tree_worker, f)
+        out_folder = "tree_out"
+        if not os.path.exists(out_folder):
+            os.makedirs(out_folder)
+        for af in range(AtomFeatures.get_number_of_features() + 2):
+            try:
+                temp = pickle.load(open(f"{out_folder}/{af}.pkl", "rb"))
+                assert temp is not None
+                assert temp.level is not None
+            except (FileNotFoundError, AssertionError):
+                Tree_constructor_singleJB_worker.run_singleJB(pickle_path, af)
+        time.sleep(200)
+        num_slurm_jobs = int(os.popen("squeue | grep  't_' | wc -l").read())
+        while num_slurm_jobs > 0:
+            time.sleep(200)
+            num_slurm_jobs = int(os.popen("squeue | grep  't_' | wc -l").read())
+        # collect all pickle files
+        for af in range(AtomFeatures.get_number_of_features() + 2):
+            try:
+                with open(f"{out_folder}/{af}.pkl", "rb") as f:
+                    self.root.children.append(pickle.load(f))
+            except FileNotFoundError:
+                print(f"File {af}.pkl not found")
 
-    def _find_matching_child(self, children, matrix, indices, mol_index):
-        for child in children:
-            possible_new_atoms = []
-            for i in get_possible_connected_new_atom(matrix, indices):
-                rel, abs = get_connected_neighbor(matrix, i, indices)
-                try:
-                    tmp_feature = self.feature_dict[mol_index][i]
-                except KeyError:
-                    raise KeyError(f"mol_index: {mol_index}, i: {i}")
-                tmp_bond_type = self.bond_matrices[mol_index][abs][i]
-                possible_new_atoms.append(
-                    (
-                        i,
-                        [tmp_feature, rel, tmp_bond_type],
-                    ),
-                )
-            for idx, possible_new_atom in possible_new_atoms:
-                if possible_new_atom == child.atom_features:
-                    return child, idx
-        return None, None
+    def build_tree(self, num_processes=1, build_with_sperate_jobs=False):
+        """
+        Builds the tree from the level 0 nodes (make sure to run create_tree_level_0 before)
 
-    def _try_to_add_new_node(self, line, matrix, layer):
-        connected_atoms = line["connected_atoms"]
-        truth_value = line["truth"]
-        connected_atom_max_attention = line["connected_atom_max_attention"]
-        indices = np.array(connected_atoms)
-        mol_index = line["mol_index"]
-        try:
-            current_node = self._match_atom(layer, line)
-            matching_child, new_atom_idx = self._find_matching_child(
-                current_node.children,
-                matrix,
-                indices,
-                mol_index,
-            )
-            if matching_child is not None:
-                matching_child.truth_values = np.append(matching_child.truth_values, truth_value)
-                matching_child.attention_values = np.append(
-                    matching_child.attention_values,
-                    line["node_attentions"][new_atom_idx],
-                )
-                line.iloc[layer] = matching_child.atom_features
-                connected_atoms.append(new_atom_idx)
-                return matching_child.atom_features
-            else:
-                current_atom_idx = int(line["connected_atom_max_attention_idx"])
-                rel, abs = get_connected_neighbor(matrix, current_atom_idx, indices)
-                new_atom_feature = [
-                    self.feature_dict[mol_index][current_atom_idx],
-                    rel,
-                    self.bond_matrices[mol_index][current_atom_idx][abs],
-                ]
-                new_node = DevelopNode(
-                    atom_features=new_atom_feature,
-                    level=layer + 1,
-                    truth_values=truth_value,
-                    attention_values=connected_atom_max_attention,
-                    parent_attention=current_node.parent_attention + np.max(current_node.attention_values),
-                )
-                current_node.add_child(new_node)
-                line.iloc[layer] = new_node.atom_features
-                connected_atoms.append(current_atom_idx)
-            return new_atom_feature
-        except Exception as e:
-            raise e
-
-    def _find_matching_child_h(self, children, mol_index, hconnec):
-        for child in children:
-            possible_new_atom = [self.feature_dict[mol_index][hconnec], -1, -1]
-
-            if possible_new_atom == child.atom_features:
-                return child, hconnec
-        return None, None
-
-    def _add_node_conn_to_hydrogen(self, line):
-        connected_atoms = line["connected_atoms"]
-        truth_value = line["truth"]
-        mol_index = line["mol_index"]
-        connected_atom_max_attention = line["connected_atom_max_attention"]
-        try:
-            current_node = self._match_atom(1, line)
-            matching_child, new_atom_idx = self._find_matching_child_h(
-                current_node.children,
-                mol_index,
-                line["h_connectivity"],
-            )
-            if matching_child is not None:
-                matching_child.truth_values = np.append(matching_child.truth_values, truth_value)
-                matching_child.attention_values = np.append(
-                    matching_child.attention_values,
-                    line["node_attentions"][new_atom_idx],
-                )
-                line.iloc[1] = matching_child.atom_features
-                connected_atoms.append(new_atom_idx)
-                return matching_child.atom_features
-            else:
-                current_atom_idx = int(line["connected_atom_max_attention_idx"])
-                new_atom_feature = [self.feature_dict[mol_index][current_atom_idx], -1, -1]
-                new_node = DevelopNode(
-                    atom_features=new_atom_feature,
-                    level=1 + 1,
-                    truth_values=truth_value,
-                    attention_values=connected_atom_max_attention,
-                    parent_attention=current_node.parent_attention + np.max(current_node.attention_values),
-                )
-                current_node.add_child(new_node)
-                line.iloc[1] = new_node.atom_features
-                connected_atoms.append(current_atom_idx)
-            return new_atom_feature
-        except Exception as e:
-            raise e
-
-    def _build_layer_1(self):
-        ci, ca = [], []
-        self.df_work["total_connected_attention"] = [
-            np.sum(row["node_attentions"][row["connected_atoms"]]) for _, row in self.df_work.iterrows()
-        ]
-        self.df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
-        for _, row in self.df_work.iterrows():
-            if row["atomtype"] == "H":
-                i, a = (
-                    row["h_connectivity"],
-                    row["node_attentions"][row["h_connectivity"]],
-                )
-            else:
-                i, a = get_connected_atom_with_max_attention(
-                    matrix=self.matrices[int(row["mol_index"])],
-                    attentions=np.array(row["node_attentions"]),
-                    indices=np.array(row["connected_atoms"]),
-                )
-            ci.append(i)
-            ca.append(a)
-        self.df_work["connected_atom_max_attention_idx"] = ci
-        self.df_work["connected_atom_max_attention"] = ca
-        self.df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
-        self.df_work[1] = [
-            self._add_node_conn_to_hydrogen(
-                row,
-            )
-            if row["atomtype"] == "H"
-            else self._try_to_add_new_node(
-                row,
-                self.matrices[row["mol_index"]],
-                1,
-            )
-            for _, row in self.df_work.iterrows()
-        ]
-
-    def build_tree(self):
-        self.df_work = self.df.copy(deep=True)
-        self._build_layer_1()
-        print(f"{datetime.datetime.now()}\tLayer {1} done", flush=True)
-        for layer in range(2, self.num_layers_to_build):
-            if self.loggingBuild:
-                self.logger.info(f"\tLayer {layer} started")
-
-            self.df_work["total_connected_attention"] = [
-                np.sum(row["node_attentions"][row["connected_atoms"]]) for _, row in self.df_work.iterrows()
-            ]
-            if self.loggingBuild:
-                self.logger.info("\t\tAttentionSum done")
-
-            self.df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
-            ai, a = [], []
-            for _, row in self.df_work.iterrows():
-                x, y = get_connected_atom_with_max_attention(
-                    matrix=self.matrices[int(row["mol_index"])],
-                    attentions=np.array(row["node_attentions"]),
-                    indices=np.array(row["connected_atoms"]),
-                )
-                ai.append(x)
-                a.append(y)
-            if self.loggingBuild:
-                self.logger.info("\t\tMaxAttention done")
-
-            self.df_work["connected_atom_max_attention_idx"] = ai
-            self.df_work["connected_atom_max_attention"] = a
-            self.df_work = self.df_work.loc[self.df_work["connected_atom_max_attention_idx"].notnull()]
-            if self.df_work.shape[0] == 0:
-                break
-            self.df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
-            if self.loggingBuild:
-                self.logger.info("\t\tSorting done")
-            self.df_work[layer] = [
-                self._try_to_add_new_node(row, self.matrices[row["mol_index"]], layer)
-                for _, row in self.df_work.iterrows()
-            ]
-            if self.loggingBuild:
-                self.logger.info("\t\ttry to add new node done")
-            if self.loggingBuild:
-                self.logger.info("\tLayer {layer} done")
-            print(f"{datetime.datetime.now()}\tLayer {layer} done", flush=True)
-
-        self.root.update_average()
+        Different parallelization options are available
+        """
+        tree_worker = Tree_constructor_parallel_worker(
+            df_af_split=self.df_af_split,
+            matrices=self.matrices,
+            feature_dict=self.feature_dict,
+            roots=self.roots,
+            bond_matrices=self.bond_matrices,
+            num_layers_to_build=self.num_layers_to_build,
+            attention_percentage=self.attention_percentage,
+            verbose=self.verbose,
+            logger=[self.logger if self.loggingBuild else None],
+        )
+        if build_with_sperate_jobs:
+            self._build_with_seperate_slurm_jobs(tree_worker)
+        else:
+            tree_worker.build_tree(num_processes=num_processes)
+            self.root = tree_worker.root
 
     def convert_tree_to_node(self, delDevelop=False):
+        """
+        Helper function to convert develop nodes to normal nodes
+        """
         self.new_root = create_new_node_from_develop_node(self.root)
         if delDevelop:
             del self.root

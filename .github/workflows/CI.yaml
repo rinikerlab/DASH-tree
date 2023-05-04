@@ -64,7 +64,9 @@ jobs:
       # conda setup requires this special shell
       shell: bash -l {0}
 
+      # execute setup.py then run pytest
       run: |
+        python setup.py install
         pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
 
     # - uses: codecov/codecov-action@v3

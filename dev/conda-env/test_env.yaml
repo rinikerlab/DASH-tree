@@ -1,3 +1,4 @@
+# TODO: CUDA not installed by default
 name: serenityff-charge-test
 channels:
   - pytorch
@@ -29,6 +30,7 @@ dependencies:
   - numpy
   - sympy
   - scipy
+  - numba
   ## Chemie
   - openff-toolkit = 0.10.0
   - rdkit

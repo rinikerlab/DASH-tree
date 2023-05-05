@@ -12,6 +12,16 @@ def is_atom_bonded_conjugate(atom: Chem.Atom) -> bool:
     return False
 
 
+def get_connection_info_bond_type(molecule: Molecule, index: int, connected_to: int) -> int:
+    bond = molecule.GetBondBetweenAtoms(index, connected_to)
+    if bond is None:
+        return -1
+    elif bond.GetIsConjugated():
+        return 4
+    else:
+        return int(bond.GetBondType())
+
+
 class AtomFeatures:
     """
     AtomFeatures class is a mostly static class that contains all atom features included in the tree.
@@ -203,7 +213,8 @@ class AtomFeatures:
         connected_bond_type = (
             -1
             if connected_to[1] == -1
-            else int(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
+            else get_connection_info_bond_type(molecule, int(index), int(connected_to[1]))
+            # int(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
         )
         atom = molecule.GetAtomWithIdx(index)
         key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {is_atom_bonded_conjugate(atom)} {atom.GetTotalNumHs(includeNeighbors=True)}"

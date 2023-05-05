@@ -32,13 +32,19 @@ jobs:
         df -h
         ulimit -a
 
+    #- uses: conda-incubator/setup-miniconda@v2
+    #  with:
+    #    python-version: ${{ matrix.python-version }}
+    #    channels: conda-forge,defaults,pytorch,pyg
+    #    activate-environment: serenityff-charge-test
+    #    environment-file:  dev/conda-env/test_env.yaml
+    #    auto-active-base: false
 
     - uses: mamba-org/provision-with-micromamba@main
       with:
         python-version: ${{ matrix.python-version }}
         environment-file:  dev/conda-env/test_env.yaml
         channels: conda-forge,defaults
-
         activate-environment: serenityff-charge-test
         auto-update-conda: true
         auto-activate-base: false
@@ -58,13 +64,15 @@ jobs:
       # conda setup requires this special shell
       shell: bash -l {0}
 
+      # execute setup.py then run pytest
       run: |
+        python setup.py install
         pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
 
-    - uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-        verbose: true
+    # - uses: codecov/codecov-action@v3
+    #   with:
+    #     token: ${{ secrets.CODECOV_TOKEN }}
+    #     flags: unittests
+    #     name: codecov-umbrella
+    #     fail_ci_if_error: false
+    #     verbose: true

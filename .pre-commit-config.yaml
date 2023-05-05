@@ -17,7 +17,7 @@ repos:
       - id: trailing-whitespace
         exclude:  docs
       - id: check-added-large-files
-        args: ['--maxkb=10000']
+        args: ['--maxkb=50000']
       - id: end-of-file-fixer
         exclude: docs
       - id: check-yaml

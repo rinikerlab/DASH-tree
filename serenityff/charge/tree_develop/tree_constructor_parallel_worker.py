@@ -1,5 +1,8 @@
 # import datetime
+import traceback
+from typing import List
 import numpy as np
+import pandas as pd
 from serenityff.charge.tree.atom_features import AtomFeatures
 
 from serenityff.charge.tree.tree_utils import (
@@ -16,6 +19,7 @@ except ImportError:
 
 
 class Tree_constructor_parallel_worker:
+    # TODO: Add Dokumentation
     def __init__(
         self,
         df_af_split,
@@ -41,9 +45,6 @@ class Tree_constructor_parallel_worker:
         else:
             self.loggingBuild = True
             self.logger = logger
-        # self.dask_client = Client()
-        # if verbose:
-        #    print(self.dask_client)
 
     def _match_atom(self, layer, line):
         current_node = self.roots[line["atom_feature"]]
@@ -56,13 +57,11 @@ class Tree_constructor_parallel_worker:
 
     def _find_matching_child(self, children, matrix, indices, mol_index):
         possible_new_atoms = []
+        tmp_bond_matrix = self.bond_matrices[mol_index]
         for i in get_possible_connected_new_atom(matrix, indices):
             rel, abs = get_connected_neighbor(matrix, i, indices)
-            try:
-                tmp_feature = self.feature_dict[mol_index][i]
-            except KeyError:
-                raise KeyError(f"mol_index: {mol_index}, i: {i}")
-            tmp_bond_type = self.bond_matrices[mol_index][abs][i]
+            tmp_feature = self.feature_dict[mol_index][i]
+            tmp_bond_type = tmp_bond_matrix[abs][i]
             possible_new_atoms.append(
                 (
                     i,
@@ -76,6 +75,24 @@ class Tree_constructor_parallel_worker:
         return None, None
 
     def _try_to_add_new_node(self, line, matrix, layer):
+        """
+        Try to add a new node to the tree. Either by creating a new node as child of the last matching node or by
+        adding the properties to a already existing node.
+
+        Parameters
+        ----------
+        line : pd.Series
+            The line of the dataframe that is currently processed (containing the atom information for the current node)
+        matrix : dict[int, np.ndarray]
+            The adjacency matrices of all molecules
+        layer : int
+            The current layer of the tree
+
+        Returns
+        -------
+        new_atom_feature : list
+            The atom features of the new node (or the matching node)
+        """
         try:
             connected_atoms = line["connected_atoms"]
             truth_value = float(line["truth"])
@@ -168,12 +185,13 @@ class Tree_constructor_parallel_worker:
             raise e
 
     def _build_layer_1(self, af: int):
+        # 1st layer, different from other layers due to the implicit hydrogens
         ci, ca = [], []
         df_work = self.df_af_split[af]
         df_work["total_connected_attention"] = [
             np.sum(row["node_attentions"][row["connected_atoms"]]) for _, row in df_work.iterrows()
         ]
-        # df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
+        df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
         for _, row in df_work.iterrows():
             if row["atomtype"] == "H":
                 i, a = (
@@ -204,23 +222,33 @@ class Tree_constructor_parallel_worker:
             for _, row in df_work.iterrows()
         ]
 
-    def _build_tree_single_AF(self, af: int):
+    def _build_tree_single_AF(self, af: int, df_work: pd.DataFrame):
+        """
+        Main function to build the tree for a single atom feature (AF)
+        Loops over the layers and works through the dataframe (sorted by attention) to attach new nodes to the tree
+
+        Parameters
+        ----------
+        af : int
+            Atom feature to build the tree for
+        df_work : pd.DataFrame
+            Dataframe containing the data for the atom feature
+
+        Returns
+        -------
+        DevelopNode
+            Root node of this AF
+        """
         try:
-            df_work = self.df_af_split[af]
             self._build_layer_1(af=af)
-            # if self.verbose:
-            #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {1} done", flush=True)
+            if self.verbose:
+                print(f"AF={af} - Layer {1} done", flush=True)
+                print(f"children layer 1: {self.roots[af].children}", flush=True)
             for layer in range(2, self.num_layers_to_build):
                 try:
-                    # if self.loggingBuild:
-                    #    self.logger.info(f"\tLayer {layer} started")
-
                     df_work["total_connected_attention"] = [
                         np.sum(row["node_attentions"][row["connected_atoms"]]) for _, row in df_work.iterrows()
                     ]
-                    # if self.loggingBuild:
-                    #    self.logger.info("\t\tAttentionSum done")
-
                     df_work = df_work.loc[df_work["total_connected_attention"] < self.attention_percentage]
                     ai, a = [], []
                     for _, row in df_work.iterrows():
@@ -231,28 +259,18 @@ class Tree_constructor_parallel_worker:
                         )
                         ai.append(x)
                         a.append(y)
-                    # if self.loggingBuild:
-                    #    self.logger.info("\t\tMaxAttention done")
-
                     df_work["connected_atom_max_attention_idx"] = ai
                     df_work["connected_atom_max_attention"] = a
                     df_work = df_work.loc[df_work["connected_atom_max_attention_idx"].notnull()]
-                    # if df_work.shape[0] == 0:
-                    #    break
                     df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
-                    # if self.loggingBuild:
-                    #    self.logger.info("\t\tSorting done")
                     df_work[layer] = [
                         self._try_to_add_new_node(row, self.matrices[row["mol_index"]], layer)
                         for _, row in df_work.iterrows()
                     ]
-                    # if self.loggingBuild:
-                    #    self.logger.info("\tAF={af} - Layer {layer} done")
                 except Exception as e:
                     print(f"Error in AF {af} - Layer {layer} - {e}")
+                    print(traceback.format_exc())
                     break
-                # if self.verbose:
-                #    print(f"{datetime.datetime.now()}\tAF={af} - Layer {layer} done", flush=True)
             try:
                 del ai, a
                 for layer in range(2, self.num_layers_to_build):
@@ -264,20 +282,29 @@ class Tree_constructor_parallel_worker:
                 del df_work
             except Exception as e:
                 print(f"Error in AF {af} - Deleting error - {e}")
-                # self.logger.info(f"Error in AF {af} - Deleting error - {e}")
             print(f"AF {af} done")
             return self.roots[af]
         except Exception as e:
             print(f"Error in AF {af} - {e}")
-            # raise e
+            print(traceback.format_exc())
             try:
                 return self.roots[af]
             except Exception:
                 return DevelopNode()
 
-    def build_tree(self, num_processes: int = 6):
-        with Pool(num_processes) as p:
-            res = p.map(self._build_tree_single_AF, range(AtomFeatures.get_number_of_features()))
+    def build_tree(self, num_processes: int = 6, af_list: List[int] = None):
+        if af_list is None:
+            af_list = list(range(AtomFeatures.get_number_of_features()))
+        all_args = [(x, self.df_af_split[x]) for x in af_list]
+        res = []
+        if num_processes == 1:
+            res = [self._build_tree_single_AF(*x) for x in all_args]
+        else:
+            with Pool(num_processes) as p:
+                res = p.starmap(self._build_tree_single_AF, all_args)
         self.root = DevelopNode()
         self.root.children = res
+        if self.verbose:
+            print(f"tree in build, {len(self.root.children)} children", flush=True)
+            print(f"child 0 in build, {self.root.children[0]}", flush=True)
         self.root.update_average()

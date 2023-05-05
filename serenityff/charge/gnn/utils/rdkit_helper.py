@@ -74,6 +74,8 @@ def get_graph_from_mol(
             [0 for _ in mol.GetAtoms()],
             dtype=torch.float,
         )
+    #TODO: Check if batch is needed, otherwise this could lead to a problem if all batches are set to 0
+    # Batch will be overwritten by the DataLoader class
     graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)
     graph.molecule_charge = Chem.GetFormalCharge(mol)
     graph.smiles = Chem.MolToSmiles(mol, canonical=True)

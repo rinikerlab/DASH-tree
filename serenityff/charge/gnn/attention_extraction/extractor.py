@@ -36,6 +36,7 @@ class Extractor:
             try:
                 load.state_dict()
                 self._model = load
+                print(self._model.state_dict().keys())
             except AttributeError:
                 self._model = ChargeCorrectedNodeWiseAttentiveFP()
                 self._model.load_state_dict(load)
@@ -110,7 +111,7 @@ class Extractor:
                 batch=graph.batch,
                 molecule_charge=graph.molecule_charge,
             )
-            ref_charges = mol.GetProp("MBIS_CHARGES").split("|")
+            ref_charges = mol.GetProp("MBIScharge").split("|")
             node_attentions, edge_attentions = self.explainer.explain_molecule(graph)
             for atom_iterator, atom in enumerate(mol.GetAtoms()):
                 smiles = str(Chem.MolToSmiles(mol)) if atom_iterator == 0 else np.nan
@@ -124,7 +125,6 @@ class Extractor:
                         edge_attentions[atom_iterator].tolist(),
                         float(prediction.tolist()[atom_iterator][0]),
                         float(ref_charges[atom_iterator]),
-                        # float(float(atom.GetProp("molFileAlias"))),
                     ]
                 )
 
@@ -227,7 +227,7 @@ class Extractor:
         batchsize = ceil(len(suppl) / 10000)
         writer = None
         file_iterator = 0
-        for molidx, mol in tqdm(enumerate(suppl)):
+        for molidx, mol in tqdm(enumerate(suppl), total=len(suppl)):
             if not molidx % batchsize:
                 file_iterator += 1
                 writer = Extractor._open_next_file(writer=writer, file_name=str(file_iterator), directory=directory)
@@ -305,7 +305,7 @@ class Extractor:
         model: Union[str, torch.nn.Module],
         sdf_index: int,
         scratch: str,
-        epochs: Optional[int] = 200,
+        epochs: Optional[int] = 2000,
         working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
     ) -> None:
@@ -336,7 +336,7 @@ class Extractor:
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"from serenityff.charge import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
+        text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
         text += '"\n'
         text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:
@@ -353,7 +353,7 @@ class Extractor:
         file = "cleaner.sh" if not directory else f"{directory}/cleaner.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"from serenityff.charge import Extractor; Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
+        text += r"serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
         text += '"\n'
         with open(file, "w") as f:
             f.write(text)
@@ -450,13 +450,17 @@ class Extractor:
         """
         files = Extractor._parse_filenames(args)
         files.sdffile = os.path.abspath(files.sdffile.strip())
+        print(f"sdf path =|{files.sdffile}|")
         num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
         Extractor._write_worker()
-        os.mkdir("logfiles")
-        lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 12:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
+        if not os.path.exists("logfiles"):
+            os.mkdir("logfiles")
+        lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 120:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
+
         id = Extractor._get_job_id("id.txt")
+        Extractor._write_cleaner()
         lsf_command = f"bsub -n 1 -J 'clean_up' -o logfiles/cleanup.out -e logfiles/cleanup.err -w 'done({id})' './cleaner.sh {num_files} {batch_size} {files.sdffile}'"
         os.system(lsf_command)
         command_to_shell_file(lsf_command, "run_cleanup.sh")

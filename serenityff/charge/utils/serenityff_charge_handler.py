@@ -36,7 +36,7 @@ class SerenityFFChargeHandler(_NonbondedHandler):
 
         # init tree if needed
         if not self.sff_charge_tree.hasData:
-            self.sff_charge_tree.from_folder(default_tree_path)
+            self.sff_charge_tree.from_folder_pickle_lzma(default_tree_path)
 
         for reference_molecule in topology.reference_molecules:
 

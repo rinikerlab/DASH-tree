@@ -1,0 +1,34 @@
+name: sff
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+  - pyg
+dependencies:
+  - sphinx_rtd_theme
+  - python
+  - numpy
+  - m2r
+  - conda-build
+  - typing
+  - pyarrow
+  - mpmath
+  - scipy
+  - nbsphinx
+  - pytest
+  - numba
+  - pytorch
+  - sympy
+  - pandas
+  - sphinx
+  - pyg>=2.2.0
+  - rdkit
+  - openff-toolkit=0.10.0
+  - codecov
+  - pandoc
+  - pytest-cov
+  - pytables
+  - pip
+  - pre-commit
+  - ipykernel
+  - py3dmol

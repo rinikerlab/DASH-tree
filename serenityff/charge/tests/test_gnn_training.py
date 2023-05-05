@@ -127,20 +127,8 @@ def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, m
     # test graph creation
     trainer.gen_graphs_from_sdf(sdf_path)
     assert len(trainer.data) == 20
-    # a = trainer.data
     trainer.load_graphs_from_pt(pt_path)
     assert len(trainer.data) == 3
-    # b = trainer.data
-
-    # TODO: fix pt file
-    # for x, y in zip(a, b):
-    #    assert array_equal(x.x, y.x)
-    #    assert array_equal(x.batch, y.batch)
-    #    assert array_equal(x.edge_index, y.edge_index)
-    #    assert array_equal(x.edge_attr, y.edge_attr)
-    #    assert array_equal(x.y, y.y)
-    #    assert x.smiles == y.smiles
-    #    assert x.molecule_charge == y.molecule_charge
     return
 
 

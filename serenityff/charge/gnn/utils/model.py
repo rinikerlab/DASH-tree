@@ -3,12 +3,11 @@ from typing import Optional
 import torch
 from torch import nn
 from torch.nn import functional as F
-#TODO: Remove comments
-#from torch_geometric.nn import AttentiveFP
 from serenityff.charge.gnn.utils.attentive_fp import AttentiveFP
 
+
 class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
-    #TODO: add description
+    # TODO: add description
     def __init__(
         self,
         in_channels: Optional[int] = 23,

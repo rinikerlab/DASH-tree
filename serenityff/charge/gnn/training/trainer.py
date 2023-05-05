@@ -25,16 +25,26 @@ from serenityff.charge.utils import Molecule, NotInitializedError
 
 
 class Trainer:
-    # TODO: Add short description of the class
+    """
+    Trainer class for the GNN. Holds the model, optimizer, loss function,
+    data, and training and evaluation data.
+
+    Can be used on CPU or GPU.
+
+    Offers convinient parsing of molecule data to the GNN.
+    """
+
     def __init__(
         self,
         device: Optional[Union[torch.device, Literal["cpu", "cuda", "available"]]] = "available",
         loss_function: Optional[Callable] = torch.nn.functional.mse_loss,
         physicsInformed: Optional[bool] = True,
+        seed: Optional[int] = 161311,
     ) -> None:
         self.device = device
         self.loss_function = loss_function
         self.physicsInformed = physicsInformed
+        self.seed = seed
 
     @property
     def device(self) -> torch.device:
@@ -52,10 +62,13 @@ class Trainer:
     def loss_function(self) -> Callable:
         return self._loss_function
 
-    #TODO: PhysicsInformed unused could be removed
     @property
     def physicsInformed(self) -> bool:
         return self._physicsInformed
+
+    @property
+    def seed(self) -> int:
+        return self._seed
 
     @property
     def data(self) -> Sequence[CustomData]:
@@ -130,19 +143,27 @@ class Trainer:
         else:
             raise TypeError("physicsInformed has to be of type bool")
 
+    @seed.setter
+    def seed(self, value: int) -> None:
+        if isinstance(value, int):
+            self._seed = value
+            return
+        else:
+            raise TypeError("seed has to be of type int")
+
     @device.setter
-    def device(self, value: Union[torch.device, Literal["cpu", "cuda","available"]]):
+    def device(self, value: Union[torch.device, Literal["cpu", "cuda", "available"]]):
         if isinstance(value, torch.device):
             self._device = value
             self._update_device()
             return
         elif isinstance(value, str):
             # I think that would be a nice conveniance option
-            if value == 'available':
+            if value == "available":
                 if torch.cuda.is_available():
-                    value = 'cuda'
+                    value = "cuda"
                 else:
-                    value = 'cpu'
+                    value = "cpu"
             if value.lower() in ["cpu", "cuda"]:
                 self._device = torch.device(value.lower())
                 self._update_device()
@@ -235,10 +256,7 @@ class Trainer:
         return
 
     def _kfold_split(
-        self,
-        n_splits: Optional[int] = 5,
-        split: Optional[int] = 0,
-        seed: Optional[int] = 1613311
+        self, n_splits: Optional[int] = 5, split: Optional[int] = 0, seed: Optional[int] = 1613311
     ) -> None:
         """
         performs a kfold split on self.data
@@ -248,10 +266,7 @@ class Trainer:
             split (Optional[int], optional): which split you want.. Defaults to 0.
         """
         self.train_data, self.eval_data = split_data_Kfold(
-            data_list=self.data,
-            n_splits=n_splits,
-            split=split,
-            seed=seed
+            data_list=self.data, n_splits=n_splits, split=split, seed=seed
         )
         return
 
@@ -266,7 +281,7 @@ class Trainer:
         train_ratio: Optional[float] = 0.8,
         n_splits: Optional[int] = 5,
         split: Optional[int] = 0,
-        seed: Optional[int] = 161311 # TODO: Ich wuerde hier den seed passen, da er sonst ueber die trainier class nicht aederbar waere -> alle random splits gleich
+        seed: Optional[int] = None,
     ) -> None:
         """
         Splits training data into test data and eval data. At the moment, random, kfold and smiles split are implemented.
@@ -287,13 +302,13 @@ class Trainer:
             warn("No data has been loaded to this trainer. Load Data firstt!")
             return
         if split_type.lower() == "random":
-            self._random_split(train_ratio=train_ratio, seed=seed)
+            self._random_split(train_ratio=train_ratio, seed=[self.seed if seed is None else seed])
             return
         elif split_type.lower() == "kfold":
-            self._kfold_split(n_splits=n_splits, split=split, seed=seed)
+            self._kfold_split(n_splits=n_splits, split=split, seed=[self.seed if seed is None else seed])
             return
         elif split_type.lower() == "smiles":
-            self._smiles_split(train_ratio=train_ratio, seed=seed)
+            self._smiles_split(train_ratio=train_ratio, seed=[self.seed if seed is None else seed])
         else:
             raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
@@ -426,8 +441,11 @@ class Trainer:
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
             if verbose:
-                print(time.time() - start,flush=True)
-                print(f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",flush=True)
+                print(time.time() - start, flush=True)
+                print(
+                    f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",
+                    flush=True,
+                )
 
         self._save_training_data(train_loss, eval_losses)
         torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")

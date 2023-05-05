@@ -19,7 +19,11 @@ except ImportError:
 
 
 class Tree_constructor_parallel_worker:
-    # TODO: Add Dokumentation
+    """
+    This class is the worker for Tree_constructor. It will build the tree for preprocessed data in parallel.
+    For more information see Tree_constructor.
+    """
+
     def __init__(
         self,
         df_af_split,

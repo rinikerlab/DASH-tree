@@ -13,7 +13,7 @@ def is_atom_bonded_conjugate(atom: Chem.Atom) -> bool:
 
 
 def get_connection_info_bond_type(molecule: Molecule, index: int, connected_to: int) -> int:
-    bond = molecule.GetBondBetweenAtoms(index, connected_to)
+    bond = molecule.GetBondBetweenAtoms(int(index), int(connected_to))
     if bond is None:
         return -1
     elif bond.GetIsConjugated():

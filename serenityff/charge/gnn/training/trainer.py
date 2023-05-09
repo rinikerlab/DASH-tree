@@ -302,13 +302,13 @@ class Trainer:
             warn("No data has been loaded to this trainer. Load Data firstt!")
             return
         if split_type.lower() == "random":
-            self._random_split(train_ratio=train_ratio, seed=[self.seed if seed is None else seed])
+            self._random_split(train_ratio=train_ratio, seed=self.seed if seed is None else seed)
             return
         elif split_type.lower() == "kfold":
-            self._kfold_split(n_splits=n_splits, split=split, seed=[self.seed if seed is None else seed])
+            self._kfold_split(n_splits=n_splits, split=split, seed=self.seed if seed is None else seed)
             return
         elif split_type.lower() == "smiles":
-            self._smiles_split(train_ratio=train_ratio, seed=[self.seed if seed is None else seed])
+            self._smiles_split(train_ratio=train_ratio, seed=self.seed if seed is None else seed)
         else:
             raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 

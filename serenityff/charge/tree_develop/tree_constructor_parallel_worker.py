@@ -59,13 +59,12 @@ class Tree_constructor_parallel_worker:
                     break
         return current_node
 
-    def _find_matching_child(self, children, matrix, indices, mol_index):
+    def _find_matching_child(self, children, matrix, bond_matrix, indices, mol_index):
         possible_new_atoms = []
-        tmp_bond_matrix = self.bond_matrices[mol_index]
         for i in get_possible_connected_new_atom(matrix, indices):
             rel, abs = get_connected_neighbor(matrix, i, indices)
             tmp_feature = self.feature_dict[mol_index][i]
-            tmp_bond_type = tmp_bond_matrix[abs][i]
+            tmp_bond_type = bond_matrix[abs][i]
             possible_new_atoms.append(
                 (
                     i,
@@ -78,7 +77,7 @@ class Tree_constructor_parallel_worker:
                     return child, idx
         return None, None
 
-    def _try_to_add_new_node(self, line, matrix, layer):
+    def _try_to_add_new_node(self, line, layer):
         """
         Try to add a new node to the tree. Either by creating a new node as child of the last matching node or by
         adding the properties to a already existing node.
@@ -103,11 +102,14 @@ class Tree_constructor_parallel_worker:
             connected_atom_max_attention = line["connected_atom_max_attention"]
             indices = np.array(connected_atoms)
             mol_index = line["mol_index"]
+            matrix = self.matrices[mol_index]
+            bond_matrix = self.bond_matrices[mol_index]
             try:
                 current_node = self._match_atom(layer, line)
                 matching_child, new_atom_idx = self._find_matching_child(
                     current_node.children,
                     matrix,
+                    bond_matrix,
                     indices,
                     mol_index,
                 )
@@ -123,7 +125,7 @@ class Tree_constructor_parallel_worker:
                     new_atom_feature = [
                         self.feature_dict[mol_index][current_atom_idx],
                         rel,
-                        self.bond_matrices[mol_index][current_atom_idx][abs],
+                        bond_matrix[current_atom_idx][abs],
                     ]
                     new_node = DevelopNode(
                         atom_features=new_atom_feature,
@@ -188,14 +190,12 @@ class Tree_constructor_parallel_worker:
         except Exception as e:
             raise e
 
-    def _build_layer_1(self, af: int):
+    def _build_layer_1(self, af: int, df_work: pd.DataFrame):
         # 1st layer, different from other layers due to the implicit hydrogens
         ci, ca = [], []
-        df_work = self.df_af_split[af]
         df_work["total_connected_attention"] = [
             np.sum(row["node_attentions"][row["connected_atoms"]]) for _, row in df_work.iterrows()
         ]
-        df_work = self.df_work.loc[self.df_work["total_connected_attention"] < self.attention_percentage]
         for _, row in df_work.iterrows():
             if row["atomtype"] == "H":
                 i, a = (
@@ -220,7 +220,6 @@ class Tree_constructor_parallel_worker:
             if row["atomtype"] == "H"
             else self._try_to_add_new_node(
                 row,
-                self.matrices[row["mol_index"]],
                 1,
             )
             for _, row in df_work.iterrows()
@@ -244,7 +243,7 @@ class Tree_constructor_parallel_worker:
             Root node of this AF
         """
         try:
-            self._build_layer_1(af=af)
+            self._build_layer_1(af=af, df_work=df_work)
             if self.verbose:
                 print(f"AF={af} - Layer {1} done", flush=True)
                 print(f"children layer 1: {self.roots[af].children}", flush=True)
@@ -267,10 +266,7 @@ class Tree_constructor_parallel_worker:
                     df_work["connected_atom_max_attention"] = a
                     df_work = df_work.loc[df_work["connected_atom_max_attention_idx"].notnull()]
                     df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
-                    df_work[layer] = [
-                        self._try_to_add_new_node(row, self.matrices[row["mol_index"]], layer)
-                        for _, row in df_work.iterrows()
-                    ]
+                    df_work[layer] = [self._try_to_add_new_node(row, layer) for _, row in df_work.iterrows()]
                 except Exception as e:
                     print(f"Error in AF {af} - Layer {layer} - {e}")
                     print(traceback.format_exc())

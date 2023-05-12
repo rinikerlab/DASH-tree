@@ -131,7 +131,7 @@ class tree:
     # Tree assignment functions
     ###############################################################################
 
-    def match_new_atom(self, atom, mol, max_depth=0, attention_threshold=10):
+    def match_new_atom(self, atom, mol, max_depth=0, attention_threshold=10, attention_increment_threshold=0):
         """
         Matches a given atom in the decision tree to a node
 
@@ -141,6 +141,12 @@ class tree:
             atom index
         mol : rdkit.Chem.rdchem.Mol
             molecule in which the atom is located
+        max_depth : int, optional
+            The maximum depth to search, by default 0=No limit
+        attention_threshold : int, optional
+            The threshold for the cumulative attention -> early stop, by default 10
+        attention_increment_threshold : int, optional
+            The threshold for the attention increment -> early stop, by default 0
 
         Returns
         -------
@@ -189,6 +195,8 @@ class tree:
                             break
                 if total_attention > attention_threshold:
                     break
+                if current_node.attention <= attention_increment_threshold:
+                    break
             except Exception as e:
                 print(e)
                 break
@@ -200,6 +208,7 @@ class tree:
         norm_method="std_weighted",
         max_depth=0,
         attention_threshold=10,
+        attention_increment_threshold=0,
         verbose=False,
         return_raw=False,
         return_std=False,
@@ -232,7 +241,11 @@ class tree:
             atom_idx = atom.GetIdx()
             try:
                 result, node_path = self.match_new_atom(
-                    atom_idx, mol, max_depth=max_depth, attention_threshold=attention_threshold
+                    atom_idx,
+                    mol,
+                    max_depth=max_depth,
+                    attention_threshold=attention_threshold,
+                    attention_increment_threshold=attention_increment_threshold,
                 )
                 tree_raw_charges.append(float(result))
                 tmp_tree_std = float(node_path[-1].stdDeviation)

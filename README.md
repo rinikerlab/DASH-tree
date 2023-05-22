@@ -10,9 +10,9 @@ Welcome to Serenityff-Charge
 Description
 -------------
 
-   Welcome to Serenityff-Charge. This repository is a collection of scripts, tools and other resources for partial charges in MD simulations.
+   Welcome to DASH-Charge. This repository is a collection of scripts, tools and other resources for partial charges in MD simulations.
 
-   It contains tools to generate partial charges for given molecules quickly, using the serenityff-charge workflow and using openff to generate all other parameters. A pre computed DASH (Dynamic Attention-based Substructure Hierarchy) tree can be used to generate charges for a given molecule.
+   It contains tools to generate partial charges for given molecules quickly, using the DASH-charge workflow and using openff to generate all other parameters. A pre computed DASH (Dynamic Attention-based Substructure Hierarchy) tree can be used to generate charges for a given molecule.
 
    Additionally, this repository contains all tools and functions needed to generate a new decision tree for partial charge assignmend, based on the attention data of a graph neural network, cabable of predicting the partial charges of a molecule.
 

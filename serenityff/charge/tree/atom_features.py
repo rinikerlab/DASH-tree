@@ -174,9 +174,7 @@ class AtomFeatures:
 
     @staticmethod
     def atom_features_from_molecule(molecule: Molecule, index: int) -> int:
-        atom = molecule.GetAtomWithIdx(index)
-        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {is_atom_bonded_conjugate(atom)} {atom.GetTotalNumHs(includeNeighbors=True)}"
-        return AtomFeatures.str_key_dict[key]
+        return AtomFeatures.str_key_dict[AtomFeatures.return_atom_feature_key_from_molecule(molecule, index)]
 
     @staticmethod
     def return_atom_feature_key_from_molecule(molecule: Molecule, index: int) -> str:
@@ -216,8 +214,7 @@ class AtomFeatures:
             else get_connection_info_bond_type(molecule, int(index), int(connected_to[1]))
             # int(molecule.GetBondBetweenAtoms(int(index), int(connected_to[1])).GetBondType())
         )
-        atom = molecule.GetAtomWithIdx(index)
-        key = f"{atom.GetSymbol()} {len(atom.GetBonds())} {atom.GetFormalCharge()} {is_atom_bonded_conjugate(atom)} {atom.GetTotalNumHs(includeNeighbors=True)}"
+        key = AtomFeatures.return_atom_feature_key_from_molecule(molecule, index)
         return [AtomFeatures.str_key_dict[key], connected_to[0], connected_bond_type]
 
     @staticmethod

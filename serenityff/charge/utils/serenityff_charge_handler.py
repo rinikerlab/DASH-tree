@@ -4,7 +4,7 @@ from openff.toolkit.typing.engines.smirnoff import ElectrostaticsHandler, Librar
 from openff.toolkit.typing.engines.smirnoff.parameters import _NonbondedHandler
 from openmm.unit import Quantity, elementary_charge
 
-from serenityff.charge.tree.tree import tree
+from serenityff.charge.tree.tree import Tree
 from serenityff.charge.data import default_tree_path
 
 
@@ -14,7 +14,7 @@ class SerenityFFChargeHandler(_NonbondedHandler):
     _DEPENDENCIES = [ElectrostaticsHandler, LibraryChargeHandler, vdWHandler]
     _KWARGS = ["toolkit_registry"]
 
-    sff_charge_tree = tree()
+    sff_charge_tree = Tree()
     attention_threshold = 0.9
 
     def check_handler_compatibility(self, other_handler, assume_missing_is_default=True):

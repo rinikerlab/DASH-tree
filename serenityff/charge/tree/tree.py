@@ -14,7 +14,7 @@ from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import get_possible_atom_features
 
 
-class tree:
+class Tree:
     def __init__(self):
         self.root = node(level=0)
         self.tree_lengths = defaultdict(int)

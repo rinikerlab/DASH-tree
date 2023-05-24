@@ -327,3 +327,101 @@ class Tree:
             else:
                 i += 1
         return pd.DataFrame(tot_list)
+
+    def match_new_torsion(
+        self, atom_i, atom_j, atom_k, atom_l, mol, max_depth=0, attention_threshold=10, attention_increment_threshold=0
+    ):
+        """
+        Matches a given atom in the decision tree to a node
+
+        Parameters
+        ----------
+        atom : int
+            atom index
+        mol : rdkit.Chem.rdchem.Mol
+            molecule in which the atom is located
+        max_depth : int, optional
+            The maximum depth to search, by default 0=No limit
+        attention_threshold : int, optional
+            The threshold for the cumulative attention -> early stop, by default 10
+        attention_increment_threshold : int, optional
+            The threshold for the attention increment -> early stop, by default 0
+
+        Returns
+        -------
+        list[node, list[node]]
+            The final matched node and the path to the node
+        """
+        current_correct_node = self.root
+        node_path = [self.root]
+        connected_atoms = []
+        total_attention = 0
+        if max_depth == 0:
+            max_depth = self.max_depth
+        for i in range(max_depth):
+            try:
+                # TODO: take care of Hs in torsions
+                # and mol.GetAtomWithIdx(atom).GetSymbol() == "H"
+                # h_connected_heavy_atom = (
+                #        mol.GetAtomWithIdx(atom).GetNeighbors()[0].GetIdx()
+                #    )  # get connected heavy atom
+                if i == 0:
+                    possible_new_atom_features = [
+                        AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_j),
+                        AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_k),
+                    ]
+                    possible_new_atom_idxs = [atom_j, atom_k]
+                elif i == 1:
+                    if atom_j == connected_atoms[0]:
+                        possible_new_atom_features = [
+                            AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_k)
+                        ]
+                        possible_new_atom_idxs = [atom_k]
+                    else:
+                        possible_new_atom_features = [
+                            AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_j)
+                        ]
+                        possible_new_atom_idxs = [atom_j]
+                elif i == 2:
+                    possible_new_atom_features = [
+                        AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_i),
+                        AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_l),
+                    ]
+                    possible_new_atom_idxs = [atom_i, atom_l]
+                elif i == 3:
+                    if atom_i == connected_atoms[2]:
+                        possible_new_atom_features = [
+                            AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_l)
+                        ]
+                        possible_new_atom_idxs = [atom_l]
+                    else:
+                        possible_new_atom_features = [
+                            AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_i)
+                        ]
+                        possible_new_atom_idxs = [atom_i]
+                else:
+                    possible_new_atom_features, possible_new_atom_idxs = get_possible_atom_features(
+                        mol, [int(x) for x in connected_atoms]
+                    )
+                found_match = False
+                for current_node in current_correct_node.children:
+                    if found_match:
+                        break
+                    for possible_atom_feature, possible_atom_idx in zip(
+                        possible_new_atom_features, possible_new_atom_idxs
+                    ):
+                        if possible_atom_feature in current_node.atoms:
+                            current_correct_node = current_node
+                            connected_atoms.append(possible_atom_idx)
+                            node_path.append(current_node)
+                            total_attention += current_node.attention
+                            found_match = True
+                            break
+                if total_attention > attention_threshold:
+                    break
+                if current_node.attention <= attention_increment_threshold:
+                    break
+            except Exception as e:
+                print(e)
+                break
+        return (current_correct_node.result, node_path)

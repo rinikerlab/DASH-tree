@@ -24,7 +24,7 @@ Content
 -------------
 
 * **Data Preperation**
-    * Select data from Database (Chembel)
+    * Select data from Database (ChEMBL)
     * Generate diverse data set
     * Generate feature vectors
 

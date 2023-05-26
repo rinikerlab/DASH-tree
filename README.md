@@ -4,6 +4,7 @@ Welcome to Serenityff-Charge
 [//]: # (Badges)
 [![CI](https://github.com/MTLehner/serenityff-charge/actions/workflows/CI.yaml/badge.svg)](https://github.com/MTLehner/serenityff-charge/actions/workflows/CI.yaml)
 [![pre-commit](https://github.com/MTLehner/serenityff-charge/actions/workflows/pre-commit.yml/badge.svg?branch=main)](https://github.com/MTLehner/serenityff-charge/actions/workflows/pre-commit.yml)
+[![arXiv](https://img.shields.io/badge/arXiv-2305.15981-b31b1b.svg)](https://doi.org/10.48550/arXiv.2305.15981)
 
 
 
@@ -16,7 +17,7 @@ Description
 
    Additionally, this repository contains all tools and functions needed to generate a new decision tree for partial charge assignmend, based on the attention data of a graph neural network, cabable of predicting the partial charges of a molecule.
 
-   This repository contains code for the publication by M. Lehner et al. DOI: (TODO: add DOI)
+   This repository contains code for the publication by M. Lehner et al. DOI: [arXiv:2305.15981](https://doi.org/10.48550/arXiv.2305.15981)
 
 
 Content

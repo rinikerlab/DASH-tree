@@ -84,7 +84,9 @@ def split_data_smiles(
     return train_data, test_data
 
 
-def split_data_Kfold(data_list: Sequence[CustomData], n_splits: int = 5, split: int = 0, seed: int = 161311) -> Tuple[Sequence[CustomData]]:
+def split_data_Kfold(
+    data_list: Sequence[CustomData], n_splits: int = 5, split: int = 0, seed: int = 161311
+) -> Tuple[Sequence[CustomData]]:
     """
         Performs a kfold split on a List of CustomData objects,
         returning a list contianing the training, and a list containing

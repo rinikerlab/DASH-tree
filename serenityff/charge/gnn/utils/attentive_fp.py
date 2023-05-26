@@ -10,34 +10,37 @@ from torch_geometric.nn import GATConv, MessagePassing, global_add_pool
 from torch_geometric.typing import Adj, OptTensor
 from torch_geometric.utils import softmax
 
-#from ..inits import glorot, zeros
+# from ..inits import glorot, zeros
+
+
 def glorot(value: Any):
     if isinstance(value, Tensor):
         stdv = math.sqrt(6.0 / (value.size(-2) + value.size(-1)))
         value.data.uniform_(-stdv, stdv)
     else:
-        for v in value.parameters() if hasattr(value, 'parameters') else []:
+        for v in value.parameters() if hasattr(value, "parameters") else []:
             glorot(v)
-        for v in value.buffers() if hasattr(value, 'buffers') else []:
+        for v in value.buffers() if hasattr(value, "buffers") else []:
             glorot(v)
+
 
 def constant(value: Any, fill_value: float):
     if isinstance(value, Tensor):
         value.data.fill_(fill_value)
     else:
-        for v in value.parameters() if hasattr(value, 'parameters') else []:
+        for v in value.parameters() if hasattr(value, "parameters") else []:
             constant(v, fill_value)
-        for v in value.buffers() if hasattr(value, 'buffers') else []:
+        for v in value.buffers() if hasattr(value, "buffers") else []:
             constant(v, fill_value)
 
+
 def zeros(value: Any):
-    constant(value, 0.)
+    constant(value, 0.0)
 
 
 class GATEConv(MessagePassing):
-    def __init__(self, in_channels: int, out_channels: int, edge_dim: int,
-                 dropout: float = 0.0):
-        super().__init__(aggr='add', node_dim=0)
+    def __init__(self, in_channels: int, out_channels: int, edge_dim: int, dropout: float = 0.0):
+        super().__init__(aggr="add", node_dim=0)
 
         self.dropout = dropout
 
@@ -63,9 +66,9 @@ class GATEConv(MessagePassing):
         out += self.bias
         return out
 
-    def message(self, x_j: Tensor, x_i: Tensor, edge_attr: Tensor,
-                index: Tensor, ptr: OptTensor,
-                size_i: Optional[int]) -> Tensor:
+    def message(
+        self, x_j: Tensor, x_i: Tensor, edge_attr: Tensor, index: Tensor, ptr: OptTensor, size_i: Optional[int]
+    ) -> Tensor:
 
         x_j = F.leaky_relu_(self.lin1(torch.cat([x_j, edge_attr], dim=-1)))
         alpha_j = (x_j * self.att_l).sum(dim=-1)
@@ -95,9 +98,17 @@ class AttentiveFP(torch.nn.Module):
         dropout (float, optional): Dropout probability. (default: :obj:`0.0`)
 
     """
-    def __init__(self, in_channels: int, hidden_channels: int,
-                 out_channels: int, edge_dim: int, num_layers: int,
-                 num_timesteps: int, dropout: float = 0.0):
+
+    def __init__(
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        out_channels: int,
+        edge_dim: int,
+        num_layers: int,
+        num_timesteps: int,
+        dropout: float = 0.0,
+    ):
         super().__init__()
 
         self.num_layers = num_layers
@@ -111,14 +122,13 @@ class AttentiveFP(torch.nn.Module):
         self.atom_convs = torch.nn.ModuleList([conv])
         self.atom_grus = torch.nn.ModuleList([gru])
         for _ in range(num_layers - 1):
-            conv = GATConv(hidden_channels, hidden_channels, dropout=dropout,
-                           add_self_loops=False, negative_slope=0.01)
+            conv = GATConv(hidden_channels, hidden_channels, dropout=dropout, add_self_loops=False, negative_slope=0.01)
             self.atom_convs.append(conv)
             self.atom_grus.append(GRUCell(hidden_channels, hidden_channels))
 
-        self.mol_conv = GATConv(hidden_channels, hidden_channels,
-                                dropout=dropout, add_self_loops=False,
-                                negative_slope=0.01)
+        self.mol_conv = GATConv(
+            hidden_channels, hidden_channels, dropout=dropout, add_self_loops=False, negative_slope=0.01
+        )
         self.mol_gru = GRUCell(hidden_channels, hidden_channels)
 
         self.lin2 = Linear(hidden_channels, out_channels)
@@ -161,4 +171,3 @@ class AttentiveFP(torch.nn.Module):
         # Predictor:
         out = F.dropout(out, p=self.dropout, training=self.training)
         return self.lin2(out)
-

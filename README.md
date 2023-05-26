@@ -2,8 +2,8 @@ Welcome to Serenityff-Charge
 ==============================
 
 [//]: # (Badges)
-[![CI](https://github.com/MTLehner/serenityff-charge/actions/workflows/CI.yaml/badge.svg)](https://github.com/MTLehner/serenityff-charge/actions/workflows/CI.yaml)
-[![pre-commit](https://github.com/MTLehner/serenityff-charge/actions/workflows/pre-commit.yml/badge.svg?branch=main)](https://github.com/MTLehner/serenityff-charge/actions/workflows/pre-commit.yml)
+[![CI](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml/badge.svg)](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml)
+[![pre-commit](https://github.com/rinikerlab/DASH-tree/actions/workflows/pre-commit.yml/badge.svg?branch=main)](https://github.com/rinikerlab/DASH-tree/actions/workflows/pre-commit.yml)
 [![arXiv](https://img.shields.io/badge/arXiv-2305.15981-b31b1b.svg)](https://doi.org/10.48550/arXiv.2305.15981)
 
 

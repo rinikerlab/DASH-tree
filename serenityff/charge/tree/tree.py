@@ -372,7 +372,7 @@ class Tree:
                     ]
                     possible_new_atom_idxs = [atom_j, atom_k]
                 elif i == 1:
-                    if atom_j == connected_atoms[0]:
+                    if atom_j in connected_atoms:
                         possible_new_atom_features = [
                             AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_k)
                         ]
@@ -389,7 +389,7 @@ class Tree:
                     ]
                     possible_new_atom_idxs = [atom_i, atom_l]
                 elif i == 3:
-                    if atom_i == connected_atoms[2]:
+                    if atom_i in connected_atoms:
                         possible_new_atom_features = [
                             AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_l)
                         ]

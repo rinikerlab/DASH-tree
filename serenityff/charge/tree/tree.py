@@ -356,6 +356,7 @@ class Tree:
         node_path = [self.root]
         connected_atoms = []
         total_attention = 0
+        switched_j_k = False
         if max_depth == 0:
             max_depth = self.max_depth
         for i in range(max_depth):
@@ -378,6 +379,7 @@ class Tree:
                         ]
                         possible_new_atom_idxs = [atom_k]
                     else:
+                        switched_j_k = True
                         possible_new_atom_features = [
                             AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom_j)
                         ]
@@ -424,4 +426,8 @@ class Tree:
             except Exception as e:
                 print(e)
                 break
+        if node_path[0] is not None:
+            new_node_path_0 = node_path[0].copy()
+            new_node_path_0.switched_j_k = switched_j_k
+            node_path[0] = new_node_path_0
         return (current_correct_node.result, node_path)

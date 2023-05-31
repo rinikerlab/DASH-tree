@@ -20,6 +20,7 @@ from serenityff.charge.gnn.utils import (
     split_data_Kfold,
     split_data_random,
     split_data_smiles,
+    get_torsion_graph_from_mol,
 )
 from serenityff.charge.utils import Molecule, NotInitializedError
 
@@ -233,6 +234,26 @@ class Trainer:
         """
         mols = mols_from_sdf(sdf_file)
         self.data = [get_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
+        return
+
+    def gen_torsion_grahs_from_sdf(
+        self,
+        sdf_file: str,
+        allowable_set: Optional[List[int]] = [
+            "C",
+            "N",
+            "O",
+            "F",
+            "P",
+            "S",
+            "Cl",
+            "Br",
+            "I",
+            "H",
+        ],
+    ) -> None:
+        mols = mols_from_sdf(sdf_file)
+        self.data = [get_torsion_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:

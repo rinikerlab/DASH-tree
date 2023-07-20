@@ -495,7 +495,7 @@ class Extractor:
         Extractor._write_worker(useSlurm=True)
         if not os.path.exists("logfiles"):
             os.mkdir("logfiles")
-        slurm_command = f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" --array=1-100 --mem-per-cpu=1024 --output="logfiles/extraction.out" --error="logfiles/extraction.err" --open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
+        slurm_command = f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" --array=1-100 --mem-per-cpu=1024 --tmp=64000 --output="logfiles/extraction.out" --error="logfiles/extraction.err" --open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
         command_to_shell_file(slurm_command, "run_extraction.sh")
         os.system(slurm_command)
 

@@ -73,7 +73,7 @@ class Extractor:
     def _initialize_expaliner(
         self,
         model: torch.nn.Module,
-        epochs: Optional[int] = 2000,
+        epochs: Optional[int] = 1000,
         verbose: Optional[bool] = False,
     ) -> None:
         """
@@ -210,7 +210,9 @@ class Extractor:
         return writer
 
     @staticmethod
-    def _split_sdf(sdf_file: str, directory: Optional[str] = f"{os.getcwd()}/sdf_data") -> Tuple[int]:
+    def _split_sdf(
+        sdf_file: str, directory: Optional[str] = f"{os.getcwd()}/sdf_data", desiredNumFiles=10000
+    ) -> Tuple[int]:
         """
         Splits a big sdf file in a number (<10000) of smaller sdf file,
         to make parallelization on a cluster possible.
@@ -224,7 +226,7 @@ class Extractor:
             Tuple[int]: number of files written, number of molecule per file.
         """
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
-        batchsize = ceil(len(suppl) / 10000)
+        batchsize = ceil(len(suppl) / desiredNumFiles) if len(suppl) > desiredNumFiles else 1
         writer = None
         file_iterator = 0
         for molidx, mol in tqdm(enumerate(suppl), total=len(suppl)):
@@ -308,7 +310,7 @@ class Extractor:
         model: Union[str, torch.nn.Module],
         sdf_index: int,
         scratch: str,
-        epochs: Optional[int] = 2000,
+        epochs: Optional[int] = 1000,
         working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
     ) -> None:
@@ -416,7 +418,7 @@ class Extractor:
         ml_model=Union[str, torch.nn.Module],
         sdf_file=str,
         output: Optional[str] = "combined.csv",
-        epochs: Optional[int] = 2000,
+        epochs: Optional[int] = 1000,
         verbose: Optional[bool] = True,
         verbose_every_atom: Optional[bool] = False,
     ) -> None:
@@ -495,7 +497,7 @@ class Extractor:
         Extractor._write_worker(useSlurm=True)
         if not os.path.exists("logfiles"):
             os.mkdir("logfiles")
-        slurm_command = f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" --array=1-100 --mem-per-cpu=1024 --tmp=64000 --output="logfiles/extraction.out" --error="logfiles/extraction.err" --open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
+        slurm_command = f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" --array=1-{num_files} --mem-per-cpu=1024 --tmp=64000 --output="logfiles/extraction.out" --error="logfiles/extraction.err" --open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
         command_to_shell_file(slurm_command, "run_extraction.sh")
         os.system(slurm_command)
 

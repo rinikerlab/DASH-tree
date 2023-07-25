@@ -118,7 +118,7 @@ def get_torsion_angle(mol: Molecule, atom_i: int, atom_j: int, atom_k: int, atom
         float: torsion angle in degrees
     """
     conf = mol.GetConformer()
-    return GetDihedralDeg(conf, atom_i, atom_j, atom_k, atom_l)
+    return GetDihedralDeg(conf, atom_i, atom_j, atom_k, atom_l) / 360
 
 
 def get_all_torsion_angles(mol: Molecule) -> List[List]:
@@ -166,11 +166,13 @@ def get_torsion_graph_from_mol(
             [float(x[1]) for x in torsions],
             dtype=torch.float,
         )
+        graph.torch_indices = torch.tensor([x[0] for x in torsions], dtype=torch.long)
     else:
         graph.y = torch.tensor(
             [0 for _ in range(get_number_of_torsions(mol))],
             dtype=torch.float,
         )
+
     graph.batch = torch.tensor([0 for _ in range(get_number_of_torsions(mol))], dtype=int)
     graph.molecule_charge = Chem.GetFormalCharge(mol)
     graph.smiles = Chem.MolToSmiles(mol, canonical=True)

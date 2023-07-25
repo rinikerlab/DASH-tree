@@ -402,6 +402,7 @@ class Trainer:
                 data.batch,
                 data.edge_attr,
                 data.molecule_charge,
+                data.torch_indices
             )
             loss = self.loss_function(torch.squeeze(prediction), data.y)
             val_loss.append(np.mean(loss.to("cpu").tolist()))
@@ -451,7 +452,9 @@ class Trainer:
                     data.batch,
                     data.edge_attr,
                     data.molecule_charge,
+                    data.torch_indices
                 )
+
                 loss = self.loss_function(torch.squeeze(prediction), data.y)
                 loss.backward()
                 self.optimizer.step()
@@ -496,7 +499,7 @@ class Trainer:
         if not isinstance(data, list):
             data = [data]
         if isinstance(data[0], Molecule):
-            graphs = [get_graph_from_mol(mol, index, no_y=True) for index, mol in enumerate(data)]
+            graphs = [get_torsion_graph_from_mol(mol, index, no_y=False) for index, mol in enumerate(data)]
         elif isinstance(data[0], CustomData):
             graphs = data
         else:
@@ -513,6 +516,7 @@ class Trainer:
                     data.batch,
                     data.edge_attr,
                     data.molecule_charge,
+                    data.torch_indices
                 )
                 .to("cpu")
                 .tolist()

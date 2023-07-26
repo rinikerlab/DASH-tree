@@ -397,12 +397,7 @@ class Trainer:
         for data in loader:
             data.to(self.device)
             prediction = self.model(
-                data.x,
-                data.edge_index,
-                data.batch,
-                data.edge_attr,
-                data.molecule_charge,
-                data.torch_indices
+                data.x, data.edge_index, data.batch, data.edge_attr, data.molecule_charge, data.torch_indices
             )
             loss = self.loss_function(torch.squeeze(prediction), data.y)
             val_loss.append(np.mean(loss.to("cpu").tolist()))
@@ -447,12 +442,7 @@ class Trainer:
                 self.optimizer.zero_grad()
                 data.to(self.device)
                 prediction = self.model(
-                    data.x,
-                    data.edge_index,
-                    data.batch,
-                    data.edge_attr,
-                    data.molecule_charge,
-                    data.torch_indices
+                    data.x, data.edge_index, data.batch, data.edge_attr, data.molecule_charge, data.torch_indices
                 )
 
                 loss = self.loss_function(torch.squeeze(prediction), data.y)
@@ -511,12 +501,7 @@ class Trainer:
             data.to(self.device)
             predictions.append(
                 self.model(
-                    data.x,
-                    data.edge_index,
-                    data.batch,
-                    data.edge_attr,
-                    data.molecule_charge,
-                    data.torch_indices
+                    data.x, data.edge_index, data.batch, data.edge_attr, data.molecule_charge, data.torch_indices
                 )
                 .to("cpu")
                 .tolist()
@@ -539,3 +524,12 @@ class Trainer:
             raise NotInitializedError("No model initialized, cannot save nothing ;^)")
         torch.save(self.model.state_dict(), f"{self.save_prefix}{name}")
         return
+
+
+def cross_entropy_loss_for_torsionProfile(x, y, num_buckets=100):
+    y_bucket = torch.bucketize(y.unsqueeze(1), torch.tensor(np.arange(-1, 1, 2 / num_buckets)))
+    bin_tensor = torch.zeros(x.shape)
+    bin_tensor.scatter_(1, y_bucket, 1)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    loss = loss_fn(x, bin_tensor)
+    return loss

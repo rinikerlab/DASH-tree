@@ -30,7 +30,7 @@ print("copied")
 sdf_file = c_datafile
 # trainer = Trainer(device = "cuda")
 # print(trainer.device)
-trainer.model = TorsionWiseAttentiveFP(hidden_channels=200, out_channels=20).to("cuda")
+trainer.model = TorsionWiseAttentiveFP(hidden_channels=200, out_channels=100).to("cuda")
 print(trainer.device)
 trainer.optimizer = torch.optim.Adam(trainer.model.parameters(), lr=lr)
 print(trainer.device)

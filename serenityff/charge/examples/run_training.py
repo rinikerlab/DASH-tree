@@ -27,7 +27,7 @@ os.system("cp %s %s" % (datafile, c_datafile))
 sdf_file = c_datafile
 trainer = Trainer(device="cpu", loss_function=cross_entropy_loss_for_torsionProfile)
 
-trainer.model = TorsionWiseAttentiveFP(hidden_channels=200, out_channels=20)
+trainer.model = TorsionWiseAttentiveFP(hidden_channels=200, out_channels=100)
 trainer.optimizer = torch.optim.Adam(trainer.model.parameters(), lr=lr)
 trainer.save_prefix = "./training/GNN_lr_%.8f_batch_%ii_seed_%i" % (lr, batch, seed)
 # trainer.load_graphs_from_pt(pt_file=pt_file)

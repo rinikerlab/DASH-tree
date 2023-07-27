@@ -37,6 +37,14 @@ print(trainer.device)
 trainer.save_prefix = "./training/GNN_lr_%.8f_batch_%i_seed_%i_new_set_170823" % (lr, batch, seed)
 print("start loading")
 trainer.load_graphs_from_pt(pt_file=c_datafile)
+
+new_data = []
+for data in trainer.data:
+    if data.y.numel() != 0:
+        new_data.append(data)
+
+trainer.data = new_data
+
 # trainer.gen_graphs_from_sdf(sdf_file=sdf_file)
 trainer.prepare_training_data(train_ratio=0.9, seed=seed, split_type="smiles")
 print("data read in")

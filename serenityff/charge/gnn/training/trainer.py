@@ -528,7 +528,7 @@ class Trainer:
 
 def cross_entropy_loss_for_torsionProfile(x, y, num_buckets=100, device="cpu"):
     y_bucket = torch.bucketize(y.unsqueeze(1), torch.tensor(np.arange(-1, 1, 2 / num_buckets), device=device))
-    bin_tensor = torch.zeros(x.shape)
+    bin_tensor = torch.zeros(x.shape, device=device)
     bin_tensor.scatter_(1, y_bucket, 1)
     loss_fn = torch.nn.CrossEntropyLoss()
     loss = loss_fn(x, bin_tensor)

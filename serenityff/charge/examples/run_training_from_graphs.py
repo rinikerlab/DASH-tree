@@ -18,7 +18,7 @@ seed = args.seed
 lr = args.lr
 batch = args.batch
 
-trainer = Trainer(device="cuda", loss_function=cross_entropy_loss_for_torsionProfile)
+trainer = Trainer(device="cuda", loss_function=lambda x, y: cross_entropy_loss_for_torsionProfile(x, y, device="cuda"))
 print(trainer.device)
 
 

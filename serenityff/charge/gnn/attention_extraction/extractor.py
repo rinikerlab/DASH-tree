@@ -73,7 +73,7 @@ class Extractor:
     def _initialize_expaliner(
         self,
         model: torch.nn.Module,
-        epochs: Optional[int] = 2000,
+        epochs: Optional[int] = 1000,
         verbose: Optional[bool] = False,
     ) -> None:
         """
@@ -210,7 +210,9 @@ class Extractor:
         return writer
 
     @staticmethod
-    def _split_sdf(sdf_file: str, directory: Optional[str] = f"{os.getcwd()}/sdf_data") -> Tuple[int]:
+    def _split_sdf(
+        sdf_file: str, directory: Optional[str] = f"{os.getcwd()}/sdf_data", desiredNumFiles=10000
+    ) -> Tuple[int]:
         """
         Splits a big sdf file in a number (<10000) of smaller sdf file,
         to make parallelization on a cluster possible.
@@ -224,7 +226,7 @@ class Extractor:
             Tuple[int]: number of files written, number of molecule per file.
         """
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
-        batchsize = ceil(len(suppl) / 10000)
+        batchsize = ceil(len(suppl) / desiredNumFiles) if len(suppl) > desiredNumFiles else 1
         writer = None
         file_iterator = 0
         for molidx, mol in tqdm(enumerate(suppl), total=len(suppl)):
@@ -235,9 +237,9 @@ class Extractor:
         return file_iterator, batchsize
 
     @staticmethod
-    def _get_job_id(file: str) -> str:
+    def _get_job_id(file: str, useSlurm=False) -> str:
         """
-        Takes a file containing the lsf submission return and
+        Takes a file containing the lsf/slurm submission return and
         extracts the job id of the Job that has been submitted.
 
         Args:
@@ -248,7 +250,10 @@ class Extractor:
         """
         with open(file, "r") as f:
             txt = f.read()
-        id = txt.split("<")[1].split(">")[0]
+        if useSlurm:
+            id = int(txt.split(" ")[-1].strip())
+        else:
+            id = txt.split("<")[1].split(">")[0]
         return id
 
     @staticmethod
@@ -305,7 +310,7 @@ class Extractor:
         model: Union[str, torch.nn.Module],
         sdf_index: int,
         scratch: str,
-        epochs: Optional[int] = 2000,
+        epochs: Optional[int] = 1000,
         working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
     ) -> None:
@@ -328,17 +333,22 @@ class Extractor:
         return
 
     @staticmethod
-    def _write_worker(directory: Optional[str] = None) -> None:
+    def _write_worker(directory: Optional[str] = None, useSlurm=False) -> None:
         """
-        Writes a bash script called worker.sh, that is then again submitted to the lsf queue.
-        This worker script, does the actual attention extraction on the lsf hpc cluster.
+        Writes a bash script called worker.sh, that is then again submitted to the lsf/slurm queue.
+        This worker script, does the actual attention extraction on the lsf/slurm hpc cluster.
         """
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
-        text += '"\n'
-        text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
+        if useSlurm:
+            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${SLURM_ARRAY_TASK_ID}), scratch='${TMPDIR}')"
+            text += '"\n'
+            text += r"mv ${TMPDIR}/${SLURM_ARRAY_TASK_ID}.csv ${2}/."
+        else:
+            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
+            text += '"\n'
+            text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:
             f.write(text)
         os.system(f"chmod u+x {file}")
@@ -408,7 +418,7 @@ class Extractor:
         ml_model=Union[str, torch.nn.Module],
         sdf_file=str,
         output: Optional[str] = "combined.csv",
-        epochs: Optional[int] = 2000,
+        epochs: Optional[int] = 1000,
         verbose: Optional[bool] = True,
         verbose_every_atom: Optional[bool] = False,
     ) -> None:
@@ -464,4 +474,36 @@ class Extractor:
         lsf_command = f"bsub -n 1 -J 'clean_up' -o logfiles/cleanup.out -e logfiles/cleanup.err -w 'done({id})' './cleaner.sh {num_files} {batch_size} {files.sdffile}'"
         os.system(lsf_command)
         command_to_shell_file(lsf_command, "run_cleanup.sh")
+        return
+
+    @staticmethod
+    def run_extraction_slurm(args: Sequence[str]) -> None:
+        """
+        Use this function if you want to run the feature extraction on a slurm cluster.
+
+        You need to provide it with an ml model and an .sdf file containing the molecules,
+        you want a predcition and attention extractions for.
+
+        Run this static method in a python command and us the following two flags to specify
+        all the needed information:
+            > -m:   path to the ml model .pt file
+            > -s:   path to the .sdf file containing the molecules.
+
+        """
+        files = Extractor._parse_filenames(args)
+        files.sdffile = os.path.abspath(files.sdffile.strip())
+        print(f"sdf path =|{files.sdffile}|")
+        num_files, batch_size = Extractor._split_sdf(sdf_file=files.sdffile)
+        Extractor._write_worker(useSlurm=True)
+        if not os.path.exists("logfiles"):
+            os.mkdir("logfiles")
+        slurm_command = f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" --array=1-{num_files} --mem-per-cpu=1024 --tmp=64000 --output="logfiles/extraction.out" --error="logfiles/extraction.err" --open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
+        command_to_shell_file(slurm_command, "run_extraction.sh")
+        os.system(slurm_command)
+
+        id = Extractor._get_job_id("id.txt", useSlurm=True)
+        Extractor._write_cleaner()
+        slurm_command = f"sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name='clean_up' --mem-per-cpu=1024 --output='logfiles/cleanup.out' --error='logfiles/cleanup.err' --open-mode=append --dependency=afterok:{id} --wrap='./cleaner.sh {num_files} {batch_size} {files.sdffile}'"
+        os.system(slurm_command)
+        command_to_shell_file(slurm_command, "run_cleanup.sh")
         return

@@ -96,7 +96,7 @@ class Tree:
 
     def from_folder_pickle_lzma(self, folder_path: str, verbose=False):
         self.root = node(level=0)
-        all_files_in_folder = glob.glob(folder_path + "/tree*.pkl")
+        all_files_in_folder = glob.glob(folder_path + "/tree*.pkl.lzma")
         if verbose:
             print("Found {} files in folder".format(len(all_files_in_folder)))
         for file_path in all_files_in_folder:

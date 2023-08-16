@@ -12,6 +12,13 @@ def atoms_to_Name(atom_list: list) -> str:
     return ret_str
 
 
+def name_to_atoms(name: str) -> list:
+    ret_list = []
+    for atom in name.split("#")[1:]:
+        ret_list.append(tuple([int(x) for x in atom.split("_")]))
+    return ret_list
+
+
 df_entry_list = []
 
 

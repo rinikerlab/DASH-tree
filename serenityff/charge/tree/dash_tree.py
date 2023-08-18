@@ -3,7 +3,7 @@ import pickle
 import gzip as compression
 
 # import lz4.frame as compression
-# import numpy as np
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from collections import defaultdict
@@ -93,11 +93,19 @@ class DASHTree:
         mol: Molecule,
         max_depth: int = 16,
         attention_threshold: float = 10,
-        attention_incremet_threshold: float = 10,
+        attention_incremet_threshold: float = 0,
     ):
         init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
         branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
         matched_node_path = [branch_idx, 0]
+        if self.tree_storage[branch_idx] is None:
+            try:
+                self.load_tree_and_data(
+                    os.path.join(self.tree_folder_path, f"{branch_idx}.gz"),
+                    os.path.join(self.tree_folder_path, f"{branch_idx}.h5"),
+                )
+            except Exception as e:
+                print(f"Error loading tree {branch_idx}: {e}")
         cummulative_attention = 0
         # Special case for H -> only connect to heavy atom and ignore H
         if mol.GetAtomWithIdx(atom).GetSymbol() == "H":
@@ -127,7 +135,7 @@ class DASHTree:
                 cummulative_attention += node_attention
                 if cummulative_attention > attention_threshold:
                     return matched_node_path
-                if node_attention > attention_incremet_threshold:
+                if node_attention < attention_incremet_threshold:
                     return matched_node_path
             return matched_node_path
 
@@ -136,3 +144,62 @@ class DASHTree:
         atom = matched_node_path[-1]
         df = self.data_storage[branch_idx]
         return df.iloc[atom]
+
+    def get_molecules_partial_charges(
+        self,
+        mol: Molecule,
+        norm_method: str = "std_weighted",
+        max_depth: int = 16,
+        attention_threshold: float = 10,
+        attention_incremet_threshold: float = 0,
+        verbose: bool = False,
+        default_std_value: float = 0.1,
+        chg_key: str = "result",
+        chg_std_key: str = "stdDeviation",
+    ):
+        return_list = []
+        tree_raw_charges = []
+        tree_charge_std = []
+        tree_match_depth = []
+        for atom in mol.GetAtoms():
+            atom_idx = atom.GetIdx()
+            try:
+                node_path = self.match_new_atom(
+                    atom_idx,
+                    mol,
+                    max_depth=max_depth,
+                    attention_threshold=attention_threshold,
+                    attention_incremet_threshold=attention_incremet_threshold,
+                )
+                node_properties = self.get_atom_properties(node_path)
+                tree_raw_charges.append(float(node_properties[chg_key]))
+                tmp_tree_std = float(node_properties[chg_std_key])
+                tree_charge_std.append(tmp_tree_std if tmp_tree_std > 0 else default_std_value)
+                tree_match_depth.append(len(node_path) - 1)
+            except Exception as e:
+                print(e)
+                tree_raw_charges.append(np.NaN)
+                tree_charge_std.append(np.NaN)
+                tree_match_depth.append(-1)
+
+        if verbose:
+            print("Tree raw charges: {}".format(tree_raw_charges))
+        if norm_method == "none":
+            return_list = tree_raw_charges
+        elif norm_method == "symmetric":
+            tot_charge_tree = sum(tree_raw_charges)
+            tot_charge_mol = sum([x.GetFormalCharge() for x in mol.GetAtoms()])
+            return_list = [x + (tot_charge_mol - tot_charge_tree) / len(tree_raw_charges) for x in tree_raw_charges]
+        elif norm_method == "std_weighted":
+            tot_charge_tree = sum(tree_raw_charges)
+            tot_charge_mol = sum([x.GetFormalCharge() for x in mol.GetAtoms()])
+            tot_std_tree = sum(tree_charge_std)
+            return_list = [
+                x + (tot_charge_mol - tot_charge_tree) * (y / tot_std_tree)
+                for x, y in zip(tree_raw_charges, tree_charge_std)
+            ]
+        else:
+            raise ValueError("norm_method must be one of 'none', 'symmetric', 'std_weighted'")
+        if verbose:
+            print("Tree normalized charges: {}".format(return_list))
+        return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}

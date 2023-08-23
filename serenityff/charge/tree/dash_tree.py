@@ -9,7 +9,7 @@ from tqdm import tqdm
 from collections import defaultdict
 
 # from multiprocessing import Pool
-# from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager
 
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.tree_utils import get_possible_atom_features
@@ -18,7 +18,22 @@ from serenityff.charge.utils.rdkit_typing import Molecule
 
 
 class DASHTree:
-    def __init__(self, tree_folder_path=default_dash_tree_path, preload=True, verbose=True, num_processes=4):
+    def __init__(self, tree_folder_path=default_dash_tree_path, preload=True, verbose=True, num_processes=1):
+        """
+        Class to handle DASH trees and data
+
+        Parameters
+        ----------
+        tree_folder_path : str
+            Path to folder containing DASH trees and data
+        preload : bool
+            If True, load all trees and data into memory, if False, load on demand
+        verbose : bool
+            If True, print status messages
+        num_processes : int
+            Number of processes to use for loading and assigning molecules.
+            TODO: This is currently slow and not recommended
+        """
         self.tree_folder_path = tree_folder_path
         self.verbose = verbose
         self.num_processes = num_processes
@@ -35,13 +50,32 @@ class DASHTree:
     # int(id_counter), int(atom_type), int(con_atom), int(con_type), float(oldNode.attention), []children
 
     def load_all_trees_and_data(self):
+        """
+        Load all trees and data from the tree_folder_path, expects files named after the atom feature key and
+        the file extension .gz for the tree and .h5 for the data
+        Examples:
+            0.gz, 0.h5 for the tree and data of the atom feature with key 0
+        """
         if self.verbose:
             print("Loading DASH tree data")
         # import all files
-        for i in range(AtomFeatures.get_number_of_features()):
-            tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
-            df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
-            self.load_tree_and_data(tree_path, df_path)
+        if self.num_processes <= 1:
+            for i in range(AtomFeatures.get_number_of_features()):
+                tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
+                df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
+                self.load_tree_and_data(tree_path, df_path)
+        else:
+            self.tree_storage = Manager().dict()
+            self.data_storage = Manager().dict()
+            processes = []
+            for i in range(AtomFeatures.get_number_of_features()):
+                tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
+                df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
+                p = Process(target=self.load_tree_and_data, args=(tree_path, df_path))
+                processes.append(p)
+                p.start()
+            for p in processes:
+                p.join()
 
     def load_tree_and_data(self, tree_path, df_path, hdf_key="df"):
         branch_idx = int(os.path.basename(tree_path).split(".")[0])
@@ -67,10 +101,6 @@ class DASHTree:
             pickle.dump(self.tree_storage[branch_idx], f)
         self.data_storage[branch_idx].to_hdf(df_path, key="df", mode="w")
 
-    def get_node_data(self, init_af, line_number):
-        branch_idx = self.af_to_branch_idx[init_af]
-        return self.data_storage[branch_idx].iloc[line_number]
-
     ########################################
     #   Tree assignment functions
     ########################################
@@ -95,6 +125,24 @@ class DASHTree:
         attention_threshold: float = 10,
         attention_incremet_threshold: float = 0,
     ):
+        """
+        Match a atom in a molecule to a DASH tree subgraph. The matching is done by starting at the atom and
+        traversing the tree until the max_depth is reached or the attention_threshold is exceeded.
+        If the attention_incremet_threshold is exceeded, the matching is stopped and the current path is returned.
+
+        Parameters
+        ----------
+        atom : int
+            Atom index in the molecule of the atom to match
+        mol : Molecule
+            RDKit molecule object in which the atom is located
+        max_depth : int
+            Maximum depth of the tree to traverse
+        attention_threshold : float
+            Maximum cumulative attention value to traverse the tree
+        attention_incremet_threshold : float
+            Minimum attention increment to stop the traversal
+        """
         init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
         branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
         matched_node_path = [branch_idx, 0]
@@ -140,6 +188,19 @@ class DASHTree:
             return matched_node_path
 
     def get_atom_properties(self, matched_node_path: list):
+        """
+        Get the properties of a atom from a matched DASH tree subgraph (node path)
+
+        Parameters
+        ----------
+        matched_node_path : list
+            List of node ids of the matched subgraph (node path) in the order of the traversal
+
+        Returns
+        -------
+        pd.Series
+            All properties of the atom which where stored in the DASH tree
+        """
         branch_idx = matched_node_path[0]
         atom = matched_node_path[-1]
         df = self.data_storage[branch_idx]
@@ -157,6 +218,36 @@ class DASHTree:
         chg_key: str = "result",
         chg_std_key: str = "stdDeviation",
     ):
+        """
+        Get the partial charges of all atoms in a molecule by matching them to DASH tree subgraphs and
+        normalizing the charges of the matched atoms
+
+        Parameters
+        ----------
+        mol : Molecule
+            RDKit molecule object for which the partial charges should be calculated
+        norm_method : str
+            Method to normalize the partial charges, one of 'none', 'symmetric', 'std_weighted'
+        max_depth : int
+            Maximum depth of the tree to traverse
+        attention_threshold : float
+            Maximum cumulative attention value to traverse the tree
+        attention_incremet_threshold : float
+            Minimum attention increment to stop the traversal
+        verbose : bool
+            If True, print status messages
+        default_std_value : float
+            Default value to use for the standard deviation if it is 0
+        chg_key : str
+            Key of the partial charge in the DASH tree data
+        chg_std_key : str
+            Key of the partial charge standard deviation in the DASH tree data
+
+        Returns
+        -------
+        dict
+            Dictionary containing the partial charges, standard deviations and match depths of all atoms
+        """
         return_list = []
         tree_raw_charges = []
         tree_charge_std = []

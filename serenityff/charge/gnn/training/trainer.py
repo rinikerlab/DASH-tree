@@ -537,8 +537,9 @@ class Trainer:
 
 def cross_entropy_loss_for_torsionProfile(x, y, num_buckets=100, device="cpu"):
     y_bucket = torch.bucketize(y.unsqueeze(1), torch.tensor(np.linspace(-0.5, 0.5, num_buckets, True), device=device))
-    y_weight = torch.ones(y_bucket.shape, device=device, dtype=torch.float32)
-    y_weight[45:55] = 0.0001
+    # y_weight = torch.ones(y_bucket.shape, device=device, dtype=torch.float32)
+    # y_weight[45:55] = 0.0001
+    y_weight = get_weight_from_all_torsions(num_buckets=num_buckets, device=device)
     bin_tensor = torch.zeros(x.shape, device=device)
     bin_tensor.scatter_(1, y_bucket, 1)
     loss_fn = torch.nn.MSELoss()
@@ -546,3 +547,114 @@ def cross_entropy_loss_for_torsionProfile(x, y, num_buckets=100, device="cpu"):
     bin_tensor = bin_tensor * y_weight
     loss = loss_fn(x, bin_tensor)
     return loss
+
+
+def get_weight_from_all_torsions(num_buckets=100, device="cpu"):
+    y_weight = torch.tensor(
+        [
+            0.09309104,
+            0.23312431,
+            0.38103787,
+            0.51468828,
+            0.64580364,
+            0.74998323,
+            0.8202632,
+            0.84015634,
+            0.87060595,
+            0.87661421,
+            0.91715669,
+            0.86961257,
+            0.99673047,
+            0.98334409,
+            1.0,
+            0.95024086,
+            0.75824176,
+            0.82818404,
+            0.93993329,
+            0.95729375,
+            0.88389256,
+            0.82138833,
+            0.77861107,
+            0.69957234,
+            0.58209655,
+            0.51647184,
+            0.50845299,
+            0.48741988,
+            0.42555838,
+            0.3643891,
+            0.28013399,
+            0.19459516,
+            0.11201598,
+            0.08383249,
+            0.13716403,
+            0.23445759,
+            0.2861336,
+            0.30471327,
+            0.27438979,
+            0.25903182,
+            0.25751409,
+            0.27352589,
+            0.28908371,
+            0.29662194,
+            0.26184527,
+            0.22256735,
+            0.19826531,
+            0.13469255,
+            0.04161398,
+            0.0027252,
+            0.04163268,
+            0.1348171,
+            0.19795633,
+            0.22109406,
+            0.25746862,
+            0.29151381,
+            0.28752465,
+            0.27625921,
+            0.25799751,
+            0.26287981,
+            0.28187412,
+            0.30028745,
+            0.2778961,
+            0.23537917,
+            0.13859086,
+            0.08265388,
+            0.11244342,
+            0.19663191,
+            0.28176517,
+            0.3675402,
+            0.42292849,
+            0.48776018,
+            0.5066707,
+            0.52006824,
+            0.58441966,
+            0.70924896,
+            0.78383432,
+            0.8292695,
+            0.89773518,
+            0.95010625,
+            0.94544532,
+            0.83609255,
+            0.75213637,
+            0.94061878,
+            0.99551729,
+            0.99578335,
+            0.99122107,
+            0.87028963,
+            0.91502947,
+            0.86837403,
+            0.87266766,
+            0.84517479,
+            0.80577649,
+            0.75169801,
+            0.64641363,
+            0.51423051,
+            0.37800974,
+            0.23222027,
+            0.09314897,
+            1.0,
+        ],
+        device=device,
+    )
+    if num_buckets != 100:
+        raise NotImplementedError("Weighting by total torsion profile is only implemented for 100 buckets.")
+    return y_weight

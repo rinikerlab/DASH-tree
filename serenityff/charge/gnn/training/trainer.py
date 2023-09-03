@@ -651,7 +651,7 @@ def get_weight_from_all_torsions(num_buckets=100, device="cpu"):
             0.37800974,
             0.23222027,
             0.09314897,
-            1.0,
+            1.59685714e03,  # 1.0,
         ],
         device=device,
     )

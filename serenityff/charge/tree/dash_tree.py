@@ -12,7 +12,6 @@ from collections import defaultdict
 from multiprocessing import Process, Manager
 
 from serenityff.charge.tree.atom_features import AtomFeatures
-from serenityff.charge.tree.tree_utils import get_possible_atom_features
 from serenityff.charge.data import default_dash_tree_path
 from serenityff.charge.utils.rdkit_typing import Molecule
 
@@ -117,6 +116,30 @@ class DASHTree:
                     return (child, possible_atom_idx)
         return (None, None)
 
+    def _init_neighbor_dict(self, mol: Molecule):
+        neighbor_dict = {}
+        for atom_idx, atom in enumerate(mol.GetAtoms()):
+            neighbor_dict[atom_idx] = []
+            for neighbor in atom.GetNeighbors():
+                af_with_connection_info = AtomFeatures.atom_features_from_molecule_w_connection_info(
+                    mol, neighbor.GetIdx(), (0, atom_idx)
+                )
+                neighbor_dict[atom_idx].append((neighbor.GetIdx(), af_with_connection_info))
+        return neighbor_dict
+
+    def _new_neighbors(self, neighbor_dict, connected_atoms):
+        connected_atoms_set = set(connected_atoms)
+        new_neighbors_afs = []
+        new_neighbors = []
+        for rel_atom_idx, atom_idx in enumerate(connected_atoms):
+            for neighbor in neighbor_dict[atom_idx]:
+                if neighbor[0] not in connected_atoms_set and neighbor[0] not in new_neighbors:
+                    new_neighbors.append(neighbor[0])
+                    new_neighbors_afs.append(
+                        [neighbor[1][0], rel_atom_idx, neighbor[1][2]]
+                    )  # fix rel_atom_idx (the atom index in the subgraph)
+        return new_neighbors_afs, new_neighbors
+
     def match_new_atom(
         self,
         atom: int,
@@ -143,6 +166,7 @@ class DASHTree:
         attention_incremet_threshold : float
             Minimum attention increment to stop the traversal
         """
+        neighbor_dict = self._init_neighbor_dict(mol)
         init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
         branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
         matched_node_path = [branch_idx, 0]
@@ -169,8 +193,8 @@ class DASHTree:
             return matched_node_path
         else:
             for _ in range(1, max_depth):
-                possible_new_atom_features, possible_new_atom_idxs = get_possible_atom_features(
-                    mol, atom_indices_in_subgraph
+                possible_new_atom_features, possible_new_atom_idxs = self._new_neighbors(
+                    neighbor_dict, atom_indices_in_subgraph
                 )
                 child, atom = self._pick_subgraph_expansion_node(
                     matched_node_path[-1], branch_idx, possible_new_atom_features, possible_new_atom_idxs

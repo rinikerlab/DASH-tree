@@ -222,7 +222,7 @@ class AtomFeatures:
             -1 if connected_to[1] == -1 else get_connection_info_bond_type(molecule, int(index), int(connected_to[1]))
         )
         key = AtomFeatures.atom_features_from_molecule(molecule, index)
-        return [key, connected_to[0], connected_bond_type]
+        return (key, connected_to[0], connected_bond_type)
 
     @staticmethod
     def similarity(feature1: int, feature2: int) -> float:

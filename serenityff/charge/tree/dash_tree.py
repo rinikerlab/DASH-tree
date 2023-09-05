@@ -140,7 +140,7 @@ class DASHTree:
         current_node_children = self.tree_storage[branch_idx][current_node][5]
         for child in current_node_children:
             child_tree_node = self.tree_storage[branch_idx][child]
-            child_af = [child_tree_node[1], child_tree_node[2], child_tree_node[3]]
+            child_af = (child_tree_node[1], child_tree_node[2], child_tree_node[3])
             for possible_atom_feature, possible_atom_idx in zip(possible_new_atom_features, possible_new_atom_idxs):
                 if possible_atom_feature == child_af:
                     return (child, possible_atom_idx)
@@ -166,7 +166,7 @@ class DASHTree:
                 if neighbor[0] not in connected_atoms_set and neighbor[0] not in new_neighbors:
                     new_neighbors.append(neighbor[0])
                     new_neighbors_afs.append(
-                        [neighbor[1][0], rel_atom_idx, neighbor[1][2]]
+                        (neighbor[1][0], rel_atom_idx, neighbor[1][2])
                     )  # fix rel_atom_idx (the atom index in the subgraph)
         return new_neighbors_afs, new_neighbors
 
@@ -178,7 +178,7 @@ class DASHTree:
             if neighbor[0] not in connected_atoms_set:
                 new_neighbors.append(neighbor[0])
                 new_neighbors_afs.append(
-                    [neighbor[1][0], atom_idx_added, neighbor[1][2]]
+                    (neighbor[1][0], atom_idx_added, neighbor[1][2])
                 )  # fix rel_atom_idx (the atom index in the subgraph)
         return new_neighbors_afs, new_neighbors
 
@@ -344,6 +344,7 @@ class DASHTree:
                 tree_charge_std.append(tmp_tree_std if tmp_tree_std > 0 else default_std_value)
                 tree_match_depth.append(len(node_path) - 1)
             except Exception as e:
+                raise e
                 print(e)
                 tree_raw_charges.append(np.NaN)
                 tree_charge_std.append(np.NaN)

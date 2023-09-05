@@ -1,14 +1,9 @@
 import os
 import pickle
-import gzip as compression
-
-# import lz4.frame as compression
+import gzip
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from collections import defaultdict
-
-# from multiprocessing import Pool
 from multiprocessing import Process, Manager
 
 from serenityff.charge.tree.atom_features import AtomFeatures
@@ -17,7 +12,13 @@ from serenityff.charge.utils.rdkit_typing import Molecule
 
 
 class DASHTree:
-    def __init__(self, tree_folder_path=default_dash_tree_path, preload=True, verbose=True, num_processes=1):
+    def __init__(
+        self,
+        tree_folder_path: str = default_dash_tree_path,
+        preload: bool = True,
+        verbose: bool = True,
+        num_processes: int = 1,
+    ):
         """
         Class to handle DASH trees and data
 
@@ -36,8 +37,8 @@ class DASHTree:
         self.tree_folder_path = tree_folder_path
         self.verbose = verbose
         self.num_processes = num_processes
-        self.tree_storage = defaultdict(lambda: None)
-        self.data_storage = defaultdict(lambda: None)
+        self.tree_storage = {}
+        self.data_storage = {}
         if preload:
             self.load_all_trees_and_data()
 
@@ -62,7 +63,7 @@ class DASHTree:
             for i in range(AtomFeatures.get_number_of_features()):
                 tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
                 df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
-                self.load_tree_and_data(tree_path, df_path)
+                self.load_tree_and_data(tree_path, df_path, branch_idx=i)
         else:
             self.tree_storage = Manager().dict()
             self.data_storage = Manager().dict()
@@ -76,27 +77,56 @@ class DASHTree:
             for p in processes:
                 p.join()
 
-    def load_tree_and_data(self, tree_path, df_path, hdf_key="df"):
-        branch_idx = int(os.path.basename(tree_path).split(".")[0])
-        with compression.open(tree_path, "rb") as f:
+    def load_tree_and_data(self, tree_path: str, df_path: str, hdf_key: str = "df", branch_idx: int = None):
+        """
+        Load a tree and data from the tree_folder_path, expects files named after the atom feature key and
+        the file extension .gz for the tree and .h5 for the data
+        Examples:
+            0.gz, 0.h5 for the tree and data of the atom feature with key 0
+
+        Parameters
+        ----------
+        tree_path : str
+            the path to the tree file
+        df_path : str
+            the path to the data file
+        hdf_key : str, optional
+            the key of the data in the hdf file, by default "df"
+        branch_idx : int, optional
+            the atom feature key of the tree branch, by default takes the key from the file name
+        """
+        if branch_idx is None:
+            branch_idx = int(os.path.basename(tree_path).split(".")[0])
+        with gzip.open(tree_path, "rb") as f:
             tree = pickle.load(f)
         df = pd.read_hdf(df_path, key=hdf_key, mode="r")
         self.tree_storage[branch_idx] = tree
         self.data_storage[branch_idx] = df
 
     def save_all_trees_and_data(self):
+        """
+        Save all trees and data to the tree_folder_path with the file names {branch_idx}.gz and {branch_idx}.h5
+        """
         if self.verbose:
             print(f"Saving DASH tree data to {len(self.tree_storage)} files in {self.tree_folder_path}")
         for branch_idx in tqdm(self.tree_storage):
             self.save_tree_and_data(branch_idx)
 
-    def save_tree_and_data(self, branch_idx):
-        tree_path = os.path.join(self.tree_folder_path, f"{branch_idx}.lzma")
+    def save_tree_and_data(self, branch_idx: int):
+        """
+        Save a tree branch and data to the tree_folder_path with the file names {branch_idx}.gz and {branch_idx}.h5
+
+        Parameters
+        ----------
+        branch_idx : int
+            Atom feature key of the tree branch to save
+        """
+        tree_path = os.path.join(self.tree_folder_path, f"{branch_idx}.gz")
         df_path = os.path.join(self.tree_folder_path, f"{branch_idx}.h5")
         self._save_tree_and_data(branch_idx, tree_path, df_path)
 
-    def _save_tree_and_data(self, branch_idx, tree_path, df_path):
-        with compression.open(tree_path, "wb") as f:
+    def _save_tree_and_data(self, branch_idx: int, tree_path: str, df_path: str):
+        with gzip.open(tree_path, "wb") as f:
             pickle.dump(self.tree_storage[branch_idx], f)
         self.data_storage[branch_idx].to_hdf(df_path, key="df", mode="w")
 
@@ -140,18 +170,30 @@ class DASHTree:
                     )  # fix rel_atom_idx (the atom index in the subgraph)
         return new_neighbors_afs, new_neighbors
 
+    def _new_neighbors_atomic(self, neighbor_dict, connected_atoms, atom_idx_added):
+        connected_atoms_set = set(connected_atoms)
+        new_neighbors_afs = []
+        new_neighbors = []
+        for neighbor in neighbor_dict[atom_idx_added]:
+            if neighbor[0] not in connected_atoms_set:
+                new_neighbors.append(neighbor[0])
+                new_neighbors_afs.append(
+                    [neighbor[1][0], atom_idx_added, neighbor[1][2]]
+                )  # fix rel_atom_idx (the atom index in the subgraph)
+        return new_neighbors_afs, new_neighbors
+
     def match_new_atom(
         self,
         atom: int,
         mol: Molecule,
         max_depth: int = 16,
         attention_threshold: float = 10,
-        attention_incremet_threshold: float = 0,
+        attention_increment_threshold: float = 0,
     ):
         """
         Match a atom in a molecule to a DASH tree subgraph. The matching is done by starting at the atom and
         traversing the tree until the max_depth is reached or the attention_threshold is exceeded.
-        If the attention_incremet_threshold is exceeded, the matching is stopped and the current path is returned.
+        If the attention_increment_threshold is exceeded, the matching is stopped and the current path is returned.
 
         Parameters
         ----------
@@ -163,24 +205,21 @@ class DASHTree:
             Maximum depth of the tree to traverse
         attention_threshold : float
             Maximum cumulative attention value to traverse the tree
-        attention_incremet_threshold : float
+        attention_increment_threshold : float
             Minimum attention increment to stop the traversal
         """
         neighbor_dict = self._init_neighbor_dict(mol)
         init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
         branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
         matched_node_path = [branch_idx, 0]
-        if self.tree_storage[branch_idx] is None:
-            try:
-                self.load_tree_and_data(
-                    os.path.join(self.tree_folder_path, f"{branch_idx}.gz"),
-                    os.path.join(self.tree_folder_path, f"{branch_idx}.h5"),
-                )
-            except Exception as e:
-                print(f"Error loading tree {branch_idx}: {e}")
+        if branch_idx not in self.tree_storage:
+            self.load_tree_and_data(
+                os.path.join(self.tree_folder_path, f"{branch_idx}.gz"),
+                os.path.join(self.tree_folder_path, f"{branch_idx}.h5"),
+            )
         cummulative_attention = 0
         # Special case for H -> only connect to heavy atom and ignore H
-        if mol.GetAtomWithIdx(atom).GetSymbol() == "H":
+        if mol.GetAtomWithIdx(atom).GetAtomicNum() == 1:
             h_connected_heavy_atom = mol.GetAtomWithIdx(atom).GetNeighbors()[0].GetIdx()
             init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, h_connected_heavy_atom)
             child, _ = self._pick_subgraph_expansion_node(0, branch_idx, [init_atom_feature], [h_connected_heavy_atom])
@@ -192,10 +231,10 @@ class DASHTree:
         if max_depth <= 1:
             return matched_node_path
         else:
+            possible_new_atom_features, possible_new_atom_idxs = self._new_neighbors(
+                neighbor_dict, atom_indices_in_subgraph
+            )
             for _ in range(1, max_depth):
-                possible_new_atom_features, possible_new_atom_idxs = self._new_neighbors(
-                    neighbor_dict, atom_indices_in_subgraph
-                )
                 child, atom = self._pick_subgraph_expansion_node(
                     matched_node_path[-1], branch_idx, possible_new_atom_features, possible_new_atom_idxs
                 )
@@ -205,9 +244,14 @@ class DASHTree:
                 atom_indices_in_subgraph.append(atom)
                 node_attention = self.tree_storage[branch_idx][child][4]
                 cummulative_attention += node_attention
+                possible_new_atom_features_toAdd, possible_new_atom_idxs_toAdd = self._new_neighbors_atomic(
+                    neighbor_dict, atom_indices_in_subgraph, atom
+                )
+                possible_new_atom_features.extend(possible_new_atom_features_toAdd)
+                possible_new_atom_idxs.extend(possible_new_atom_idxs_toAdd)
                 if cummulative_attention > attention_threshold:
                     return matched_node_path
-                if node_attention < attention_incremet_threshold:
+                if node_attention < attention_increment_threshold:
                     return matched_node_path
             return matched_node_path
 
@@ -227,6 +271,14 @@ class DASHTree:
         """
         branch_idx = matched_node_path[0]
         atom = matched_node_path[-1]
+        if branch_idx not in self.data_storage:
+            try:
+                self.load_tree_and_data(
+                    os.path.join(self.tree_folder_path, f"{branch_idx}.gz"),
+                    os.path.join(self.tree_folder_path, f"{branch_idx}.h5"),
+                )
+            except Exception as e:
+                print(f"Error loading tree {branch_idx}: {e}")
         df = self.data_storage[branch_idx]
         return df.iloc[atom]
 
@@ -284,7 +336,7 @@ class DASHTree:
                     mol,
                     max_depth=max_depth,
                     attention_threshold=attention_threshold,
-                    attention_incremet_threshold=attention_incremet_threshold,
+                    attention_increment_threshold=attention_incremet_threshold,
                 )
                 node_properties = self.get_atom_properties(node_path)
                 tree_raw_charges.append(float(node_properties[chg_key]))
@@ -298,7 +350,7 @@ class DASHTree:
                 tree_match_depth.append(-1)
 
         if verbose:
-            print("Tree raw charges: {}".format(tree_raw_charges))
+            print(f"Tree raw charges: {tree_raw_charges}")
         if norm_method == "none":
             return_list = tree_raw_charges
         elif norm_method == "symmetric":
@@ -316,5 +368,5 @@ class DASHTree:
         else:
             raise ValueError("norm_method must be one of 'none', 'symmetric', 'std_weighted'")
         if verbose:
-            print("Tree normalized charges: {}".format(return_list))
+            print(f"Tree normalized charges: {return_list}")
         return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}

@@ -543,8 +543,8 @@ def cross_entropy_loss_for_torsionProfile(x, y, num_buckets=100, device="cpu"):
     bin_tensor = torch.zeros(x.shape, device=device)
     bin_tensor.scatter_(1, y_bucket, 1)
     # loss_fn = torch.nn.MSELoss()
-    loss_fn = torch.nn.CrossEntropyLoss()
-    bin_tensor = bin_tensor * y_weight
+    loss_fn = torch.nn.CrossEntropyLoss(weight=y_weight, reduction="mean", ignore_index=-1, label_smoothing=0.1)
+    # bin_tensor = bin_tensor * y_weight
     loss = loss_fn(x, bin_tensor)
     return loss
 

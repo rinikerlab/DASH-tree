@@ -189,6 +189,7 @@ class DASHTree:
         max_depth: int = 16,
         attention_threshold: float = 10,
         attention_increment_threshold: float = 0,
+        return_atom_indices: bool = False,
     ):
         """
         Match a atom in a molecule to a DASH tree subgraph. The matching is done by starting at the atom and
@@ -231,15 +232,15 @@ class DASHTree:
         if max_depth <= 1:
             return matched_node_path
         else:
-            possible_new_atom_features, possible_new_atom_idxs = self._new_neighbors(
-                neighbor_dict, atom_indices_in_subgraph
-            )
             for _ in range(1, max_depth):
+                possible_new_atom_features, possible_new_atom_idxs = self._new_neighbors(
+                    neighbor_dict, atom_indices_in_subgraph
+                )
                 child, atom = self._pick_subgraph_expansion_node(
                     matched_node_path[-1], branch_idx, possible_new_atom_features, possible_new_atom_idxs
                 )
                 if child is None:
-                    return matched_node_path
+                    break
                 matched_node_path.append(child)
                 atom_indices_in_subgraph.append(atom)
                 node_attention = self.tree_storage[branch_idx][child][4]
@@ -250,14 +251,17 @@ class DASHTree:
                 possible_new_atom_features.extend(possible_new_atom_features_toAdd)
                 possible_new_atom_idxs.extend(possible_new_atom_idxs_toAdd)
                 if cummulative_attention > attention_threshold:
-                    return matched_node_path
+                    break
                 if node_attention < attention_increment_threshold:
-                    return matched_node_path
+                    break
+            if return_atom_indices:
+                return matched_node_path, atom_indices_in_subgraph
             return matched_node_path
 
-    def get_atom_properties(self, matched_node_path: list):
+    def get_atom_properties(self, matched_node_path: list = None, mol: Molecule = None, atom: int = None):
         """
-        Get the properties of a atom from a matched DASH tree subgraph (node path)
+        Get the properties of a atom from a matched DASH tree subgraph (node path) or from a molecule
+        and atom index (don't use both (mol +atom) and matched_node_path at the same time)
 
         Parameters
         ----------
@@ -269,6 +273,10 @@ class DASHTree:
         pd.Series
             All properties of the atom which where stored in the DASH tree
         """
+        if matched_node_path is None:
+            if mol is None or atom is None:
+                raise ValueError("Either matched_node_path or mol + atom must be provided")
+            matched_node_path = self.match_new_atom(atom=atom, mol=mol)
         branch_idx = matched_node_path[0]
         atom = matched_node_path[-1]
         if branch_idx not in self.data_storage:

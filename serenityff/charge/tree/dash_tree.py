@@ -6,6 +6,11 @@ import pandas as pd
 from tqdm import tqdm
 from multiprocessing import Process, Manager
 
+import io
+from PIL import Image
+from rdkit.Chem.Draw import rdMolDraw2D
+from collections import defaultdict
+
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.data import default_dash_tree_path
 from serenityff.charge.utils.rdkit_typing import Molecule
@@ -290,6 +295,50 @@ class DASHTree:
         df = self.data_storage[branch_idx]
         return df.iloc[atom]
 
+    def get_property_noNAN(
+        self, matched_node_path: list = None, mol: Molecule = None, atom: int = None, property_name: str = None
+    ):
+        """
+        Get a property (property_name) of a atom from a matched DASH tree subgraph (node path) or from a molecule
+        and atom index (don't use both (mol +atom) and matched_node_path at the same time). The last non NaN value
+        in the hierarchy is returned.
+
+        Parameters
+        ----------
+        matched_node_path : list
+            List of node ids of the matched subgraph (node path) in the order of the traversal
+        mol : Molecule
+            RDKit molecule object in which the atom is located
+        atom : int
+            Atom index in the molecule of the atom to match
+        property_name : str
+            Name of the property to return
+
+        Returns
+        -------
+        float
+            The last non NaN value of the property in the hierarchy
+        """
+        if matched_node_path is None:
+            if mol is None or atom is None:
+                raise ValueError("Either matched_node_path or mol + atom must be provided")
+            matched_node_path = self.match_new_atom(atom=atom, mol=mol)
+        branch_idx = matched_node_path[0]
+        if branch_idx not in self.data_storage:
+            try:
+                self.load_tree_and_data(
+                    os.path.join(self.tree_folder_path, f"{branch_idx}.gz"),
+                    os.path.join(self.tree_folder_path, f"{branch_idx}.h5"),
+                )
+            except Exception as e:
+                print(f"Error loading tree {branch_idx}: {e}")
+        df = self.data_storage[branch_idx]
+        for atom in reversed(matched_node_path):
+            if not np.isnan(df.iloc[atom][property_name]):
+                return df.iloc[atom][property_name]
+        Warning(f"No non NaN value found for {property_name} in hierarchy {matched_node_path}")
+        return np.NaN
+
     def get_molecules_partial_charges(
         self,
         mol: Molecule,
@@ -379,3 +428,27 @@ class DASHTree:
         if verbose:
             print(f"Tree normalized charges: {return_list}")
         return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}
+
+
+def draw_mol_with_highlights_in_order(mol, highlight=[]):
+    color = (0, 0.6, 0.1)
+    alphas = [1.0, 0.8, 0.7, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0]
+    athighlights = defaultdict(list)
+    arads = {}
+    for i, atom in enumerate(highlight):
+        # athighlights[atom].append((color[0], color[1], color[2], alpha * (1.0 - float(i) / len(highlight))))
+        athighlights[atom].append((color[0], color[1], color[2], alphas[i]))
+        arads[atom] = 0.75
+        mol.GetAtomWithIdx(atom).SetProp("atomNote", str(i))
+    # d2d = rdMolDraw2D.MolDraw2DSVG(350,400)
+    d2d = rdMolDraw2D.MolDraw2DCairo(600, 400)
+    dopts = d2d.drawOptions()
+    dopts.scaleHighlightBondWidth = False
+    # dopts.addAtomIndices = True
+    d2d.DrawMoleculeWithHighlights(mol, "", dict(athighlights), {}, arads, {})
+    d2d.FinishDrawing()
+    bio = io.BytesIO(d2d.GetDrawingText())
+    # p = d2d.GetDrawingText().replace('svg:','')
+    # i = IPython.display.SVG(data=p)
+    # IPython.display.display(i)
+    return Image.open(bio)

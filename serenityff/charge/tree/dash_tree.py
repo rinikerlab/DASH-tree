@@ -7,6 +7,7 @@ from tqdm import tqdm
 from multiprocessing import Process, Manager
 
 import io
+import IPython.display
 from PIL import Image
 from rdkit.Chem.Draw import rdMolDraw2D
 from collections import defaultdict
@@ -429,26 +430,106 @@ class DASHTree:
             print(f"Tree normalized charges: {return_list}")
         return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}
 
+    def explain_property(
+        self,
+        mol: Molecule,
+        atom: int,
+        proprty_name: str = "result",
+        max_depth: int = 16,
+        attention_threshold: float = 10,
+        attention_incremet_threshold: float = 0,
+        show_property_diff: bool = True,
+        plot_size=(600, 400),
+        useSVG=False,
+    ):
+        """
+        Explain the value of a property of a atom in a molecule by matching it to a DASH tree subgraph and
+        returning the property values of the matched atoms and the contribution of each atom added to the subgraph
 
-def draw_mol_with_highlights_in_order(mol, highlight=[]):
+        Parameters
+        ----------
+        mol : Molecule
+            RDKit molecule object for which the property should be explained
+        atom : int
+            Atom index in the molecule of the atom to explain
+        proprty_name : str
+            Name of the property to explain (example: 'result', "mulliken", ...)
+        max_depth : int
+            Maximum depth of the tree to traverse
+        attention_threshold : float
+            Maximum cumulative attention value to traverse the tree
+        attention_incremet_threshold : float
+            Minimum attention increment to stop the traversal
+        show_property_diff : bool
+            If True, show the difference between the property values of the matched atoms
+
+        Returns
+        -------
+        Image
+            Image showing the molecule with the matched atoms highlighted and the contribution of each atom added to the subgraph
+        """
+        node_path, match_indices = self.match_new_atom(
+            atom,
+            mol,
+            max_depth=max_depth,
+            attention_threshold=attention_threshold,
+            attention_increment_threshold=attention_incremet_threshold,
+            return_atom_indices=True,
+        )
+        prop_per_node = [self.data_storage[node_path[0]].iloc[i][proprty_name] for i in node_path[1:]]
+        if show_property_diff:
+            prop_change_per_node = [prop_per_node[i + 1] - prop_per_node[i] for i in range(len(prop_per_node) - 1)]
+            prop_change_per_node = [prop_per_node[0]] + prop_change_per_node
+            text_per_atom = [f"{i}: {change:.2f}" for i, change in enumerate(prop_change_per_node)]
+        else:
+            text_per_atom = [f"{i}" for i in range(len(node_path))]
+        if proprty_name == "result":
+            proprty_name = "Partial charge"
+        plot_title = f"Atom: 0 ({atom} in mol). \nSum of all contributions of: {proprty_name} = {prop_per_node[-1]:.2f}"
+        return draw_mol_with_highlights_in_order(
+            mol=mol,
+            highlight=match_indices,
+            text_per_atom=text_per_atom,
+            plot_title=plot_title,
+            plot_size=plot_size,
+            useSVG=useSVG,
+        )
+
+
+def draw_mol_with_highlights_in_order(
+    mol, highlight=[], text_per_atom=[], plot_title: str = None, plot_size=(600, 400), useSVG=False
+):
     color = (0, 0.6, 0.1)
-    alphas = [1.0, 0.8, 0.7, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0]
+    # alphas = [1.0, 0.8, 0.7, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0]
+    alphas = [1 - i / (len(highlight) + 4) for i in range(len(highlight))]
     athighlights = defaultdict(list)
     arads = {}
     for i, atom in enumerate(highlight):
         # athighlights[atom].append((color[0], color[1], color[2], alpha * (1.0 - float(i) / len(highlight))))
         athighlights[atom].append((color[0], color[1], color[2], alphas[i]))
         arads[atom] = 0.75
-        mol.GetAtomWithIdx(atom).SetProp("atomNote", str(i))
-    # d2d = rdMolDraw2D.MolDraw2DSVG(350,400)
-    d2d = rdMolDraw2D.MolDraw2DCairo(600, 400)
+        if len(text_per_atom) < len(highlight):
+            text_per_atom = [str(i) for i in highlight]
+        mol.GetAtomWithIdx(atom).SetProp("atomNote", f"{text_per_atom[i]}")
+    if useSVG:
+        d2d = rdMolDraw2D.MolDraw2DSVG(plot_size[0], plot_size[1])
+    else:
+        d2d = rdMolDraw2D.MolDraw2DCairo(plot_size[0], plot_size[1])
     dopts = d2d.drawOptions()
     dopts.scaleHighlightBondWidth = False
-    # dopts.addAtomIndices = True
-    d2d.DrawMoleculeWithHighlights(mol, "", dict(athighlights), {}, arads, {})
+    if plot_title is not None:
+        dopts.legendFontSize = 30
+        d2d.DrawMoleculeWithHighlights(mol, plot_title, dict(athighlights), {}, arads, {})
+    else:
+        d2d.DrawMoleculeWithHighlights(mol, "", dict(athighlights), {}, arads, {})
+    # d2d.SetColour((1, 0, 0))
+    # d2d.DrawString(plot_title, Point2D(100, 100))
+    # d2d.DrawRect(Point2D(120, 100), Point2D(220, 200))
     d2d.FinishDrawing()
-    bio = io.BytesIO(d2d.GetDrawingText())
-    # p = d2d.GetDrawingText().replace('svg:','')
-    # i = IPython.display.SVG(data=p)
-    # IPython.display.display(i)
-    return Image.open(bio)
+    if useSVG:
+        p = d2d.GetDrawingText().replace("svg:", "")
+        img = IPython.display.SVG(data=p)
+    else:
+        bio = io.BytesIO(d2d.GetDrawingText())
+        img = Image.open(bio)
+    return img

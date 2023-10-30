@@ -485,6 +485,37 @@ class DASHTree:
                 return_list.append([np.nan] * len(properties_to_use))
         return return_list
 
+    def get_DASH_feature_dict_for_mol(
+        self,
+        mol: Molecule,
+    ):
+        return_dict = {}
+        tmp_homo = []
+        tmp_lumo = []
+        tmp_mbis = []
+        tmp_dual = []
+        tmp_conj = []
+        num_atoms = mol.GetNumAtoms()
+        for atom_idx in range(num_atoms):
+            node_path = self.match_new_atom(atom=atom_idx, mol=mol)
+            bidx = node_path[0]
+            tmp_homo.append(self.get_property_noNAN(matched_node_path=node_path, property_name="homo"))
+            tmp_lumo.append(self.get_property_noNAN(matched_node_path=node_path, property_name="lumo"))
+            tmp_mbis.append(self.get_property_noNAN(matched_node_path=node_path, property_name="result"))
+            tmp_dual.append(self.get_property_noNAN(matched_node_path=node_path, property_name="dual"))
+            key = self.tree_storage[bidx][0][1]
+            tmp_conj.append(AtomFeatures.afKey_2_afTuple[key][3])
+        return_dict["DASH_homo"] = np.max(tmp_homo)
+        return_dict["DASH_lumo"] = np.min(tmp_lumo)
+        return_dict["DASH_max_abs_mbis"] = np.max(np.abs(tmp_mbis))
+        return_dict["DASH_avg_abs_mbis"] = np.mean(np.abs(tmp_mbis))
+        return_dict["DASH_>03_abs_mbis"] = np.sum([1 if x > 0.3 else 0 for x in tmp_mbis]) / num_atoms
+        return_dict["DASH_dual_elec"] = np.sum([1 if x < -0.4 else 0 for x in tmp_dual]) / num_atoms
+        return_dict["DASH_dual_nucl"] = np.sum([1 if x > 0.4 else 0 for x in tmp_dual]) / num_atoms
+        return_dict["DASH_conj"] = np.sum([1 if x else 0 for x in tmp_conj]) / num_atoms
+        return_dict["DASH_num_atoms"] = num_atoms
+        return return_dict
+
     def explain_property(
         self,
         mol: Molecule,

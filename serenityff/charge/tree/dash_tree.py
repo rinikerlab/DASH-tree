@@ -477,6 +477,8 @@ class DASHTree:
             return_atom_indices=True,
         )
         prop_per_node = [self.data_storage[node_path[0]].iloc[i][proprty_name] for i in node_path[1:]]
+        # connection_per_node = [(match_indices[self.tree_storage[node_path[0]][i][2]], j) for i, j in zip(node_path[1:], match_indices)]
+        # bond_idx = [mol.GetBondBetweenAtoms(i, j).GetIdx() for i, j in connection_per_node[1:]]
         if show_property_diff:
             prop_change_per_node = [prop_per_node[i + 1] - prop_per_node[i] for i in range(len(prop_per_node) - 1)]
             prop_change_per_node = [prop_per_node[0]] + prop_change_per_node
@@ -488,7 +490,8 @@ class DASHTree:
         plot_title = f"Atom: 0 ({atom} in mol). \nSum of all contributions of: {proprty_name} = {prop_per_node[-1]:.2f}"
         return draw_mol_with_highlights_in_order(
             mol=mol,
-            highlight=match_indices,
+            highlight_atoms=match_indices,
+            highlight_bonds=[],
             text_per_atom=text_per_atom,
             plot_title=plot_title,
             plot_size=plot_size,
@@ -497,20 +500,29 @@ class DASHTree:
 
 
 def draw_mol_with_highlights_in_order(
-    mol, highlight=[], text_per_atom=[], plot_title: str = None, plot_size=(600, 400), useSVG=False
+    mol,
+    highlight_atoms=[],
+    highlight_bonds=[],
+    text_per_atom=[],
+    plot_title: str = None,
+    plot_size=(600, 400),
+    useSVG=False,
 ):
     color = (0, 0.6, 0.1)
-    # alphas = [1.0, 0.8, 0.7, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0]
-    alphas = [1 - i / (len(highlight) + 4) for i in range(len(highlight))]
+    alphas = [1 - i / (len(highlight_atoms) + 4) for i in range(len(highlight_atoms) + 1)]
     athighlights = defaultdict(list)
+    bthighlights = defaultdict(list)
     arads = {}
-    for i, atom in enumerate(highlight):
-        # athighlights[atom].append((color[0], color[1], color[2], alpha * (1.0 - float(i) / len(highlight))))
+    brads = {}
+    for i, atom in enumerate(highlight_atoms):
         athighlights[atom].append((color[0], color[1], color[2], alphas[i]))
         arads[atom] = 0.75
-        if len(text_per_atom) < len(highlight):
-            text_per_atom = [str(i) for i in highlight]
+        if len(text_per_atom) < len(highlight_atoms):
+            text_per_atom = [str(i) for i in highlight_atoms]
         mol.GetAtomWithIdx(atom).SetProp("atomNote", f"{text_per_atom[i]}")
+    for i, bond in enumerate(highlight_bonds):
+        bthighlights[bond].append((color[0], color[1], color[2], alphas[i + 1]))
+        brads[bond] = 100
     if useSVG:
         d2d = rdMolDraw2D.MolDraw2DSVG(plot_size[0], plot_size[1])
     else:
@@ -519,12 +531,9 @@ def draw_mol_with_highlights_in_order(
     dopts.scaleHighlightBondWidth = False
     if plot_title is not None:
         dopts.legendFontSize = 30
-        d2d.DrawMoleculeWithHighlights(mol, plot_title, dict(athighlights), {}, arads, {})
+        d2d.DrawMoleculeWithHighlights(mol, plot_title, dict(athighlights), dict(bthighlights), arads, brads)
     else:
-        d2d.DrawMoleculeWithHighlights(mol, "", dict(athighlights), {}, arads, {})
-    # d2d.SetColour((1, 0, 0))
-    # d2d.DrawString(plot_title, Point2D(100, 100))
-    # d2d.DrawRect(Point2D(120, 100), Point2D(220, 200))
+        d2d.DrawMoleculeWithHighlights(mol, "", dict(athighlights), dict(bthighlights), arads, brads)
     d2d.FinishDrawing()
     if useSVG:
         p = d2d.GetDrawingText().replace("svg:", "")

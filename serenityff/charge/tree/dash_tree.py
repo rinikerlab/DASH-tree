@@ -409,14 +409,18 @@ class DASHTree:
                     attention_threshold=attention_threshold,
                     attention_increment_threshold=attention_incremet_threshold,
                 )
-                # chg_atom = self.get_property_noNAN(
-                #    mol=mol,
-                #    atom=atom_idx,
-                #    property_name=chg_key,
-                # )
-                node_properties = self.get_atom_properties(node_path)
-                tree_raw_charges.append(float(node_properties[chg_key]))
-                tmp_tree_std = float(node_properties[chg_std_key])
+                chg_atom = self.get_property_noNAN(
+                    mol=mol,
+                    atom=atom_idx,
+                    property_name=chg_key,
+                )
+                chg_std_atom = self.get_property_noNAN(
+                    mol=mol,
+                    atom=atom_idx,
+                    property_name=chg_std_key,
+                )
+                tree_raw_charges.append(float(chg_atom))
+                tmp_tree_std = float(chg_std_atom)
                 tree_charge_std.append(tmp_tree_std if tmp_tree_std > 0 else default_std_value)
                 tree_match_depth.append(len(node_path) - 1)
             except Exception as e:

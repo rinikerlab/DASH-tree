@@ -297,7 +297,14 @@ class DASHTree:
         return df.iloc[atom]
 
     def get_property_noNAN(
-        self, matched_node_path: list = None, mol: Molecule = None, atom: int = None, property_name: str = None
+        self,
+        matched_node_path: list = None,
+        mol: Molecule = None,
+        atom: int = None,
+        property_name: str = None,
+        max_depth: int = 16,
+        attention_threshold: float = 10,
+        attention_incremet_threshold: float = 0,
     ):
         """
         Get a property (property_name) of a atom from a matched DASH tree subgraph (node path) or from a molecule
@@ -323,7 +330,13 @@ class DASHTree:
         if matched_node_path is None:
             if mol is None or atom is None:
                 raise ValueError("Either matched_node_path or mol + atom must be provided")
-            matched_node_path = self.match_new_atom(atom=atom, mol=mol)
+            matched_node_path = self.match_new_atom(
+                atom=atom,
+                mol=mol,
+                max_depth=max_depth,
+                attention_threshold=attention_threshold,
+                attention_increment_threshold=attention_incremet_threshold,
+            )
         branch_idx = matched_node_path[0]
         if branch_idx not in self.data_storage:
             try:
@@ -396,6 +409,11 @@ class DASHTree:
                     attention_threshold=attention_threshold,
                     attention_increment_threshold=attention_incremet_threshold,
                 )
+                # chg_atom = self.get_property_noNAN(
+                #    mol=mol,
+                #    atom=atom_idx,
+                #    property_name=chg_key,
+                # )
                 node_properties = self.get_atom_properties(node_path)
                 tree_raw_charges.append(float(node_properties[chg_key]))
                 tmp_tree_std = float(node_properties[chg_std_key])
@@ -429,6 +447,39 @@ class DASHTree:
         if verbose:
             print(f"Tree normalized charges: {return_list}")
         return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}
+
+    def get_molecules_feature_vector(
+        self,
+        mol: Molecule,
+        properties_to_use: list = ["result", "dual", "homo", "lumo", "mbis_dipole_strength"],
+        max_depth: int = 16,
+        attention_threshold: float = 10,
+        attention_incremet_threshold: float = 0,
+        verbose=False,
+    ):
+        return_list = []
+        if verbose:
+            print(properties_to_use)
+        for atom_idx in range(mol.GetNumAtoms()):
+            tmp_p = []
+            try:
+                node_path = self.match_new_atom(
+                    atom=atom_idx,
+                    mol=mol,
+                    max_depth=max_depth,
+                    attention_threshold=attention_threshold,
+                    attention_increment_threshold=attention_incremet_threshold,
+                )
+                for p in properties_to_use:
+                    try:
+                        prop = self.get_property_noNAN(matched_node_path=node_path, property_name=p)
+                        tmp_p.append(prop)
+                    except Exception:
+                        tmp_p.append(np.nan)
+                return_list.append(tmp_p)
+            except Exception:
+                return_list.append([np.nan] * len(properties_to_use))
+        return return_list
 
     def explain_property(
         self,

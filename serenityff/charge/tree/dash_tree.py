@@ -4,6 +4,7 @@ import gzip
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from rdkit.Chem import AllChem
 from multiprocessing import Process, Manager
 
 import io
@@ -451,6 +452,18 @@ class DASHTree:
         if verbose:
             print(f"Tree normalized charges: {return_list}")
         return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}
+
+    def get_molecular_dipole_moment(self, mol: Molecule):
+        """
+        Get the dipole moment of a molecule by matching all atoms to DASH tree subgraphs and
+        summing the dipole moments of the matched atoms
+        """
+        chgs = self.get_molecules_partial_charges(mol=mol, norm_method="std_weighted")["charges"]
+        # check if mol has conformer, otherwise generate one
+        if mol.GetNumConformers() == 0:
+            AllChem.EmbedMolecule(mol)
+        com = np.sum([chg * np.array(mol.GetConformer().GetAtomPosition(i)) for i, chg in enumerate(chgs)], axis=0)
+        return np.linalg.norm(com)
 
     def get_molecules_feature_vector(
         self,

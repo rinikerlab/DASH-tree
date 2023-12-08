@@ -4,6 +4,7 @@ import gzip
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from rdkit import Chem
 from rdkit.Chem import AllChem
 from multiprocessing import Process, Manager
 
@@ -453,17 +454,59 @@ class DASHTree:
             print(f"Tree normalized charges: {return_list}")
         return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}
 
-    def get_molecular_dipole_moment(self, mol: Molecule):
+    def get_molecular_dipole_moment(
+        self,
+        mol: Molecule,
+        inDebye: bool = True,
+        chg_key: str = "result",
+        sngl_cnf=True,
+        nconfs=10,
+        pruneRmsThresh=0.5,
+        useExpTorsionAnglePrefs=False,
+        useBasicKnowledge=False,
+    ):
         """
         Get the dipole moment of a molecule by matching all atoms to DASH tree subgraphs and
         summing the dipole moments of the matched atoms
         """
-        chgs = self.get_molecules_partial_charges(mol=mol, norm_method="std_weighted")["charges"]
+        chgs = self.get_molecules_partial_charges(mol=mol, norm_method="std_weighted", chg_key=chg_key)["charges"]
         # check if mol has conformer, otherwise generate one
         if mol.GetNumConformers() == 0:
-            AllChem.EmbedMolecule(mol)
-        com = np.sum([chg * np.array(mol.GetConformer().GetAtomPosition(i)) for i, chg in enumerate(chgs)], axis=0)
-        return np.linalg.norm(com)
+            # AllChem.EmbedMolecule(mol)
+            cids = AllChem.EmbedMultipleConfs(
+                mol,
+                numConfs=nconfs,
+                pruneRmsThresh=pruneRmsThresh,
+                randomSeed=42,
+                useExpTorsionAnglePrefs=useExpTorsionAnglePrefs,
+                useBasicKnowledge=useBasicKnowledge,
+            )
+            energies = []
+            for cid in cids:
+                AllChem.UFFOptimizeMolecule(mol, confId=cid)
+                ff = AllChem.UFFGetMoleculeForceField(mol, confId=cid)
+                energies.append(ff.CalcEnergy())
+            min_idx = int(np.argmin(energies))
+            # set conformer with lowest energy as default
+            mol.GetConformer(min_idx).SetId(0)
+            for i in range(1, len(cids)):
+                mol.RemoveConformer(i)
+        # center_of_mass = np.array(ComputeCentroid(mol.GetConformer()))
+        # dipole_vecs = [np.array(mol.GetConformer().GetAtomPosition(i)) - center_of_mass for i in range(mol.GetNumAtoms())]
+        # vec_sum = np.sum([chg * dipole_vec for chg, dipole_vec in zip(chgs, dipole_vecs)], axis=0)
+        if sngl_cnf:
+            vec_sum = np.sum(
+                [chg * np.array(mol.GetConformer().GetAtomPosition(i)) for i, chg in enumerate(chgs)], axis=0
+            )
+            dipole = np.linalg.norm(vec_sum)
+        else:
+            dipole = np.zeros(mol.GetNumConformers())
+            for conf_i, conf in enumerate(mol.GetConformers()):
+                vec_sum = np.sum([chg * np.array(conf.GetAtomPosition(i)) for i, chg in enumerate(chgs)], axis=0)
+                dipole[conf_i] = np.linalg.norm(vec_sum)
+        if inDebye:
+            dipole /= 0.393430307
+        return dipole
 
     def get_molecules_feature_vector(
         self,
@@ -538,6 +581,7 @@ class DASHTree:
         attention_threshold: float = 10,
         attention_incremet_threshold: float = 0,
         show_property_diff: bool = True,
+        prop_unit: str = None,
         plot_size=(600, 400),
         useSVG=False,
     ):
@@ -586,7 +630,11 @@ class DASHTree:
             text_per_atom = [f"{i}" for i in range(len(node_path))]
         if proprty_name == "result":
             proprty_name = "Partial charge"
-        plot_title = f"Atom: 0 ({atom} in mol). \nSum of all contributions of: {proprty_name} = {prop_per_node[-1]:.2f}"
+            if prop_unit is None:
+                prop_unit = "e"
+        plot_title = (
+            f"Atom: 0 ({atom} in mol). \nSum of all contributions: {proprty_name} = {prop_per_node[-1]:.2f} {prop_unit}"
+        )
         return draw_mol_with_highlights_in_order(
             mol=mol,
             highlight_atoms=match_indices,
@@ -628,11 +676,14 @@ def draw_mol_with_highlights_in_order(
         d2d = rdMolDraw2D.MolDraw2DCairo(plot_size[0], plot_size[1])
     dopts = d2d.drawOptions()
     dopts.scaleHighlightBondWidth = False
+    # remove Hs
+    mol_pic = Chem.RemoveHs(mol)
+    AllChem.Compute2DCoords(mol_pic)
     if plot_title is not None:
         dopts.legendFontSize = 30
-        d2d.DrawMoleculeWithHighlights(mol, plot_title, dict(athighlights), dict(bthighlights), arads, brads)
+        d2d.DrawMoleculeWithHighlights(mol_pic, plot_title, dict(athighlights), dict(bthighlights), arads, brads)
     else:
-        d2d.DrawMoleculeWithHighlights(mol, "", dict(athighlights), dict(bthighlights), arads, brads)
+        d2d.DrawMoleculeWithHighlights(mol_pic, "", dict(athighlights), dict(bthighlights), arads, brads)
     d2d.FinishDrawing()
     if useSVG:
         p = d2d.GetDrawingText().replace("svg:", "")

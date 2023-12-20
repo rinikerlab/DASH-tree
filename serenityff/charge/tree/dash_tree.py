@@ -480,6 +480,7 @@ class DASHTree:
                 randomSeed=42,
                 useExpTorsionAnglePrefs=useExpTorsionAnglePrefs,
                 useBasicKnowledge=useBasicKnowledge,
+                ETversion=2,
             )
             energies = []
             for cid in cids:
@@ -507,6 +508,49 @@ class DASHTree:
         if inDebye:
             dipole /= 0.393430307
         return dipole
+
+    def get_molecular_polarizability(
+        self,
+        mol: Molecule,
+        prop_key: str = "DFTD4:polarizability",
+    ):
+        """
+        Get the polarizability of a molecule by matching all atoms to DASH tree subgraphs and
+        summing the polarizabilities of the matched atoms
+        """
+        polarizabilities = []
+        for atom_idx in range(mol.GetNumAtoms()):
+            polarizabilities.append(self.get_property_noNAN(mol=mol, atom=atom_idx, property_name=prop_key))
+        polarizability = np.sum(polarizabilities)
+        return polarizability
+
+    def get_molecular_homo(self, mol: Molecule, prop_key: str = "homo"):
+        homos = []
+        for atom_idx in range(mol.GetNumAtoms()):
+            homos.append(self.get_property_noNAN(mol=mol, atom=atom_idx, property_name=prop_key))
+        # remove largest outliers
+        homos = np.array(homos)
+        # q1, q3 = np.percentile(homos, [25, 75])
+        # iqr = q3 - q1
+        # lower_bound = q1 - 1.5 * iqr
+        # upper_bound = q3 + 1.5 * iqr
+        # filtered_array = homos[(homos >= lower_bound) & (homos <= upper_bound)]
+        # return np.min(filtered_array)
+        return np.max(homos)
+
+    def get_molecular_lumo(self, mol: Molecule, prop_key: str = "lumo"):
+        lumos = []
+        for atom_idx in range(mol.GetNumAtoms()):
+            lumos.append(self.get_property_noNAN(mol=mol, atom=atom_idx, property_name=prop_key))
+        # remove largest outliers
+        # lumos = np.array(lumos)
+        # q1, q3 = np.percentile(lumos, [25, 75])
+        # iqr = q3 - q1
+        # lower_bound = q1 - 1.5 * iqr
+        # upper_bound = q3 + 1.5 * iqr
+        # filtered_array = lumos[(lumos >= lower_bound) & (lumos <= upper_bound)]
+        # return np.max(filtered_array)
+        return np.min(lumos)
 
     def get_molecules_feature_vector(
         self,

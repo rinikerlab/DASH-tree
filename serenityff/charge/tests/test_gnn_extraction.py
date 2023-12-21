@@ -100,8 +100,9 @@ def test_getter_setter(explainer) -> None:
     assert isinstance(explainer.gnn_explainer, FixedGNNExplainer)
     return
 
-#Fails due to changes in numpy array_equal
-#def test_load(model, statedict) -> None:
+
+# Fails due to changes in numpy array_equal
+# def test_load(model, statedict) -> None:
 #    np.array_equal(model.state_dict(), statedict)
 #    return
 

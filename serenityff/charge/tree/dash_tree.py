@@ -6,9 +6,10 @@ import pandas as pd
 from tqdm import tqdm
 from rdkit import Chem
 from rdkit.Chem import AllChem
-#from multiprocessing import Process, Manager
-#from numba import njit, objmode, types
-from concurrent.futures import ProcessPoolExecutor#, ThreadPoolExecutor
+
+# from multiprocessing import Process, Manager
+# from numba import njit, objmode, types
+from concurrent.futures import ProcessPoolExecutor  # , ThreadPoolExecutor
 
 import io
 import IPython.display
@@ -354,7 +355,7 @@ class DASHTree:
                 return df.iloc[atom][property_name]
         Warning(f"No non NaN value found for {property_name} in hierarchy {matched_node_path}")
         return np.NaN
-    
+
     def _get_allAtoms_nodePaths(
         self,
         mol: Molecule,
@@ -377,7 +378,9 @@ class DASHTree:
         """
         nodePathList = []
         neighbor_dict = self._init_neighbor_dict(mol)
-        if True: #self.num_processes <= 1: Don't use multiprocessing for now, it's veeeeery slow
+        if (
+            True
+        ):  # self.num_processes <= 1: Don't use multiprocessing for now, it's veeeeery slow. Large overhead from pickling
             for atom in range(mol.GetNumAtoms()):
                 try:
                     node_path = self.match_new_atom(
@@ -409,7 +412,6 @@ class DASHTree:
                 for future in futures:
                     nodePathList.append(future.result())
         return nodePathList
-
 
     def get_molecules_partial_charges(
         self,

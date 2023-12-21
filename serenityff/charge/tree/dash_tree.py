@@ -8,7 +8,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 #from multiprocessing import Process, Manager
 #from numba import njit, objmode, types
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor#, ThreadPoolExecutor
 
 import io
 import IPython.display
@@ -389,7 +389,7 @@ class DASHTree:
                         neighbor_dict=neighbor_dict,
                     )
                     nodePathList.append(node_path)
-                except Exception as e:
+                except Exception:
                     nodePathList.append([])
         else:
             with ProcessPoolExecutor(max_workers=self.num_processes) as executor:

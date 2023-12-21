@@ -1,9 +1,9 @@
-Welcome to Serenityff-Charge
+Welcome to DASH
 ==============================
 
 [//]: # (Badges)
-[![CI](https://github.com/MTLehner/serenityff-charge/actions/workflows/CI.yaml/badge.svg)](https://github.com/MTLehner/serenityff-charge/actions/workflows/CI.yaml)
-[![pre-commit](https://github.com/MTLehner/serenityff-charge/actions/workflows/pre-commit.yml/badge.svg?branch=main)](https://github.com/MTLehner/serenityff-charge/actions/workflows/pre-commit.yml)
+[![CI](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml/badge.svg)](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml)
+[![pre-commit](https://github.com/rinikerlab/DASH-tree/actions/workflows/pre-commit.yml/badge.svg?branch=main)](https://github.com/rinikerlab/DASH-tree/actions/workflows/pre-commit.yml)
 [![arXiv](https://img.shields.io/badge/arXiv-2305.15981-b31b1b.svg)](https://doi.org/10.48550/arXiv.2305.15981)
 
 
@@ -17,14 +17,14 @@ Description
 
    Additionally, this repository contains all tools and functions needed to generate a new decision tree for partial charge assignmend, based on the attention data of a graph neural network, cabable of predicting the partial charges of a molecule.
 
-   This repository contains code for the publication by M. Lehner et al. DOI: [arXiv:2305.15981](https://doi.org/10.48550/arXiv.2305.15981)
+   This repository contains code for the publication by M. Lehner et al. DOI: [arXiv:2305.15981](https://doi.org/10.48550/arXiv.2305.15981) and [10.1021/acs.jcim.3c00800](https://pubs.acs.org/doi/full/10.1021/acs.jcim.3c00800)
 
 
 Content
 -------------
 
 * **Data Preperation**
-    * Select data from Database (Chembel)
+    * Select data from Database (ChEMBL)
     * Generate diverse data set
     * Generate feature vectors
 
@@ -61,8 +61,8 @@ Installation
 
    ```bash
     conda env create -f environment.yml
-    conda activate serenityff-charge
+    conda activate dash
     python setup.py install
    ```
 
-This will create a conda enviroment with the correct packages and install the openff plugin for partial charge assignment in openff.
+This will create a conda enviroment with the correct packages and install the openff plugin for partial charge assignment in openff. If you plan on only using the DASH tree and not developing new trees you can also use the file `min_environment.yml` instead, which does not contain any pytorch and pytorch geometric libraries.

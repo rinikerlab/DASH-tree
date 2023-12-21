@@ -6,7 +6,9 @@ import pandas as pd
 from tqdm import tqdm
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from multiprocessing import Process, Manager
+#from multiprocessing import Process, Manager
+#from numba import njit, objmode, types
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import io
 import IPython.display
@@ -73,17 +75,13 @@ class DASHTree:
                 df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
                 self.load_tree_and_data(tree_path, df_path, branch_idx=i)
         else:
-            self.tree_storage = Manager().dict()
-            self.data_storage = Manager().dict()
-            processes = []
-            for i in range(AtomFeatures.get_number_of_features()):
-                tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
-                df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
-                p = Process(target=self.load_tree_and_data, args=(tree_path, df_path))
-                processes.append(p)
-                p.start()
-            for p in processes:
-                p.join()
+            with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
+                for i in range(AtomFeatures.get_number_of_features()):
+                    tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
+                    df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
+                    executor.submit(self.load_tree_and_data, tree_path, df_path, i)
+        if self.verbose:
+            print(f"Loaded {len(self.tree_storage)} trees and data")
 
     def load_tree_and_data(self, tree_path: str, df_path: str, hdf_key: str = "df", branch_idx: int = None):
         """
@@ -198,6 +196,7 @@ class DASHTree:
         attention_threshold: float = 10,
         attention_increment_threshold: float = 0,
         return_atom_indices: bool = False,
+        neighbor_dict=None,
     ):
         """
         Match a atom in a molecule to a DASH tree subgraph. The matching is done by starting at the atom and
@@ -217,7 +216,8 @@ class DASHTree:
         attention_increment_threshold : float
             Minimum attention increment to stop the traversal
         """
-        neighbor_dict = self._init_neighbor_dict(mol)
+        if neighbor_dict is None:
+            neighbor_dict = self._init_neighbor_dict(mol)
         init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
         branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
         matched_node_path = [branch_idx, 0]
@@ -354,6 +354,62 @@ class DASHTree:
                 return df.iloc[atom][property_name]
         Warning(f"No non NaN value found for {property_name} in hierarchy {matched_node_path}")
         return np.NaN
+    
+    def _get_allAtoms_nodePaths(
+        self,
+        mol: Molecule,
+        max_depth: int = 16,
+        attention_threshold: float = 10,
+        attention_incremet_threshold: float = 0,
+    ):
+        """
+        Get all properties of all atoms in a molecule by matching them to DASH tree subgraphs
+
+        Parameters
+        ----------
+        mol : Molecule
+            RDKit molecule object for which the properties should be calculated
+
+        Returns
+        -------
+        dict
+            Dictionary containing the properties of all atoms
+        """
+        nodePathList = []
+        neighbor_dict = self._init_neighbor_dict(mol)
+        if True: #self.num_processes <= 1: Don't use multiprocessing for now, it's veeeeery slow
+            for atom in range(mol.GetNumAtoms()):
+                try:
+                    node_path = self.match_new_atom(
+                        atom,
+                        mol,
+                        max_depth=max_depth,
+                        attention_threshold=attention_threshold,
+                        attention_increment_threshold=attention_incremet_threshold,
+                        neighbor_dict=neighbor_dict,
+                    )
+                    nodePathList.append(node_path)
+                except Exception as e:
+                    nodePathList.append([])
+        else:
+            with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
+                futures = []
+                for atom in range(mol.GetNumAtoms()):
+                    futures.append(
+                        executor.submit(
+                            self.match_new_atom,
+                            atom,
+                            mol,
+                            max_depth=max_depth,
+                            attention_threshold=attention_threshold,
+                            attention_increment_threshold=attention_incremet_threshold,
+                            neighbor_dict=neighbor_dict,
+                        )
+                    )
+                for future in futures:
+                    nodePathList.append(future.result())
+        return nodePathList
+
 
     def get_molecules_partial_charges(
         self,
@@ -401,30 +457,26 @@ class DASHTree:
         tree_raw_charges = []
         tree_charge_std = []
         tree_match_depth = []
-        for atom in mol.GetAtoms():
-            atom_idx = atom.GetIdx()
+        nodePathList = self._get_allAtoms_nodePaths(
+            mol,
+            max_depth=max_depth,
+            attention_threshold=attention_threshold,
+            attention_incremet_threshold=attention_incremet_threshold,
+        )
+        for nodePath in nodePathList:
             try:
-                node_path = self.match_new_atom(
-                    atom_idx,
-                    mol,
-                    max_depth=max_depth,
-                    attention_threshold=attention_threshold,
-                    attention_increment_threshold=attention_incremet_threshold,
-                )
                 chg_atom = self.get_property_noNAN(
-                    mol=mol,
-                    atom=atom_idx,
+                    matched_node_path=nodePath,
                     property_name=chg_key,
                 )
                 chg_std_atom = self.get_property_noNAN(
-                    mol=mol,
-                    atom=atom_idx,
+                    matched_node_path=nodePath,
                     property_name=chg_std_key,
                 )
                 tree_raw_charges.append(float(chg_atom))
                 tmp_tree_std = float(chg_std_atom)
                 tree_charge_std.append(tmp_tree_std if tmp_tree_std > 0 else default_std_value)
-                tree_match_depth.append(len(node_path) - 1)
+                tree_match_depth.append(len(nodePath) - 1)
             except Exception as e:
                 raise e
                 print(e)
@@ -519,15 +571,17 @@ class DASHTree:
         summing the polarizabilities of the matched atoms
         """
         polarizabilities = []
-        for atom_idx in range(mol.GetNumAtoms()):
-            polarizabilities.append(self.get_property_noNAN(mol=mol, atom=atom_idx, property_name=prop_key))
+        all_nodePaths = self._get_allAtoms_nodePaths(mol)
+        for nodePath in all_nodePaths:
+            polarizabilities.append(self.get_property_noNAN(matched_node_path=nodePath, property_name=prop_key))
         polarizability = np.sum(polarizabilities)
         return polarizability
 
     def get_molecular_homo(self, mol: Molecule, prop_key: str = "homo"):
         homos = []
-        for atom_idx in range(mol.GetNumAtoms()):
-            homos.append(self.get_property_noNAN(mol=mol, atom=atom_idx, property_name=prop_key))
+        all_nodePaths = self._get_allAtoms_nodePaths(mol)
+        for nodePath in all_nodePaths:
+            homos.append(self.get_property_noNAN(matched_node_path=nodePath, property_name=prop_key))
         # remove largest outliers
         homos = np.array(homos)
         # q1, q3 = np.percentile(homos, [25, 75])
@@ -540,8 +594,9 @@ class DASHTree:
 
     def get_molecular_lumo(self, mol: Molecule, prop_key: str = "lumo"):
         lumos = []
-        for atom_idx in range(mol.GetNumAtoms()):
-            lumos.append(self.get_property_noNAN(mol=mol, atom=atom_idx, property_name=prop_key))
+        all_nodePaths = self._get_allAtoms_nodePaths(mol)
+        for nodePath in all_nodePaths:
+            lumos.append(self.get_property_noNAN(matched_node_path=nodePath, property_name=prop_key))
         # remove largest outliers
         # lumos = np.array(lumos)
         # q1, q3 = np.percentile(lumos, [25, 75])
@@ -564,19 +619,13 @@ class DASHTree:
         return_list = []
         if verbose:
             print(properties_to_use)
-        for atom_idx in range(mol.GetNumAtoms()):
+        all_nodePaths = self._get_allAtoms_nodePaths(mol)
+        for nodePath in all_nodePaths:
             tmp_p = []
             try:
-                node_path = self.match_new_atom(
-                    atom=atom_idx,
-                    mol=mol,
-                    max_depth=max_depth,
-                    attention_threshold=attention_threshold,
-                    attention_increment_threshold=attention_incremet_threshold,
-                )
                 for p in properties_to_use:
                     try:
-                        prop = self.get_property_noNAN(matched_node_path=node_path, property_name=p)
+                        prop = self.get_property_noNAN(matched_node_path=nodePath, property_name=p)
                         tmp_p.append(prop)
                     except Exception:
                         tmp_p.append(np.nan)

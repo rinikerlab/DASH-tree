@@ -8,8 +8,8 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 # from multiprocessing import Process, Manager
-# from numba import njit, objmode, types
-from concurrent.futures import ProcessPoolExecutor  # , ThreadPoolExecutor
+from numba import njit, objmode, types
+#from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import io
 import IPython.display
@@ -20,6 +20,7 @@ from collections import defaultdict
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.data import default_dash_tree_path
 from serenityff.charge.utils.rdkit_typing import Molecule
+from serenityff.charge.tree.tree_utils import new_neighbors, new_neighbors_atomic, init_neighbor_dict
 
 
 class DASHTree:
@@ -70,13 +71,14 @@ class DASHTree:
         if self.verbose:
             print("Loading DASH tree data")
         # import all files
-        if self.num_processes <= 1:
+        if True: #self.num_processes <= 1:
             for i in range(AtomFeatures.get_number_of_features()):
                 tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
                 df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
                 self.load_tree_and_data(tree_path, df_path, branch_idx=i)
         else:
-            with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
+            # Threads don't seem to work due to HDFstore key error
+            with ThreadPoolExecutor(max_workers=self.num_processes) as executor:
                 for i in range(AtomFeatures.get_number_of_features()):
                     tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
                     df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
@@ -140,11 +142,12 @@ class DASHTree:
     ########################################
     #   Tree assignment functions
     ########################################
-
+        
+    #@njit(cache=True, fastmath=True)
     def _pick_subgraph_expansion_node(
         self, current_node: int, branch_idx: int, possible_new_atom_features: list, possible_new_atom_idxs: list
-    ):
-        current_node_children = self.tree_storage[branch_idx][current_node][5]
+    ) -> tuple:
+        current_node_children =self.tree_storage[branch_idx][current_node][5]
         for child in current_node_children:
             child_tree_node = self.tree_storage[branch_idx][child]
             child_af = (child_tree_node[1], child_tree_node[2], child_tree_node[3])
@@ -153,41 +156,6 @@ class DASHTree:
                     return (child, possible_atom_idx)
         return (None, None)
 
-    def _init_neighbor_dict(self, mol: Molecule):
-        neighbor_dict = {}
-        for atom_idx, atom in enumerate(mol.GetAtoms()):
-            neighbor_dict[atom_idx] = []
-            for neighbor in atom.GetNeighbors():
-                af_with_connection_info = AtomFeatures.atom_features_from_molecule_w_connection_info(
-                    mol, neighbor.GetIdx(), (0, atom_idx)
-                )
-                neighbor_dict[atom_idx].append((neighbor.GetIdx(), af_with_connection_info))
-        return neighbor_dict
-
-    def _new_neighbors(self, neighbor_dict, connected_atoms):
-        connected_atoms_set = set(connected_atoms)
-        new_neighbors_afs = []
-        new_neighbors = []
-        for rel_atom_idx, atom_idx in enumerate(connected_atoms):
-            for neighbor in neighbor_dict[atom_idx]:
-                if neighbor[0] not in connected_atoms_set and neighbor[0] not in new_neighbors:
-                    new_neighbors.append(neighbor[0])
-                    new_neighbors_afs.append(
-                        (neighbor[1][0], rel_atom_idx, neighbor[1][2])
-                    )  # fix rel_atom_idx (the atom index in the subgraph)
-        return new_neighbors_afs, new_neighbors
-
-    def _new_neighbors_atomic(self, neighbor_dict, connected_atoms, atom_idx_added):
-        connected_atoms_set = set(connected_atoms)
-        new_neighbors_afs = []
-        new_neighbors = []
-        for neighbor in neighbor_dict[atom_idx_added]:
-            if neighbor[0] not in connected_atoms_set:
-                new_neighbors.append(neighbor[0])
-                new_neighbors_afs.append(
-                    (neighbor[1][0], atom_idx_added, neighbor[1][2])
-                )  # fix rel_atom_idx (the atom index in the subgraph)
-        return new_neighbors_afs, new_neighbors
 
     def match_new_atom(
         self,
@@ -218,7 +186,7 @@ class DASHTree:
             Minimum attention increment to stop the traversal
         """
         if neighbor_dict is None:
-            neighbor_dict = self._init_neighbor_dict(mol)
+            neighbor_dict = init_neighbor_dict(mol)
         init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
         branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
         matched_node_path = [branch_idx, 0]
@@ -242,7 +210,7 @@ class DASHTree:
             return matched_node_path
         else:
             for _ in range(1, max_depth):
-                possible_new_atom_features, possible_new_atom_idxs = self._new_neighbors(
+                possible_new_atom_features, possible_new_atom_idxs = new_neighbors(
                     neighbor_dict, atom_indices_in_subgraph
                 )
                 child, atom = self._pick_subgraph_expansion_node(
@@ -254,7 +222,7 @@ class DASHTree:
                 atom_indices_in_subgraph.append(atom)
                 node_attention = self.tree_storage[branch_idx][child][4]
                 cummulative_attention += node_attention
-                possible_new_atom_features_toAdd, possible_new_atom_idxs_toAdd = self._new_neighbors_atomic(
+                possible_new_atom_features_toAdd, possible_new_atom_idxs_toAdd = new_neighbors_atomic(
                     neighbor_dict, atom_indices_in_subgraph, atom
                 )
                 possible_new_atom_features.extend(possible_new_atom_features_toAdd)
@@ -377,40 +345,20 @@ class DASHTree:
             Dictionary containing the properties of all atoms
         """
         nodePathList = []
-        neighbor_dict = self._init_neighbor_dict(mol)
-        if (
-            True
-        ):  # self.num_processes <= 1: Don't use multiprocessing for now, it's veeeeery slow. Large overhead from pickling
-            for atom in range(mol.GetNumAtoms()):
-                try:
-                    node_path = self.match_new_atom(
-                        atom,
-                        mol,
-                        max_depth=max_depth,
-                        attention_threshold=attention_threshold,
-                        attention_increment_threshold=attention_incremet_threshold,
-                        neighbor_dict=neighbor_dict,
-                    )
-                    nodePathList.append(node_path)
-                except Exception:
-                    nodePathList.append([])
-        else:
-            with ProcessPoolExecutor(max_workers=self.num_processes) as executor:
-                futures = []
-                for atom in range(mol.GetNumAtoms()):
-                    futures.append(
-                        executor.submit(
-                            self.match_new_atom,
-                            atom,
-                            mol,
-                            max_depth=max_depth,
-                            attention_threshold=attention_threshold,
-                            attention_increment_threshold=attention_incremet_threshold,
-                            neighbor_dict=neighbor_dict,
-                        )
-                    )
-                for future in futures:
-                    nodePathList.append(future.result())
+        neighbor_dict = init_neighbor_dict(mol)
+        for atom in range(mol.GetNumAtoms()):
+            try:
+                node_path = self.match_new_atom(
+                    atom,
+                    mol,
+                    max_depth=max_depth,
+                    attention_threshold=attention_threshold,
+                    attention_increment_threshold=attention_incremet_threshold,
+                    neighbor_dict=neighbor_dict,
+                )
+                nodePathList.append(node_path)
+            except Exception:
+                nodePathList.append([])
         return nodePathList
 
     def get_molecules_partial_charges(

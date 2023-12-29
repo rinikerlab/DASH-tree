@@ -8,6 +8,8 @@ from rdkit import Chem
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree_develop.develop_node import DevelopNode
+from serenityff.charge.utils.rdkit_typing import Molecule
+from serenityff.charge.tree.dash_tree import DASHTree
 
 
 def get_possible_atom_features(mol, connected_atoms):
@@ -89,6 +91,46 @@ def create_new_node_from_develop_node(current_develop_node: DevelopNode) -> node
         current_new_node.add_child(create_new_node_from_develop_node(child))
     return current_new_node
 
+
+def get_data_from_DEV_node(dev_node: DevelopNode):
+    #dev_node.update_average()
+    atom = dev_node.atom_features
+    level = dev_node.level
+    (
+        result,
+        std,
+        max_attention,
+        mean_attention,
+        size,
+    ) = dev_node.get_DASH_data_from_dev_node()
+    return (atom, level, result, std, max_attention, mean_attention, size)
+
+def recursive_DEV_node_to_DASH_tree(dev_node: DevelopNode, id_counter: int, parent_id: int, tree_storage: list, data_storage: list):
+    # check if tree_storage length is equal to id_counter
+    if len(tree_storage) != id_counter:
+        print("ERROR: tree_storage length is not equal to id_counter")
+        return
+    atom, level, result, std, max_attention, mean_attention, size = get_data_from_DEV_node(dev_node)
+    atom_type, con_atom, con_type = atom[0]
+    tree_storage.append([id_counter, atom_type, con_atom, con_type, mean_attention, [], parent_id])
+    data_storage.append((level, atom_type, con_atom, con_type, result, std, max_attention, size))
+    for child in dev_node.children:
+        id_counter += 1
+        tree_storage[id_counter][5].append(id_counter)
+        id_counter = recursive_DEV_node_to_DASH_tree(child, id_counter, id_counter-1, tree_storage, data_storage)
+    return id_counter
+
+
+def get_DASH_tree_from_DEV_tree(dev_root: DevelopNode):
+    tree_storage = []
+    data_storage = []
+    for child in dev_root.children:
+        recursive_DEV_node_to_DASH_tree(child, 0, 0, tree_storage, data_storage)
+    tree = DASHTree(tree_folder_path="./", preload=False)
+    tree.data_storage = data_storage
+    tree.tree_storage = tree_storage
+    tree.save_all_trees_and_data()
+        
 
 @njit
 def get_possible_connected_new_atom(matrix: np.ndarray, indices: np.ndarray) -> np.ndarray:
@@ -188,3 +230,43 @@ def get_rdkit_fragment_from_node_path(node_path) -> Chem.RWMol:
         bond_type_number = node_path[i].atoms[0][2]
         mol.AddBond(i, bonded_atom, Chem.rdchem.BondType.values[bond_type_number])
     return mol
+
+
+#@njit(cache=True, fastmath=True)
+def new_neighbors(neighbor_dict, connected_atoms) -> tuple:
+    connected_atoms_set = set(connected_atoms)
+    new_neighbors_afs = []
+    new_neighbors = []
+    for rel_atom_idx, atom_idx in enumerate(connected_atoms):
+        for neighbor in neighbor_dict[atom_idx]:
+            if neighbor[0] not in connected_atoms_set and neighbor[0] not in new_neighbors:
+                new_neighbors.append(neighbor[0])
+                new_neighbors_afs.append(
+                    (neighbor[1][0], rel_atom_idx, neighbor[1][2])
+                )  # fix rel_atom_idx (the atom index in the subgraph)
+    return new_neighbors_afs, new_neighbors
+
+#@njit(cache=True, fastmath=True)
+def new_neighbors_atomic(neighbor_dict, connected_atoms, atom_idx_added) -> tuple:
+    connected_atoms_set = set(connected_atoms)
+    new_neighbors_afs = []
+    new_neighbors = []
+    for neighbor in neighbor_dict[atom_idx_added]:
+        if neighbor[0] not in connected_atoms_set:
+            new_neighbors.append(neighbor[0])
+            new_neighbors_afs.append(
+                (neighbor[1][0], atom_idx_added, neighbor[1][2])
+            )  # fix rel_atom_idx (the atom index in the subgraph)
+    return new_neighbors_afs, new_neighbors
+
+
+def init_neighbor_dict(mol: Molecule):
+    neighbor_dict = {}
+    for atom_idx, atom in enumerate(mol.GetAtoms()):
+        neighbor_dict[atom_idx] = []
+        for neighbor in atom.GetNeighbors():
+            af_with_connection_info = AtomFeatures.atom_features_from_molecule_w_connection_info(
+                mol, neighbor.GetIdx(), (0, atom_idx)
+            )
+            neighbor_dict[atom_idx].append((neighbor.GetIdx(), af_with_connection_info))
+    return neighbor_dict

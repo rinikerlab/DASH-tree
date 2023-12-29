@@ -6,7 +6,7 @@ from numba import njit
 from rdkit import Chem
 
 from serenityff.charge.tree.atom_features import AtomFeatures
-from serenityff.charge.tree.node import node
+#from serenityff.charge.tree.node import node
 from serenityff.charge.tree_develop.develop_node import DevelopNode
 from serenityff.charge.utils.rdkit_typing import Molecule
 from serenityff.charge.tree.dash_tree import DASHTree
@@ -53,43 +53,43 @@ def get_possible_atom_features(mol, connected_atoms):
     return possible_atom_features, possible_atom_idxs
 
 
-def create_new_node_from_develop_node(current_develop_node: DevelopNode) -> node:
-    """
-    Create a new node from a develop node. Used to convert a the raw construction tree to a final tree.
+# def create_new_node_from_develop_node(current_develop_node: DevelopNode) -> node:
+#     """
+#     Create a new node from a develop node. Used to convert a the raw construction tree to a final tree.
 
-    Parameters
-    ----------
-    current_develop_node : DevelopNode
-        The develop node to convert.
-    current_new_node : node
-        The new node to create.
+#     Parameters
+#     ----------
+#     current_develop_node : DevelopNode
+#         The develop node to convert.
+#     current_new_node : node
+#         The new node to create.
 
-    Returns
-    -------
-    node
-        The new node.
-    """
-    # get current node properties
-    atom = current_develop_node.atom_features
-    level = current_develop_node.level
-    (
-        result,
-        std,
-        attention,
-        size,
-    ) = current_develop_node.get_node_result_and_std_and_attention_and_length()
-    current_new_node = node(
-        atom=[atom],
-        level=level,
-        result=result,
-        stdDeviation=std,
-        attention=attention,
-        count=size,
-    )
-    # do the same things recursively for the children (get their properties and create the new nodes)
-    for child in current_develop_node.children:
-        current_new_node.add_child(create_new_node_from_develop_node(child))
-    return current_new_node
+#     Returns
+#     -------
+#     node
+#         The new node.
+#     """
+#     # get current node properties
+#     atom = current_develop_node.atom_features
+#     level = current_develop_node.level
+#     (
+#         result,
+#         std,
+#         attention,
+#         size,
+#     ) = current_develop_node.get_node_result_and_std_and_attention_and_length()
+#     current_new_node = node(
+#         atom=[atom],
+#         level=level,
+#         result=result,
+#         stdDeviation=std,
+#         attention=attention,
+#         count=size,
+#     )
+#     # do the same things recursively for the children (get their properties and create the new nodes)
+#     for child in current_develop_node.children:
+#         current_new_node.add_child(create_new_node_from_develop_node(child))
+#     return current_new_node
 
 
 def get_data_from_DEV_node(dev_node: DevelopNode):
@@ -194,79 +194,3 @@ def get_connected_neighbor(matrix: np.ndarray, idx: int, indices: np.ndarray):
         where = np.where(absolute_index == neighbors)[0]
         if where.size > 0:
             return rel_index, absolute_index
-
-
-def get_rdkit_fragment_from_node_path(node_path) -> Chem.RWMol:
-    """
-    Get the rdkit fragment from a node path as rdkit molecule.
-
-    Args:
-        node_path (list[node]): A list of nodes, forming the subgraph/path in the tree.
-
-    Returns:
-        Chem.RWMol: The rdkit molecule of the subgraph/path.
-    """
-    # start with an empty molecule
-    mol = Chem.RWMol()
-    # add the first atom
-    element, numBonds, charge, isConjugated, numHs = AtomFeatures.get_split_feature_typed_from_key(
-        node_path[0].atoms[0][0]
-    )
-    atom = Chem.Atom(element)
-    atom.SetFormalCharge(charge)
-    atom.SetNumExplicitHs(numHs)
-    mol.AddAtom(atom)
-    # add the rest of the atoms
-    for i in range(1, len(node_path)):
-        element, numBonds, charge, isConjugated, numHs = AtomFeatures.get_split_feature_typed_from_key(
-            node_path[i].atoms[0][0]
-        )
-        atom = Chem.Atom(element)
-        atom.SetFormalCharge(charge)
-        atom.SetNumExplicitHs(numHs)
-        mol.AddAtom(atom)
-        # add the bond
-        bonded_atom = node_path[i].atoms[0][1]
-        bond_type_number = node_path[i].atoms[0][2]
-        mol.AddBond(i, bonded_atom, Chem.rdchem.BondType.values[bond_type_number])
-    return mol
-
-
-#@njit(cache=True, fastmath=True)
-def new_neighbors(neighbor_dict, connected_atoms) -> tuple:
-    connected_atoms_set = set(connected_atoms)
-    new_neighbors_afs = []
-    new_neighbors = []
-    for rel_atom_idx, atom_idx in enumerate(connected_atoms):
-        for neighbor in neighbor_dict[atom_idx]:
-            if neighbor[0] not in connected_atoms_set and neighbor[0] not in new_neighbors:
-                new_neighbors.append(neighbor[0])
-                new_neighbors_afs.append(
-                    (neighbor[1][0], rel_atom_idx, neighbor[1][2])
-                )  # fix rel_atom_idx (the atom index in the subgraph)
-    return new_neighbors_afs, new_neighbors
-
-#@njit(cache=True, fastmath=True)
-def new_neighbors_atomic(neighbor_dict, connected_atoms, atom_idx_added) -> tuple:
-    connected_atoms_set = set(connected_atoms)
-    new_neighbors_afs = []
-    new_neighbors = []
-    for neighbor in neighbor_dict[atom_idx_added]:
-        if neighbor[0] not in connected_atoms_set:
-            new_neighbors.append(neighbor[0])
-            new_neighbors_afs.append(
-                (neighbor[1][0], atom_idx_added, neighbor[1][2])
-            )  # fix rel_atom_idx (the atom index in the subgraph)
-    return new_neighbors_afs, new_neighbors
-
-
-def init_neighbor_dict(mol: Molecule):
-    neighbor_dict = {}
-    for atom_idx, atom in enumerate(mol.GetAtoms()):
-        neighbor_dict[atom_idx] = []
-        for neighbor in atom.GetNeighbors():
-            af_with_connection_info = AtomFeatures.atom_features_from_molecule_w_connection_info(
-                mol, neighbor.GetIdx(), (0, atom_idx)
-            )
-            neighbor_dict[atom_idx].append((neighbor.GetIdx(), af_with_connection_info))
-    return neighbor_dict

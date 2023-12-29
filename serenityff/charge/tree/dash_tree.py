@@ -12,7 +12,10 @@ from numba import njit, objmode, types
 #from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import io
-import IPython.display
+try:
+    import IPython.display
+except ImportError:
+    pass
 from PIL import Image
 from rdkit.Chem.Draw import rdMolDraw2D
 from collections import defaultdict
@@ -20,7 +23,7 @@ from collections import defaultdict
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.data import default_dash_tree_path
 from serenityff.charge.utils.rdkit_typing import Molecule
-from serenityff.charge.tree.tree_utils import new_neighbors, new_neighbors_atomic, init_neighbor_dict
+from serenityff.charge.tree.dash_tools import new_neighbors, new_neighbors_atomic, init_neighbor_dict
 
 
 class DASHTree:
@@ -729,6 +732,8 @@ def draw_mol_with_highlights_in_order(
         d2d.DrawMoleculeWithHighlights(mol_pic, "", dict(athighlights), dict(bthighlights), arads, brads)
     d2d.FinishDrawing()
     if useSVG:
+        if not IPython:
+            raise ImportError("IPython is not available, cannot use SVG")
         p = d2d.GetDrawingText().replace("svg:", "")
         img = IPython.display.SVG(data=p)
     else:

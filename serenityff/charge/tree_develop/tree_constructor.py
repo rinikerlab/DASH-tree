@@ -14,7 +14,6 @@ from collections import defaultdict
 from serenityff.charge.tree.atom_features import AtomFeatures, get_connection_info_bond_type
 from serenityff.charge.tree.node import node
 from serenityff.charge.tree.tree_utils import (
-    #create_new_node_from_develop_node,
     get_DASH_tree_from_DEV_tree
 )
 from serenityff.charge.tree_develop.develop_node import DevelopNode

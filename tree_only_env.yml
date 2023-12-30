@@ -1,0 +1,16 @@
+name: dash
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+  - pyg
+dependencies:
+  - python
+  - numpy
+  - conda-build
+  - typing
+  - mpmath
+  - pandas
+  - rdkit
+  - pytables
+  - pip

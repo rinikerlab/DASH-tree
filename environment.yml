@@ -1,4 +1,4 @@
-name: sff
+name: dash
 channels:
   - defaults
   - conda-forge

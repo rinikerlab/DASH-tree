@@ -5,7 +5,7 @@ import argparse
 
 from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.tree.tree_utils import (
-    create_new_node_from_develop_node,
+    get_DASH_tree_from_DEV_tree,
 )
 from serenityff.charge.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor_parallel_worker import Tree_constructor_parallel_worker
@@ -31,10 +31,10 @@ class Tree_constructor_singleJB_worker:
         res = tree_constructor_parallel_worker._build_tree_single_AF(af=AF_idx, df_work=df_work)
         root.children.append(res)
         root.update_average()
-        new_root = create_new_node_from_develop_node(root)
+        get_DASH_tree_from_DEV_tree(root)
         del root
-        with open(f"{AF_idx}.pkl", "wb") as f:
-            pickle.dump(new_root.children[0], f)
+        #with open(f"{AF_idx}.pkl", "wb") as f:
+        #    pickle.dump(new_root.children[0], f)
 
     @staticmethod
     def run_singleJB(Tree_constructor_parallel_worker_path: str, AF_idx: int):

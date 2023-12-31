@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 from numba import njit
 
 from rdkit import Chem
@@ -125,7 +126,12 @@ def get_DASH_tree_from_DEV_tree(dev_root: DevelopNode):
     tree_storage = []
     data_storage = []
     for child in dev_root.children:
-        recursive_DEV_node_to_DASH_tree(child, 0, 0, tree_storage, data_storage)
+        branch_tree_storage = []
+        branch_data_storage = []
+        recursive_DEV_node_to_DASH_tree(child, 0, 0, branch_tree_storage, branch_data_storage)
+        branch_data_df = pd.DataFrame(branch_data_storage, columns=["level", "atom_type", "con_atom", "con_type", "result", "std", "max_attention", "size"])
+        tree_storage.append(branch_tree_storage)
+        data_storage.append(branch_data_df)
     tree = DASHTree(tree_folder_path="./", preload=False)
     tree.data_storage = data_storage
     tree.tree_storage = tree_storage

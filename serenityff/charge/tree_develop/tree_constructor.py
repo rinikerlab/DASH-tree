@@ -197,7 +197,7 @@ class Tree_constructor:
         self.num_layers_to_build = num_layers_to_build
         self.roots = {}
         for af in AtomFeatures.feature_list:
-            af_key = AtomFeatures.lookup_str(af)
+            af_key = AtomFeatures.afTuple_2_afKey[af]
             self.roots[af_key] = DevelopNode(atom_features=[af_key, -1, -1], level=1)
         self.new_root = node(level=0)
 

@@ -112,29 +112,32 @@ def recursive_DEV_node_to_DASH_tree(dev_node: DevelopNode, id_counter: int, pare
         print("ERROR: tree_storage length is not equal to id_counter")
         return
     atom, level, result, std, max_attention, mean_attention, size = get_data_from_DEV_node(dev_node)
-    atom_type, con_atom, con_type = atom[0]
-    tree_storage.append([id_counter, atom_type, con_atom, con_type, mean_attention, [], parent_id])
+    atom_type, con_atom, con_type = atom
+    tree_storage.append((id_counter, atom_type, con_atom, con_type, mean_attention, []))
     data_storage.append((level, atom_type, con_atom, con_type, result, std, max_attention, size))
+    parent_id = id_counter
     for child in dev_node.children:
         id_counter += 1
-        tree_storage[id_counter][5].append(id_counter)
-        id_counter = recursive_DEV_node_to_DASH_tree(child, id_counter, id_counter-1, tree_storage, data_storage)
+        tree_storage[parent_id][5].append(id_counter)
+        id_counter = recursive_DEV_node_to_DASH_tree(child, id_counter, parent_id, tree_storage, data_storage)
     return id_counter
 
 
 def get_DASH_tree_from_DEV_tree(dev_root: DevelopNode):
-    tree_storage = []
+    tree_storage = {}
     data_storage = []
-    for child in dev_root.children:
+    for child_id, child in enumerate(dev_root.children):
         branch_tree_storage = []
         branch_data_storage = []
         recursive_DEV_node_to_DASH_tree(child, 0, 0, branch_tree_storage, branch_data_storage)
         branch_data_df = pd.DataFrame(branch_data_storage, columns=["level", "atom_type", "con_atom", "con_type", "result", "std", "max_attention", "size"])
-        tree_storage.append(branch_tree_storage)
+        tree_storage[child_id] = branch_tree_storage
         data_storage.append(branch_data_df)
     tree = DASHTree(tree_folder_path="./", preload=False)
     tree.data_storage = data_storage
     tree.tree_storage = tree_storage
+    #print("tree_storage: ", tree_storage)
+    #print("data_storage: ", data_storage)
     tree.save_all_trees_and_data()
         
 

@@ -1,6 +1,6 @@
-from typing import Tuple
-import numpy as np
-from numba import njit
+# from typing import Tuple
+# import numpy as np
+# from numba import njit
 
 from rdkit import Chem
 
@@ -8,7 +8,7 @@ from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.utils.rdkit_typing import Molecule
 
 
-#@njit(cache=True, fastmath=True)
+# @njit(cache=True, fastmath=True)
 def new_neighbors(neighbor_dict, connected_atoms) -> tuple:
     connected_atoms_set = set(connected_atoms)
     new_neighbors_afs = []
@@ -22,7 +22,8 @@ def new_neighbors(neighbor_dict, connected_atoms) -> tuple:
                 )  # fix rel_atom_idx (the atom index in the subgraph)
     return new_neighbors_afs, new_neighbors
 
-#@njit(cache=True, fastmath=True)
+
+# @njit(cache=True, fastmath=True)
 def new_neighbors_atomic(neighbor_dict, connected_atoms, atom_idx_added) -> tuple:
     connected_atoms_set = set(connected_atoms)
     new_neighbors_afs = []

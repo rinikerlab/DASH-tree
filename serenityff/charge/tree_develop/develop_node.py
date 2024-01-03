@@ -171,7 +171,7 @@ class DevelopNode:
             )
         except TypeError:
             return (np.nan, np.nan, np.nan, 0)
-        
+
     def get_DASH_data_from_dev_node(self):
         self.update_average()
         if self.level == 0:

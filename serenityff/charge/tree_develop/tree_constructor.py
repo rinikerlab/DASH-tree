@@ -410,7 +410,7 @@ class Tree_constructor:
             tree_worker.build_tree(num_processes=num_processes)
             self.root = tree_worker.root
 
-    def convert_tree_to_node(self, delDevelop=False):
+    def convert_tree_to_node(self, delDevelop=False, tree_folder_path: str = "./"):
         """
         Helper function to convert develop nodes to normal nodes
         """
@@ -418,7 +418,7 @@ class Tree_constructor:
         #if delDevelop:
         #    del self.root
         #    self.root = None
-        get_DASH_tree_from_DEV_tree(self.root)
+        get_DASH_tree_from_DEV_tree(self.root, tree_folder_path=tree_folder_path)
 
 
     def calculate_tree_length(self):

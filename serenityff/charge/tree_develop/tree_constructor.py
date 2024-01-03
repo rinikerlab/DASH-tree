@@ -13,13 +13,10 @@ from collections import defaultdict
 
 from serenityff.charge.tree.atom_features import AtomFeatures, get_connection_info_bond_type
 from serenityff.charge.tree.node import node
-from serenityff.charge.tree.tree_utils import (
-    get_DASH_tree_from_DEV_tree
-)
+from serenityff.charge.tree.tree_utils import get_DASH_tree_from_DEV_tree
 from serenityff.charge.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor_parallel_worker import Tree_constructor_parallel_worker
 from serenityff.charge.tree_develop.tree_constructor_singleJB_worker import Tree_constructor_singleJB_worker
-
 
 
 class Tree_constructor:
@@ -414,12 +411,11 @@ class Tree_constructor:
         """
         Helper function to convert develop nodes to normal nodes
         """
-        #self.new_root = create_new_node_from_develop_node(self.root)
-        #if delDevelop:
+        # self.new_root = create_new_node_from_develop_node(self.root)
+        # if delDevelop:
         #    del self.root
         #    self.root = None
         get_DASH_tree_from_DEV_tree(self.root, tree_folder_path=tree_folder_path)
-
 
     def calculate_tree_length(self):
         self.tree_length = self.new_root.calculate_tree_length()

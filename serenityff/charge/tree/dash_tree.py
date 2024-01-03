@@ -8,10 +8,12 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 # from multiprocessing import Process, Manager
-from numba import njit, objmode, types
-#from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+# from numba import njit, objmode, types
+
+# from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import io
+
 try:
     import IPython.display
 except ImportError:
@@ -74,18 +76,18 @@ class DASHTree:
         if self.verbose:
             print("Loading DASH tree data")
         # import all files
-        if True: #self.num_processes <= 1:
+        if True:  # self.num_processes <= 1:
             for i in range(AtomFeatures.get_number_of_features()):
                 tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
                 df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
                 self.load_tree_and_data(tree_path, df_path, branch_idx=i)
-        else:
-            # Threads don't seem to work due to HDFstore key error
-            with ThreadPoolExecutor(max_workers=self.num_processes) as executor:
-                for i in range(AtomFeatures.get_number_of_features()):
-                    tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
-                    df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
-                    executor.submit(self.load_tree_and_data, tree_path, df_path, i)
+        # else:
+        # Threads don't seem to work due to HDFstore key error
+        #    with ThreadPoolExecutor(max_workers=self.num_processes) as executor:
+        #        for i in range(AtomFeatures.get_number_of_features()):
+        #            tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
+        #            df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
+        #            executor.submit(self.load_tree_and_data, tree_path, df_path, i)
         if self.verbose:
             print(f"Loaded {len(self.tree_storage)} trees and data")
 
@@ -145,12 +147,12 @@ class DASHTree:
     ########################################
     #   Tree assignment functions
     ########################################
-        
-    #@njit(cache=True, fastmath=True)
+
+    # @njit(cache=True, fastmath=True)
     def _pick_subgraph_expansion_node(
         self, current_node: int, branch_idx: int, possible_new_atom_features: list, possible_new_atom_idxs: list
     ) -> tuple:
-        current_node_children =self.tree_storage[branch_idx][current_node][5]
+        current_node_children = self.tree_storage[branch_idx][current_node][5]
         for child in current_node_children:
             child_tree_node = self.tree_storage[branch_idx][child]
             child_af = (child_tree_node[1], child_tree_node[2], child_tree_node[3])
@@ -158,7 +160,6 @@ class DASHTree:
                 if possible_atom_feature == child_af:
                     return (child, possible_atom_idx)
         return (None, None)
-
 
     def match_new_atom(
         self,

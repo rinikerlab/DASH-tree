@@ -460,24 +460,23 @@ class DASHTree:
             print(f"Tree normalized charges: {return_list}")
         return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}
 
-    def _get_attention_sorted_neighbours_bondVectors(self, mol, atom_idx):
+    def _get_attention_sorted_neighbours_bondVectors(self, mol, atom_idx, verbose=False):
         rdkit_neighbors = mol.GetAtomWithIdx(atom_idx).GetNeighbors()
-        node_path = self.match_new_atom(atom=atom_idx, mol=mol)
-        df_node_path = self.data_storage[node_path[0]].iloc[node_path[2:]]
-        df_node_path = df_node_path[df_node_path["con"] == 0]
-        # match to rdkit neighbors
-        rdkit_indices = [x.GetIdx() for x in rdkit_neighbors]
-        rdkit_neighbors_afs = [AtomFeatures.atom_features_from_molecule(mol, x.GetIdx()) for x in rdkit_neighbors]
+        node_path, atom_indices_in_subgraph = self.match_new_atom(atom=atom_idx, mol=mol, return_atom_indices=True)
         neighbours = []
-        for df_atom in df_node_path.itertuples():
-            for atom_rdkit_idx, atom_rdkit_af in zip(rdkit_indices, rdkit_neighbors_afs):
-                if df_atom.atom == atom_rdkit_af:
-                    neighbours.append(atom_rdkit_idx)
-                    break
+        for node_idx, atom_idx_in_subgraph in zip(node_path[1:], atom_indices_in_subgraph):
+            tmp_node = self.tree_storage[node_path[0]][node_idx]
+            if tmp_node[2] == 0:
+                neighbours.append(atom_idx_in_subgraph)
+        if verbose:
+            print(f"neighbours: {neighbours}")
         # add Hs
         for neighbor in rdkit_neighbors:
             if neighbor.GetSymbol() == "H":
                 neighbours.append(neighbor.GetIdx())
+        if verbose:
+            print(f"neighbours with Hs: {neighbours}")
+        # get bond vectors for all neighbours
         bond_vectors = []
         for neighbor in neighbours:
             bond_vectors.append(
@@ -514,10 +513,11 @@ class DASHTree:
             return np.nan
         if verbose:
             print(bond_vectors_orthogonal)
-        # 2. Project dipole on bond vectors
+        # 2. Project dipole on bond vectors and pad to 3 dimensions
         projected_dipoles = []
         for bond_vector in bond_vectors_orthogonal:
             projected_dipoles.append(np.dot(dipole, bond_vector) / np.linalg.norm(bond_vector))
+        projected_dipoles = np.pad(projected_dipoles, pad_width=(0, 3 - len(projected_dipoles)), mode="constant")
         # 3. Normalize projected dipoles to have same length as dipole
         vec_sum_projected_dipoles = np.linalg.norm(np.sum(projected_dipoles))
         scale_factor = np.linalg.norm(dipole) / vec_sum_projected_dipoles

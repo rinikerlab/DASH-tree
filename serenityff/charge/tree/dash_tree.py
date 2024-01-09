@@ -472,6 +472,87 @@ class DASHTree:
             print(f"Tree normalized charges: {return_list}")
         return {"charges": return_list, "std": tree_charge_std, "match_depth": tree_match_depth}
 
+    def _get_attention_sorted_neighbours_bondVectors(self, mol, atom_idx, verbose=False):
+        rdkit_neighbors = mol.GetAtomWithIdx(atom_idx).GetNeighbors()
+        node_path, atom_indices_in_subgraph = self.match_new_atom(atom=atom_idx, mol=mol, return_atom_indices=True)
+        neighbours = []
+        for node_idx, atom_idx_in_subgraph in zip(node_path[1:], atom_indices_in_subgraph):
+            tmp_node = self.tree_storage[node_path[0]][node_idx]
+            if tmp_node[2] == 0:
+                neighbours.append(atom_idx_in_subgraph)
+        if verbose:
+            print(f"neighbours: {neighbours}")
+        # add Hs
+        for neighbor in rdkit_neighbors:
+            if neighbor.GetSymbol() == "H":
+                neighbours.append(neighbor.GetIdx())
+        if verbose:
+            print(f"neighbours with Hs: {neighbours}")
+        # get bond vectors for all neighbours
+        bond_vectors = []
+        for neighbor in neighbours:
+            bond_vectors.append(
+                mol.GetConformer().GetAtomPosition(atom_idx) - mol.GetConformer().GetAtomPosition(neighbor)
+            )
+        return bond_vectors
+
+    def _project_dipole_to_bonds(self, bond_vectors, dipole, verbose=False):
+        # 1. Try to orthogonalize bond vectors
+        try:
+            bond_vectors_orthogonal = [np.array(bond_vectors[0])]
+            try:
+                bond_vectors_orthogonal.append(
+                    bond_vectors[1]
+                    - np.dot(bond_vectors[1], bond_vectors_orthogonal[0])
+                    / np.linalg.norm(bond_vectors_orthogonal[0])
+                    * bond_vectors_orthogonal[0]
+                )
+                try:
+                    bond_vectors_orthogonal.append(
+                        bond_vectors[2]
+                        - np.dot(bond_vectors[2], bond_vectors_orthogonal[0])
+                        / np.linalg.norm(bond_vectors_orthogonal[0])
+                        * bond_vectors_orthogonal[0]
+                        - np.dot(bond_vectors[2], bond_vectors_orthogonal[1])
+                        / np.linalg.norm(bond_vectors_orthogonal[1])
+                        * bond_vectors_orthogonal[1]
+                    )
+                except IndexError:
+                    pass
+            except IndexError:
+                pass
+        except IndexError:
+            return np.nan
+        if verbose:
+            print(bond_vectors_orthogonal)
+        # 2. Project dipole on bond vectors and pad to 3 dimensions
+        projected_dipoles = []
+        for bond_vector in bond_vectors_orthogonal:
+            projected_dipoles.append(np.dot(dipole, bond_vector) / np.linalg.norm(bond_vector))
+        projected_dipoles = np.pad(projected_dipoles, pad_width=(0, 3 - len(projected_dipoles)), mode="constant")
+        # 3. Normalize projected dipoles to have same length as dipole
+        vec_sum_projected_dipoles = np.linalg.norm(np.sum(projected_dipoles))
+        scale_factor = np.linalg.norm(dipole) / vec_sum_projected_dipoles
+        projected_dipoles = [x * scale_factor for x in projected_dipoles]
+        return projected_dipoles
+
+    def _get_dipole_from_bond_projection(self, mol, atom_idx, projected_dipoles, verbose=False):
+        bond_vectors = self._get_attention_sorted_neighbours_bondVectors(mol, atom_idx)
+        dipole = np.zeros(3)
+        for projected_dipole, bond_vector in zip(projected_dipoles, bond_vectors):
+            if verbose:
+                print(dipole)
+            dipole += projected_dipole * bond_vector
+        return dipole
+
+    def get_atomic_dipole_vector(self, mol, atom_idx, prop_keys=["dipole_bond_1", "dipole_bond_2", "dipole_bond_3"]):
+        node_path = self.match_new_atom(atom=atom_idx, mol=mol)
+        x = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[0])
+        y = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[1])
+        z = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[2])
+        dipole = self._get_dipole_from_bond_projection(mol, atom_idx, [x, y, z])
+        return dipole
+
     def get_molecular_dipole_moment(
         self,
         mol: Molecule,
@@ -482,6 +563,7 @@ class DASHTree:
         pruneRmsThresh=0.5,
         useExpTorsionAnglePrefs=False,
         useBasicKnowledge=False,
+        add_atomic_dipoles=False,
     ):
         """
         Get the dipole moment of a molecule by matching all atoms to DASH tree subgraphs and
@@ -523,6 +605,9 @@ class DASHTree:
             for conf_i, conf in enumerate(mol.GetConformers()):
                 vec_sum = np.sum([chg * np.array(conf.GetAtomPosition(i)) for i, chg in enumerate(chgs)], axis=0)
                 dipole[conf_i] = np.linalg.norm(vec_sum)
+        if add_atomic_dipoles:
+            for atom_idx in range(mol.GetNumAtoms()):
+                dipole += self.get_atomic_dipole_vector(mol, atom_idx)
         if inDebye:
             dipole /= 0.393430307
         return dipole
@@ -550,13 +635,13 @@ class DASHTree:
             homos.append(self.get_property_noNAN(matched_node_path=nodePath, property_name=prop_key))
         # remove largest outliers
         homos = np.array(homos)
-        # q1, q3 = np.percentile(homos, [25, 75])
-        # iqr = q3 - q1
-        # lower_bound = q1 - 1.5 * iqr
-        # upper_bound = q3 + 1.5 * iqr
-        # filtered_array = homos[(homos >= lower_bound) & (homos <= upper_bound)]
-        # return np.min(filtered_array)
-        return np.max(homos)
+        q1, q3 = np.percentile(homos, [25, 75])
+        iqr = q3 - q1
+        lower_bound = q1 - 0.5 * iqr
+        upper_bound = q3 + 0.5 * iqr
+        filtered_array = homos[(homos >= lower_bound) & (homos <= upper_bound)]
+        return np.min(filtered_array)
+        # return np.max(homos)
 
     def get_molecular_lumo(self, mol: Molecule, prop_key: str = "lumo"):
         lumos = []
@@ -564,14 +649,14 @@ class DASHTree:
         for nodePath in all_nodePaths:
             lumos.append(self.get_property_noNAN(matched_node_path=nodePath, property_name=prop_key))
         # remove largest outliers
-        # lumos = np.array(lumos)
-        # q1, q3 = np.percentile(lumos, [25, 75])
-        # iqr = q3 - q1
-        # lower_bound = q1 - 1.5 * iqr
-        # upper_bound = q3 + 1.5 * iqr
-        # filtered_array = lumos[(lumos >= lower_bound) & (lumos <= upper_bound)]
-        # return np.max(filtered_array)
-        return np.min(lumos)
+        lumos = np.array(lumos)
+        q1, q3 = np.percentile(lumos, [25, 75])
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        filtered_array = lumos[(lumos >= lower_bound) & (lumos <= upper_bound)]
+        return np.max(filtered_array)
+        # return np.min(lumos)
 
     def get_molecules_feature_vector(
         self,

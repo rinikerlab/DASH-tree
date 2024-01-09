@@ -161,6 +161,22 @@ class DASHTree:
                     return (child, possible_atom_idx)
         return (None, None)
 
+    def _get_init_layer(self, mol: Molecule, atom: int, max_depth: int):
+        init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
+        branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
+        matched_node_path = [branch_idx, 0]
+        # Special case for H -> only connect to heavy atom and ignore H
+        if mol.GetAtomWithIdx(atom).GetAtomicNum() == 1:
+            h_connected_heavy_atom = mol.GetAtomWithIdx(atom).GetNeighbors()[0].GetIdx()
+            init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, h_connected_heavy_atom)
+            child, _ = self._pick_subgraph_expansion_node(0, branch_idx, [init_atom_feature], [h_connected_heavy_atom])
+            matched_node_path.append(child)
+            atom_indices_in_subgraph = [h_connected_heavy_atom]  # skip Hs as they are only treated implicitly
+            max_depth -= 1  # reduce max_depth by 1 as we already added one node
+        else:
+            atom_indices_in_subgraph = [atom]
+        return branch_idx, matched_node_path, atom_indices_in_subgraph, max_depth
+
     def match_new_atom(
         self,
         atom: int,
@@ -191,25 +207,21 @@ class DASHTree:
         """
         if neighbor_dict is None:
             neighbor_dict = init_neighbor_dict(mol)
-        init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
-        branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
-        matched_node_path = [branch_idx, 0]
+
+        # get layer 0, and init all relevant containers
+        branch_idx, matched_node_path, atom_indices_in_subgraph, max_depth = self._get_init_layer(
+            mol=mol, atom=atom, max_depth=max_depth
+        )
+
+        # if data for branch is not preloaded, load it now
         if branch_idx not in self.tree_storage:
             self.load_tree_and_data(
                 os.path.join(self.tree_folder_path, f"{branch_idx}.gz"),
                 os.path.join(self.tree_folder_path, f"{branch_idx}.h5"),
             )
+
+        # start main DASH loop, expanding the inital subgraph, following the attention
         cummulative_attention = 0
-        # Special case for H -> only connect to heavy atom and ignore H
-        if mol.GetAtomWithIdx(atom).GetAtomicNum() == 1:
-            h_connected_heavy_atom = mol.GetAtomWithIdx(atom).GetNeighbors()[0].GetIdx()
-            init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, h_connected_heavy_atom)
-            child, _ = self._pick_subgraph_expansion_node(0, branch_idx, [init_atom_feature], [h_connected_heavy_atom])
-            matched_node_path.append(child)
-            atom_indices_in_subgraph = [h_connected_heavy_atom]  # skip Hs as they are only treated implicitly
-            max_depth -= 1  # reduce max_depth by 1 as we already added one node
-        else:
-            atom_indices_in_subgraph = [atom]
         if max_depth <= 1:
             return matched_node_path
         else:

@@ -217,7 +217,7 @@ class AtomFeatures:
     @staticmethod
     def atom_features_from_molecule_w_connection_info(
         molecule: Molecule, index: int, connected_to: Tuple[Any] = (-1, -1)
-    ) -> int:
+    ) -> (int, int, int):
         connected_bond_type = (
             -1 if connected_to[1] == -1 else get_connection_info_bond_type(molecule, int(index), int(connected_to[1]))
         )

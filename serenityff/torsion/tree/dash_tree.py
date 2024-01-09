@@ -1,6 +1,6 @@
 from serenityff.charge.tree.dash_tree import DASHTree
 from serenityff.charge.tree.atom_features import AtomFeatures
-from serenityff.charge.data import default_dash_tree_path
+from serenityff.torsion.data import default_dash_torsion_tree_path
 from serenityff.charge.utils.rdkit_typing import Molecule
 from serenityff.torsion.tree.tree_utils import get_canon_torsion_feature
 
@@ -8,7 +8,7 @@ from serenityff.torsion.tree.tree_utils import get_canon_torsion_feature
 class DASHTorsionTree(DASHTree):
     def __init__(
         self,
-        tree_folder_path: str = default_dash_tree_path,
+        tree_folder_path: str = default_dash_torsion_tree_path,
         preload: bool = True,
         verbose: bool = True,
         num_processes: int = 1,

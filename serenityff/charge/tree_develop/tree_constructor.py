@@ -334,11 +334,14 @@ class Tree_constructor:
         """
         print("Preparing Dataframe:")
         self.df_af_split = {}
-        for af in range(AtomFeatures.get_number_of_features()):
+        self.unique_afs_in_df = self.df.atom_feature.unique().tolist()
+        if self.verbose:
+            print(f"Number of unique atom features in df: {len(self.unique_afs_in_df)}")
+        for af in self.unique_afs_in_df:
             self.df_af_split[af] = self.df.loc[self.df.atom_feature == af].copy()
 
         print("Creating Tree Level 0:")
-        for af in tqdm(range(AtomFeatures.get_number_of_features())):
+        for af in tqdm(self.unique_afs_in_df):
             df_work = self.df_af_split[af]
             current_node = self.roots[af]
             try:
@@ -364,7 +367,8 @@ class Tree_constructor:
         out_folder = "tree_out"
         if not os.path.exists(out_folder):
             os.makedirs(out_folder)
-        for af in range(AtomFeatures.get_number_of_features() + 2):
+        for af in self.unique_afs_in_df:
+            # for af in range(AtomFeatures.get_number_of_features() + 2):
             try:
                 temp = pickle.load(open(f"{out_folder}/{af}.pkl", "rb"))
                 assert temp is not None
@@ -377,7 +381,8 @@ class Tree_constructor:
             time.sleep(200)
             num_slurm_jobs = int(os.popen("squeue | grep  't_' | wc -l").read())
         # collect all pickle files
-        for af in range(AtomFeatures.get_number_of_features() + 2):
+        for af in self.unique_afs_in_df:
+            # for af in range(AtomFeatures.get_number_of_features() + 2):
             try:
                 with open(f"{out_folder}/{af}.pkl", "rb") as f:
                     self.root.children.append(pickle.load(f))

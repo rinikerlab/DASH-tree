@@ -3,7 +3,8 @@ import traceback
 from typing import List
 import numpy as np
 import pandas as pd
-from serenityff.charge.tree.atom_features import AtomFeatures
+
+# from serenityff.charge.tree.atom_features import AtomFeatures
 
 from serenityff.charge.tree.tree_utils import (
     get_connected_atom_with_max_attention,
@@ -294,7 +295,7 @@ class Tree_constructor_parallel_worker:
 
     def build_tree(self, num_processes: int = 6, af_list: List[int] = None):
         if af_list is None:
-            af_list = list(range(AtomFeatures.get_number_of_features()))
+            af_list = self.df_af_split.keys()  # list(range(AtomFeatures.get_number_of_features()))
         all_args = [(x, self.df_af_split[x]) for x in af_list]
         res = []
         if num_processes == 1:

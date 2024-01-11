@@ -36,6 +36,7 @@ class Tree_constructor_parallel_worker:
         attention_percentage,
         verbose=False,
         logger=None,
+        node_type=DevelopNode,
     ):
         self.df_af_split = df_af_split
         self.matrices = matrices
@@ -45,6 +46,7 @@ class Tree_constructor_parallel_worker:
         self.num_layers_to_build = num_layers_to_build
         self.attention_percentage = attention_percentage
         self.verbose = verbose
+        self.node_type = node_type
         if logger is None:
             self.loggingBuild = False
         else:
@@ -55,7 +57,7 @@ class Tree_constructor_parallel_worker:
         current_node = self.roots[line["atom_feature"]]
         for i in range(layer):
             for child in current_node.children:
-                if child.atom_features == line[i]:
+                if np.all(child.atom_features == line[i]):
                     current_node = child
                     break
         return current_node
@@ -128,7 +130,7 @@ class Tree_constructor_parallel_worker:
                         rel,
                         bond_matrix[current_atom_idx][abs],
                     ]
-                    new_node = DevelopNode(
+                    new_node = self.node_type(
                         atom_features=new_atom_feature,
                         level=layer + 1,
                         truth_values=truth_value,
@@ -139,7 +141,9 @@ class Tree_constructor_parallel_worker:
                     line.iloc[layer] = new_node.atom_features
                     connected_atoms.append(current_atom_idx)
                 return new_atom_feature
-            except Exception:
+            except Exception as e:
+                if False:  # use this to debug
+                    print(f"TODO in AF {line['atom_feature']} - Layer {layer} - {e}")
                 # fill connected atoms with all atoms in the molecule
                 num_atoms = len(self.feature_dict[mol_index])
                 line["connected_atoms"] = list(range(num_atoms))
@@ -177,7 +181,7 @@ class Tree_constructor_parallel_worker:
             else:
                 current_atom_idx = int(line["connected_atom_max_attention_idx"])
                 new_atom_feature = [self.feature_dict[mol_index][current_atom_idx], -1, -1]
-                new_node = DevelopNode(
+                new_node = self.node_type(
                     atom_features=new_atom_feature,
                     level=1 + 1,
                     truth_values=truth_value,

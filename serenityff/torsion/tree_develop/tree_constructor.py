@@ -3,7 +3,8 @@ import pandas as pd
 from serenityff.torsion.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor import Tree_constructor
 from serenityff.charge.gnn.utils.rdkit_helper import get_all_torsion_angles
-from serenityff.torsion.tree.tree_utils import get_canon_torsion_feature
+from serenityff.torsion.tree.dash_utils import get_canon_torsion_feature
+from serenityff.torsion.tree.tree_utils import get_DASH_tree_from_DEV_tree
 
 
 class Torsion_tree_constructor(Tree_constructor):
@@ -40,6 +41,7 @@ class Torsion_tree_constructor(Tree_constructor):
             save_cleaned_df_path,
             save_feature_dict_path,
         )
+        self.node_type = DevelopNode
         self.create_torsion_df()
         self.create_correct_root_children()
 
@@ -96,3 +98,9 @@ class Torsion_tree_constructor(Tree_constructor):
         self.roots = {}
         for af in unique_afs_in_df:
             self.roots[af] = DevelopNode(atom_features=[af, -1, -1], level=1)
+
+    def convert_tree_to_node(self, delDevelop=False, tree_folder_path: str = "./"):
+        """
+        Helper function to convert develop nodes to normal nodes
+        """
+        self.new_tree = get_DASH_tree_from_DEV_tree(self.root, tree_folder_path=tree_folder_path)

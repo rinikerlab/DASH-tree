@@ -130,8 +130,8 @@ def recursive_DEV_node_to_DASH_tree(
 
 def get_DASH_tree_from_DEV_tree(dev_root: DevelopNode, tree_folder_path: str = "./"):
     tree_storage = {}
-    data_storage = []
-    for child_id, child in enumerate(dev_root.children):
+    data_storage = {}
+    for child in dev_root.children:
         branch_tree_storage = []
         branch_data_storage = []
         recursive_DEV_node_to_DASH_tree(child, 0, 0, branch_tree_storage, branch_data_storage)
@@ -139,8 +139,9 @@ def get_DASH_tree_from_DEV_tree(dev_root: DevelopNode, tree_folder_path: str = "
             branch_data_storage,
             columns=["level", "atom_type", "con_atom", "con_type", "result", "stdDeviation", "max_attention", "size"],
         )
+        child_id = int(child.atom_features[0])
         tree_storage[child_id] = branch_tree_storage
-        data_storage.append(branch_data_df)
+        data_storage[child_id] = branch_data_df
     tree = DASHTree(tree_folder_path=tree_folder_path, preload=False)
     tree.data_storage = data_storage
     tree.tree_storage = tree_storage

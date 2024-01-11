@@ -1,8 +1,9 @@
+import os
 from serenityff.charge.tree.dash_tree import DASHTree
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.torsion.data import default_dash_torsion_tree_path
 from serenityff.charge.utils.rdkit_typing import Molecule
-from serenityff.torsion.tree.tree_utils import get_canon_torsion_feature
+from serenityff.torsion.tree.dash_utils import get_canon_torsion_feature
 
 
 class DASHTorsionTree(DASHTree):
@@ -14,6 +15,27 @@ class DASHTorsionTree(DASHTree):
         num_processes: int = 1,
     ):
         super().__init__(tree_folder_path, preload, verbose, num_processes)
+
+    def load_all_trees_and_data(self):
+        """
+        Load all trees and data from the tree_folder_path, expects files named after the atom feature key and
+        the file extension .gz for the tree and .h5 for the data
+        Examples:
+            0.gz, 0.h5 for the tree and data of the atom feature with key 0
+        """
+        if self.verbose:
+            print("Loading DASH tree data")
+        # find all files in self.tree_folder_path, ending with .gz
+        files = os.listdir(self.tree_folder_path)
+        files = [file for file in files if file.endswith(".gz")]
+        file_indices = [int(file.split(".")[0]) for file in files]
+        # import all files
+        for i in file_indices:
+            tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
+            df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
+            self.load_tree_and_data(tree_path, df_path, branch_idx=i)
+        if self.verbose:
+            print(f"Loaded {len(self.tree_storage)} trees and data")
 
     def _get_init_layer(self, mol: Molecule, atom: int, max_depth: int):
         if len(atom) != 4:

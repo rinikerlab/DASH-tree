@@ -77,6 +77,7 @@ class Tree_constructor:
             Debug option for skipping steps, by default None
         """
         # init
+        self.node_type = DevelopNode
         if loggingBuild:
             self.loggingBuild = True
             logging.basicConfig(
@@ -195,7 +196,7 @@ class Tree_constructor:
         self.roots = {}
         for af in AtomFeatures.feature_list:
             af_key = AtomFeatures.afTuple_2_afKey[af]
-            self.roots[af_key] = DevelopNode(atom_features=[af_key, -1, -1], level=1)
+            self.roots[af_key] = self.node_type(atom_features=[af_key, -1, -1], level=1)
         self.new_root = node(level=0)
 
         if verbose:
@@ -405,6 +406,7 @@ class Tree_constructor:
             attention_percentage=self.attention_percentage,
             verbose=self.verbose,
             logger=[self.logger if self.loggingBuild else None],
+            node_type=self.node_type,
         )
         if build_with_sperate_jobs:
             self._build_with_seperate_slurm_jobs(tree_worker)

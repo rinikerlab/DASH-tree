@@ -387,7 +387,8 @@ class DASHTree:
         verbose: bool = False,
         default_std_value: float = 0.1,
         chg_key: str = "result",
-        chg_std_key: str = "stdDeviation",
+        chg_std_key: str = "std",
+        nodePathList=None,
     ):
         """
         Get the partial charges of all atoms in a molecule by matching them to DASH tree subgraphs and
@@ -423,12 +424,13 @@ class DASHTree:
         tree_raw_charges = []
         tree_charge_std = []
         tree_match_depth = []
-        nodePathList = self._get_allAtoms_nodePaths(
-            mol,
-            max_depth=max_depth,
-            attention_threshold=attention_threshold,
-            attention_incremet_threshold=attention_incremet_threshold,
-        )
+        if nodePathList is None:
+            nodePathList = self._get_allAtoms_nodePaths(
+                mol,
+                max_depth=max_depth,
+                attention_threshold=attention_threshold,
+                attention_incremet_threshold=attention_incremet_threshold,
+            )
         for nodePath in nodePathList:
             try:
                 chg_atom = self.get_property_noNAN(
@@ -558,18 +560,22 @@ class DASHTree:
         mol: Molecule,
         inDebye: bool = True,
         chg_key: str = "result",
+        chg_std_key: str = "std",
         sngl_cnf=True,
         nconfs=10,
         pruneRmsThresh=0.5,
         useExpTorsionAnglePrefs=False,
         useBasicKnowledge=False,
         add_atomic_dipoles=False,
+        nodePathList=None,
     ):
         """
         Get the dipole moment of a molecule by matching all atoms to DASH tree subgraphs and
         summing the dipole moments of the matched atoms
         """
-        chgs = self.get_molecules_partial_charges(mol=mol, norm_method="std_weighted", chg_key=chg_key)["charges"]
+        chgs = self.get_molecules_partial_charges(
+            mol=mol, norm_method="std_weighted", chg_key=chg_key, chg_std_key=chg_std_key, nodePathList=nodePathList
+        )["charges"]
         # check if mol has conformer, otherwise generate one
         if mol.GetNumConformers() == 0:
             # AllChem.EmbedMolecule(mol)
@@ -599,15 +605,18 @@ class DASHTree:
             vec_sum = np.sum(
                 [chg * np.array(mol.GetConformer().GetAtomPosition(i)) for i, chg in enumerate(chgs)], axis=0
             )
+            if add_atomic_dipoles:
+                for atom_idx in range(mol.GetNumAtoms()):
+                    vec_sum += self.get_atomic_dipole_vector(mol, atom_idx)
             dipole = np.linalg.norm(vec_sum)
         else:
             dipole = np.zeros(mol.GetNumConformers())
             for conf_i, conf in enumerate(mol.GetConformers()):
                 vec_sum = np.sum([chg * np.array(conf.GetAtomPosition(i)) for i, chg in enumerate(chgs)], axis=0)
+                if add_atomic_dipoles:
+                    for atom_idx in range(mol.GetNumAtoms()):
+                        vec_sum += self.get_atomic_dipole_vector(mol, atom_idx)
                 dipole[conf_i] = np.linalg.norm(vec_sum)
-        if add_atomic_dipoles:
-            for atom_idx in range(mol.GetNumAtoms()):
-                dipole += self.get_atomic_dipole_vector(mol, atom_idx)
         if inDebye:
             dipole /= 0.393430307
         return dipole

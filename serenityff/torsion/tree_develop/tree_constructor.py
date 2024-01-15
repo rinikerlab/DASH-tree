@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import datetime
 from serenityff.torsion.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor import Tree_constructor
 from serenityff.charge.gnn.utils.rdkit_helper import get_all_torsion_angles
@@ -24,6 +25,7 @@ class Torsion_tree_constructor(Tree_constructor):
         split_indices_path=None,
         save_cleaned_df_path=None,
         save_feature_dict_path=None,
+        load_torsion_df_path=None,
     ):
         super().__init__(
             df_path,
@@ -42,7 +44,15 @@ class Torsion_tree_constructor(Tree_constructor):
             save_feature_dict_path,
         )
         self.node_type = DevelopNode
-        self.create_torsion_df()
+        if verbose:
+            print(f"{datetime.datetime.now()}\tCharge constructor build, creating torsion df", flush=True)
+        if load_torsion_df_path is None:
+            self.create_torsion_df()
+            self.df.to_csv("torsion_df.csv", index=False)
+        else:
+            self.df = pd.read_csv(load_torsion_df_path)
+        if verbose:
+            print(f"{datetime.datetime.now()}\tTorison df created, creating root children", flush=True)
         self.create_correct_root_children()
 
     def create_torsion_df(self):
@@ -50,6 +60,12 @@ class Torsion_tree_constructor(Tree_constructor):
         set_of_mol_indices_in_df = set(self.df["mol_index"].values)
         num_torsions_found = 0
         for mol_index, mol in enumerate(self.sdf_suplier):
+            if self.verbose:
+                if mol_index % 1000 == 0:
+                    print(
+                        f"{datetime.datetime.now()}\t{mol_index}/{len(self.sdf_suplier)} molecules processed",
+                        flush=True,
+                    )
             if mol_index not in set_of_mol_indices_in_df:
                 continue
             torsion_angles_list = get_all_torsion_angles(mol)

@@ -59,9 +59,13 @@ class Torsion_tree_constructor(Tree_constructor):
         df_list = []
         set_of_mol_indices_in_df = set(self.df["mol_index"].values)
         num_torsions_found = 0
+        errors_found = 0
+        # fix df indices
+        self.df.reset_index(drop=True, inplace=True)
+        mol_2_df_dict = self.df.groupby("mol_index").groups
         for mol_index, mol in enumerate(self.sdf_suplier):
             if self.verbose:
-                if mol_index % 1000 == 0:
+                if mol_index % 10000 == 0:
                     print(
                         f"{datetime.datetime.now()}\t{mol_index}/{len(self.sdf_suplier)} molecules processed",
                         flush=True,
@@ -78,11 +82,16 @@ class Torsion_tree_constructor(Tree_constructor):
                 num_torsions_found += 1
                 # find the four atoms in seld.df and combine them
                 a1, a2, a3, a4 = torsion_indices
-                df_mol = self.df[self.df["mol_index"] == mol_index]
-                df_a1 = df_mol[df_mol["idx_in_mol"] == a1].iloc[0]
-                df_a2 = df_mol[df_mol["idx_in_mol"] == a2].iloc[0]
-                df_a3 = df_mol[df_mol["idx_in_mol"] == a3].iloc[0]
-                df_a4 = df_mol[df_mol["idx_in_mol"] == a4].iloc[0]
+                try:
+                    group = mol_2_df_dict[mol_index]
+                    df_mol = self.df.iloc[group]
+                    df_a1 = df_mol[df_mol["idx_in_mol"] == a1].iloc[0]
+                    df_a2 = df_mol[df_mol["idx_in_mol"] == a2].iloc[0]
+                    df_a3 = df_mol[df_mol["idx_in_mol"] == a3].iloc[0]
+                    df_a4 = df_mol[df_mol["idx_in_mol"] == a4].iloc[0]
+                except IndexError:
+                    errors_found += 1
+                    continue
                 # average node_attentions
                 node_attentions = np.mean(
                     [
@@ -107,6 +116,7 @@ class Torsion_tree_constructor(Tree_constructor):
         self.df = pd.concat(df_list, axis=1).T
         if self.verbose:
             print(f"Found {num_torsions_found} torsions in the dataset")
+            print(f"Found {errors_found} errors in the dataset")
             print(f"Created a dataframe with {self.df.shape} torsions")
 
     def create_correct_root_children(self):

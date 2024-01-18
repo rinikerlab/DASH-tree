@@ -253,8 +253,8 @@ class Tree:
                 tree_match_depth.append(len(node_path))
             except Exception as e:
                 print(e)
-                tree_raw_charges.append(np.NaN)
-                tree_charge_std.append(np.NaN)
+                tree_raw_charges.append(np.nan)
+                tree_charge_std.append(np.nan)
                 tree_match_depth.append(-1)
 
         if verbose:

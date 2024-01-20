@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import datetime
+from tqdm import tqdm
 from serenityff.torsion.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor import Tree_constructor
 from serenityff.charge.gnn.utils.rdkit_helper import get_all_torsion_angles
@@ -124,6 +125,38 @@ class Torsion_tree_constructor(Tree_constructor):
         self.roots = {}
         for af in unique_afs_in_df:
             self.roots[af] = DevelopNode(atom_features=[af, -1, -1], level=1)
+
+    def create_tree_level_0(self, save_dfs_prefix: str = None):
+        """
+        Creates the tree level 0 for all atom features
+
+        First level is a separate function due to the different function body and option to restart building from here
+        """
+        print("Preparing Dataframe:")
+        self.df_af_split = {}
+        self.unique_afs_in_df = self.df.atom_feature.unique().tolist()
+        if self.verbose:
+            print(f"Number of unique atom features in df: {len(self.unique_afs_in_df)}")
+        for af in self.unique_afs_in_df:
+            self.df_af_split[af] = self.df.loc[self.df.atom_feature == af].copy()
+
+        print("Creating Tree Level 0:")
+        for af in tqdm(self.unique_afs_in_df):
+            df_work = self.df_af_split[af]
+            current_node = self.roots[af]
+            try:
+                truth_values = df_work["truth"].to_list()
+                # attention_values = df_work.apply(lambda x: np.sum(x["node_attentions"][x["connected_atoms"]]), axis=1).to_list()
+                attention_values = [0] * len(truth_values)
+                current_node.truth_values = truth_values
+                current_node.attention_values = attention_values
+                current_node.update_average()
+            except (KeyError, AttributeError):
+                pass
+            df_work[0] = df_work["atom_feature"]
+            if save_dfs_prefix is not None:
+                df_work.to_csv(f"{save_dfs_prefix}_layer_0_{af}.csv")
+        print(f"{datetime.datetime.now()}\tLayer 0 done")
 
     def convert_tree_to_node(self, delDevelop=False, tree_folder_path: str = "./"):
         """

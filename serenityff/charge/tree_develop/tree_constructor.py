@@ -36,6 +36,7 @@ class Tree_constructor:
         split_indices_path=None,
         save_cleaned_df_path=None,
         save_feature_dict_path=None,
+        atom_feature_type=AtomFeatures,
     ):
         """Initialize Tree_constructor object for DASH tree building (SerenityFF)
         This constructor can:
@@ -78,6 +79,7 @@ class Tree_constructor:
         """
         # init
         self.node_type = DevelopNode
+        self.atom_feature_type = atom_feature_type
         if loggingBuild:
             self.loggingBuild = True
             logging.basicConfig(
@@ -168,7 +170,9 @@ class Tree_constructor:
             h.append(self._get_hydrogen_connectivity(row))
             c.append(([] if row["atomtype"] == "H" else [row["idx_in_mol"]]))
             t.append(row["node_attentions"][row["idx_in_mol"]])
-            tmp_af = AtomFeatures.atom_features_from_molecule(self.sdf_suplier[row["mol_index"]], row["idx_in_mol"])
+            tmp_af = self.atom_feature_type.atom_features_from_molecule(
+                self.sdf_suplier[row["mol_index"]], row["idx_in_mol"]
+            )
             af.append(tmp_af)
             if row["idx_in_mol"] == 0:
                 self.feature_dict[row["mol_index"]] = dict()
@@ -194,8 +198,8 @@ class Tree_constructor:
         self.attention_percentage = attention_percentage
         self.num_layers_to_build = num_layers_to_build
         self.roots = {}
-        for af in AtomFeatures.feature_list:
-            af_key = AtomFeatures.afTuple_2_afKey[af]
+        for af in self.atom_feature_type.feature_list:
+            af_key = self.atom_feature_type.afTuple_2_afKey[af]
             self.roots[af_key] = self.node_type(atom_features=[af_key, -1, -1], level=1)
         self.new_root = node(level=0)
 
@@ -295,7 +299,7 @@ class Tree_constructor:
             return -1
 
     def _create_atom_features(self, line):
-        return AtomFeatures.atom_features_from_molecule_w_connection_info(
+        return self.atom_feature_type.atom_features_from_molecule_w_connection_info(
             self.sdf_suplier[line["mol_index"]], line["idx_in_mol"]
         )
 
@@ -369,7 +373,7 @@ class Tree_constructor:
         if not os.path.exists(out_folder):
             os.makedirs(out_folder)
         for af in self.unique_afs_in_df:
-            # for af in range(AtomFeatures.get_number_of_features() + 2):
+            # for af in range(self.atom_feature_type.get_number_of_features() + 2):
             try:
                 temp = pickle.load(open(f"{out_folder}/{af}.pkl", "rb"))
                 assert temp is not None
@@ -383,7 +387,7 @@ class Tree_constructor:
             num_slurm_jobs = int(os.popen("squeue | grep  't_' | wc -l").read())
         # collect all pickle files
         for af in self.unique_afs_in_df:
-            # for af in range(AtomFeatures.get_number_of_features() + 2):
+            # for af in range(self.atom_feature_type.get_number_of_features() + 2):
             try:
                 with open(f"{out_folder}/{af}.pkl", "rb") as f:
                     self.root.children.append(pickle.load(f))

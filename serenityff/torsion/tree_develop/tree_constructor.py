@@ -7,6 +7,7 @@ from serenityff.charge.tree_develop.tree_constructor import Tree_constructor
 from serenityff.charge.gnn.utils.rdkit_helper import get_all_torsion_angles
 from serenityff.torsion.tree.dash_utils import get_canon_torsion_feature
 from serenityff.torsion.tree.tree_utils import get_DASH_tree_from_DEV_tree
+from serenityff.charge.tree.atom_features_reduced import AtomFeaturesReduced
 
 
 class Torsion_tree_constructor(Tree_constructor):
@@ -27,6 +28,7 @@ class Torsion_tree_constructor(Tree_constructor):
         save_cleaned_df_path=None,
         save_feature_dict_path=None,
         load_torsion_df_path=None,
+        atom_feature_type=AtomFeaturesReduced,
     ):
         super().__init__(
             df_path,
@@ -43,8 +45,10 @@ class Torsion_tree_constructor(Tree_constructor):
             split_indices_path,
             save_cleaned_df_path,
             save_feature_dict_path,
+            atom_feature_type,
         )
         self.node_type = DevelopNode
+        self.atom_feature_type = atom_feature_type
         if verbose:
             print(f"{datetime.datetime.now()}\tCharge constructor build, creating torsion df", flush=True)
         if load_torsion_df_path is None:
@@ -125,6 +129,8 @@ class Torsion_tree_constructor(Tree_constructor):
         self.roots = {}
         for af in unique_afs_in_df:
             self.roots[af] = DevelopNode(atom_features=[af, -1, -1], level=1)
+        if self.verbose:
+            print(f"Created {len(self.roots)} root children of {self.atom_feature_type.get_number_of_features()} af's")
 
     def create_tree_level_0(self, save_dfs_prefix: str = None):
         """

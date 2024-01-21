@@ -58,6 +58,7 @@ class DASHTree:
         self.data_storage = {}
         if preload:
             self.load_all_trees_and_data()
+        self.atom_feature_type = AtomFeatures
 
     ########################################
     #   Tree import/export functions
@@ -77,14 +78,14 @@ class DASHTree:
             print("Loading DASH tree data")
         # import all files
         if True:  # self.num_processes <= 1:
-            for i in range(AtomFeatures.get_number_of_features()):
+            for i in range(self.atom_feature_type.get_number_of_features()):
                 tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
                 df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
                 self.load_tree_and_data(tree_path, df_path, branch_idx=i)
         # else:
         # Threads don't seem to work due to HDFstore key error
         #    with ThreadPoolExecutor(max_workers=self.num_processes) as executor:
-        #        for i in range(AtomFeatures.get_number_of_features()):
+        #        for i in range(self.atom_feature_type.get_number_of_features()):
         #            tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
         #            df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
         #            executor.submit(self.load_tree_and_data, tree_path, df_path, i)
@@ -162,13 +163,15 @@ class DASHTree:
         return (None, None)
 
     def _get_init_layer(self, mol: Molecule, atom: int, max_depth: int):
-        init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, atom)
+        init_atom_feature = self.atom_feature_type.atom_features_from_molecule_w_connection_info(mol, atom)
         branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
         matched_node_path = [branch_idx, 0]
         # Special case for H -> only connect to heavy atom and ignore H
         if mol.GetAtomWithIdx(atom).GetAtomicNum() == 1:
             h_connected_heavy_atom = mol.GetAtomWithIdx(atom).GetNeighbors()[0].GetIdx()
-            init_atom_feature = AtomFeatures.atom_features_from_molecule_w_connection_info(mol, h_connected_heavy_atom)
+            init_atom_feature = self.atom_feature_type.atom_features_from_molecule_w_connection_info(
+                mol, h_connected_heavy_atom
+            )
             child, _ = self._pick_subgraph_expansion_node(0, branch_idx, [init_atom_feature], [h_connected_heavy_atom])
             matched_node_path.append(child)
             atom_indices_in_subgraph = [h_connected_heavy_atom]  # skip Hs as they are only treated implicitly
@@ -206,7 +209,7 @@ class DASHTree:
             Minimum attention increment to stop the traversal
         """
         if neighbor_dict is None:
-            neighbor_dict = init_neighbor_dict(mol)
+            neighbor_dict = init_neighbor_dict(mol, af=self.atom_feature_type)
 
         # get layer 0, and init all relevant containers
         branch_idx, matched_node_path, atom_indices_in_subgraph, max_depth = self._get_init_layer(
@@ -361,7 +364,7 @@ class DASHTree:
             Dictionary containing the properties of all atoms
         """
         nodePathList = []
-        neighbor_dict = init_neighbor_dict(mol)
+        neighbor_dict = init_neighbor_dict(mol, af=self.atom_feature_type)
         for atom in range(mol.GetNumAtoms()):
             try:
                 node_path = self.match_new_atom(
@@ -713,7 +716,7 @@ class DASHTree:
             tmp_mbis.append(self.get_property_noNAN(matched_node_path=node_path, property_name="result"))
             tmp_dual.append(self.get_property_noNAN(matched_node_path=node_path, property_name="dual"))
             key = self.tree_storage[bidx][0][1]
-            tmp_conj.append(AtomFeatures.afKey_2_afTuple[key][3])
+            tmp_conj.append(self.atom_feature_type.afKey_2_afTuple[key][3])
         return_dict["DASH_homo"] = np.max(tmp_homo)
         return_dict["DASH_lumo"] = np.min(tmp_lumo)
         return_dict["DASH_max_abs_mbis"] = np.max(np.abs(tmp_mbis))

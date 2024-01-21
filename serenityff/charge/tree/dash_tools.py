@@ -37,12 +37,12 @@ def new_neighbors_atomic(neighbor_dict, connected_atoms, atom_idx_added) -> tupl
     return new_neighbors_afs, new_neighbors
 
 
-def init_neighbor_dict(mol: Molecule):
+def init_neighbor_dict(mol: Molecule, af=AtomFeatures):
     neighbor_dict = {}
     for atom_idx, atom in enumerate(mol.GetAtoms()):
         neighbor_dict[atom_idx] = []
         for neighbor in atom.GetNeighbors():
-            af_with_connection_info = AtomFeatures.atom_features_from_molecule_w_connection_info(
+            af_with_connection_info = af.atom_features_from_molecule_w_connection_info(
                 mol, neighbor.GetIdx(), (0, atom_idx)
             )
             neighbor_dict[atom_idx].append((neighbor.GetIdx(), af_with_connection_info))
@@ -60,6 +60,7 @@ def get_rdkit_fragment_from_node_path(node_path) -> Chem.RWMol:
         Chem.RWMol: The rdkit molecule of the subgraph/path.
     """
     print("WARNING: get_rdkit_fragment_from_node_path is deprecated.")
+    raise DeprecationWarning
     # start with an empty molecule
     mol = Chem.RWMol()
     # add the first atom

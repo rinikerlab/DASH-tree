@@ -1,6 +1,8 @@
 import os
 from serenityff.charge.tree.dash_tree import DASHTree
-from serenityff.charge.tree.atom_features import AtomFeatures
+
+# from serenityff.charge.tree.atom_features import AtomFeatures
+from serenityff.charge.tree.atom_features_reduced import AtomFeaturesReduced
 from serenityff.torsion.data import default_dash_torsion_tree_path
 from serenityff.charge.utils.rdkit_typing import Molecule
 from serenityff.torsion.tree.dash_utils import get_canon_torsion_feature
@@ -15,6 +17,7 @@ class DASHTorsionTree(DASHTree):
         num_processes: int = 1,
     ):
         super().__init__(tree_folder_path, preload, verbose, num_processes)
+        self.atom_feature_type = AtomFeaturesReduced
 
     def load_all_trees_and_data(self):
         """
@@ -40,7 +43,7 @@ class DASHTorsionTree(DASHTree):
     def _get_init_layer(self, mol: Molecule, atom: int, max_depth: int):
         if len(atom) != 4:
             raise ValueError(f"A list of 4 atom indices is required to define a torsion angle. Got {atom} instead.")
-        af1, af2, af3, af4 = [AtomFeatures.atom_features_from_molecule(mol, atom_i) for atom_i in atom]
+        af1, af2, af3, af4 = [self.atom_feature_type.atom_features_from_molecule(mol, atom_i) for atom_i in atom]
         canon_init_torsion_feature = get_canon_torsion_feature(af1, af2, af3, af4)
         matched_node_path = [canon_init_torsion_feature, 0]
         max_depth = max(max_depth - 3, 0)

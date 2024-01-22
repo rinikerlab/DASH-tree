@@ -214,11 +214,13 @@ class Tree_constructor:
         """
         Brute force method to clean molecule indices in df and sdf_suplier
         """
+        num_missmatches = 0
         molecule_idx_in_df = self.original_df.mol_index.unique().tolist()
         for mol_index in molecule_idx_in_df:
             number_of_atoms_in_mol_df = len(self.original_df.loc[self.original_df.mol_index == mol_index])
             number_of_atoms_in_mol_sdf = self.sdf_suplier[mol_index].GetNumAtoms()
             if number_of_atoms_in_mol_df > number_of_atoms_in_mol_sdf:
+                num_missmatches += 1
                 for i in range(5):
                     if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 1 + i].GetNumAtoms():
                         self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 1 + i
@@ -229,6 +231,8 @@ class Tree_constructor:
                         )
             else:
                 pass
+        if self.verbose:
+            print(f"Number of missmatches found in sanitizing: {num_missmatches}")
 
     def _raise_index_missmatch_error(self, mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf):
         print(

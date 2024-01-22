@@ -56,6 +56,8 @@ class Torsion_tree_constructor(Tree_constructor):
             self.df.to_csv("torsion_df.csv", index=False)
         else:
             self.df = pd.read_csv(load_torsion_df_path)
+            self.df["node_attentions"] = self.df["node_attentions"].apply(eval)
+            self.df["connected_atoms"] = self.df["connected_atoms"].apply(eval)
         if verbose:
             print(f"{datetime.datetime.now()}\tTorison df created, creating root children", flush=True)
         self.create_correct_root_children()

@@ -42,12 +42,20 @@ class DevelopNode(DevelopNodeCharge):
                 current_parent = current_parent.children[-1]
         return
 
+    def _assign_torsion_angle_to_bin(self, angle):
+        # angle is between -180 and 180 -180=0, 180=99
+        if angle < -180:
+            angle += 360
+        elif angle > 180:
+            angle -= 360
+        bin_size = 360 / self.num_histogram_bins
+        bin_index = int((angle + 180) / bin_size)
+        return bin_index
+
     def update_average(self):
         if self.level != 0 and self.truth_values is not None:
             for truth_value in self.truth_values:
-                bin_index = int(
-                    (truth_value + 1) * self.num_histogram_bins / 2
-                )  # map [-1, 1] to [0, num_histogram_bins]
+                bin_index = self._assign_torsion_angle_to_bin(truth_value)
                 self.torsion_histogram[bin_index] += 1
         for child in self.children:
             child.update_average()

@@ -43,13 +43,11 @@ class DevelopNode(DevelopNodeCharge):
         return
 
     def _assign_torsion_angle_to_bin(self, angle):
-        # angle is between -180 and 180 -180=0, 180=99
-        if angle < -180:
-            angle += 360
-        elif angle > 180:
-            angle -= 360
-        bin_size = 360 / self.num_histogram_bins
-        bin_index = int((angle + 180) / bin_size)
+        # angle is between -1 and 1 -1=0, 1=99
+        angle = angle + 1
+        angle = angle % 2
+        bin_size = 2 / self.num_histogram_bins
+        bin_index = int(angle / bin_size)
         return bin_index
 
     def update_average(self):

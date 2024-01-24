@@ -4,7 +4,9 @@ import datetime
 from tqdm import tqdm
 from serenityff.torsion.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor import Tree_constructor
-from serenityff.charge.gnn.utils.rdkit_helper import get_all_torsion_angles
+
+# from serenityff.charge.gnn.utils.rdkit_helper import get_all_torsion_angles
+from serenityff.torsion.tree.rdkit_helper import get_all_torsion_angles
 from serenityff.torsion.tree.dash_utils import get_canon_torsion_feature
 from serenityff.torsion.tree.tree_utils import get_DASH_tree_from_DEV_tree
 from serenityff.charge.tree.atom_features_reduced import AtomFeaturesReduced

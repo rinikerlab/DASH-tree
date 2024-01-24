@@ -476,12 +476,20 @@ class DASHTree:
 
     def _get_attention_sorted_neighbours_bondVectors(self, mol, atom_idx, verbose=False):
         rdkit_neighbors = mol.GetAtomWithIdx(atom_idx).GetNeighbors()
+        if verbose:
+            print(f"rdkit_neighbors: {[n.GetIdx() for n in rdkit_neighbors]}")
         node_path, atom_indices_in_subgraph = self.match_new_atom(atom=atom_idx, mol=mol, return_atom_indices=True)
+        if verbose:
+            print(f"node_path: {node_path}")
+            print(f"atom_indices_in_subgraph: {atom_indices_in_subgraph}")
         neighbours = []
-        for node_idx, atom_idx_in_subgraph in zip(node_path[1:], atom_indices_in_subgraph):
-            tmp_node = self.tree_storage[node_path[0]][node_idx]
-            if tmp_node[2] == 0:
-                neighbours.append(atom_idx_in_subgraph)
+        if mol.GetAtomWithIdx(atom_idx).GetSymbol() == "H":
+            neighbours.append(atom_indices_in_subgraph[0])
+        else:
+            for node_idx, atom_idx_in_subgraph in zip(node_path[1:], atom_indices_in_subgraph):
+                tmp_node = self.tree_storage[node_path[0]][node_idx]
+                if tmp_node[2] == 0:
+                    neighbours.append(atom_idx_in_subgraph)
         if verbose:
             print(f"neighbours: {neighbours}")
         # add Hs
@@ -490,7 +498,6 @@ class DASHTree:
                 neighbours.append(neighbor.GetIdx())
         if verbose:
             print(f"neighbours with Hs: {neighbours}")
-        # get bond vectors for all neighbours
         bond_vectors = []
         for neighbor in neighbours:
             bond_vectors.append(

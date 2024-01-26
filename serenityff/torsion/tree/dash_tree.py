@@ -1,4 +1,7 @@
 import os
+import gzip
+import pickle
+import pandas as pd
 from serenityff.charge.tree.dash_tree import DASHTree
 
 # from serenityff.charge.tree.atom_features import AtomFeatures
@@ -39,6 +42,33 @@ class DASHTorsionTree(DASHTree):
             self.load_tree_and_data(tree_path, df_path, branch_idx=i)
         if self.verbose:
             print(f"Loaded {len(self.tree_storage)} trees and data")
+
+    def load_tree_and_data(self, tree_path: str, df_path: str, hdf_key: str = "df", branch_idx: int = None):
+        """
+        Load a tree and data from the tree_folder_path, expects files named after the atom feature key and
+        the file extension .gz for the tree and .h5 for the data
+        Examples:
+            0.gz, 0.h5 for the tree and data of the atom feature with key 0
+
+        Parameters
+        ----------
+        tree_path : str
+            the path to the tree file
+        df_path : str
+            the path to the data file
+        hdf_key : str, optional
+            the key of the data in the hdf file, by default "df"
+        branch_idx : int, optional
+            the atom feature key of the tree branch, by default takes the key from the file name
+        """
+        if branch_idx is None:
+            branch_idx = int(os.path.basename(tree_path).split(".")[0])
+        with gzip.open(tree_path, "rb") as f:
+            tree = pickle.load(f)
+        df = pd.read_hdf(df_path, key=hdf_key, mode="r")
+        df.drop(columns=["histogram", "max_attention", "con_type", "con_atom"], inplace=True)
+        self.tree_storage[branch_idx] = tree
+        self.data_storage[branch_idx] = df
 
     def _get_init_layer(self, mol: Molecule, atom: int, max_depth: int):
         if len(atom) != 4:

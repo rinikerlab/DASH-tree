@@ -56,9 +56,9 @@ class DASHTree:
         self.num_processes = num_processes
         self.tree_storage = {}
         self.data_storage = {}
+        self.atom_feature_type = AtomFeatures
         if preload:
             self.load_all_trees_and_data()
-        self.atom_feature_type = AtomFeatures
 
     ########################################
     #   Tree import/export functions

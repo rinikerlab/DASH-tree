@@ -66,7 +66,10 @@ class DASHTorsionTree(DASHTree):
         with gzip.open(tree_path, "rb") as f:
             tree = pickle.load(f)
         df = pd.read_hdf(df_path, key=hdf_key, mode="r")
-        df.drop(columns=["histogram", "max_attention", "con_type", "con_atom"], inplace=True)
+        try:
+            df.drop(columns=["histogram", "max_attention", "con_type", "con_atom"], inplace=True)
+        except KeyError:
+            pass
         self.tree_storage[branch_idx] = tree
         self.data_storage[branch_idx] = df
 

@@ -120,7 +120,7 @@ class Torsion_tree_constructor(Tree_constructor):
                 af2 = df_a2["atom_feature"]
                 af3 = df_a3["atom_feature"]
                 af4 = df_a4["atom_feature"]
-                new_line["atom_feature"] = get_canon_torsion_feature(af1, af2, af3, af4)
+                new_line["atom_feature"] = get_canon_torsion_feature(af1, af2, af3, af4, useRingsInMol=mol)
                 df_list.append(new_line)
         self.df = pd.concat(df_list, axis=1).T
         if self.verbose:

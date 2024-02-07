@@ -1,8 +1,18 @@
 # from serenityff.charge.tree.atom_features import AtomFeatures
+from serenityff.charge.utils.rdkit_typing import Molecule
+from typing import List
 from serenityff.charge.tree.atom_features_reduced import AtomFeaturesReduced as AtomFeatures
 
 
-def get_canon_torsion_feature(af1: int, af2: int, af3: int, af4: int, max_number_afs_for_concat: int = None):
+def torsion_is_in_Ring(mol: Molecule, indices: List[int]) -> int:
+    a, b, c, d = indices
+    bond = mol.GetBondBetweenAtoms(b, c)
+    return int(bond.IsInRing())
+
+
+def get_canon_torsion_feature(
+    af1: int, af2: int, af3: int, af4: int, max_number_afs_for_concat: int = None, useRingsInMol: Molecule = None
+) -> int:
     # get the canonical torsion feature
     # defined as the feature with the smallest numbers to the left, considering the mirror symmetry
     # e.g. [1, 2, 3, 4] and [4, 3, 2, 1] are the same and the canonical torsion feature is [1, 2, 3, 4]
@@ -21,4 +31,8 @@ def get_canon_torsion_feature(af1: int, af2: int, af3: int, af4: int, max_number
         + af3 * max_number_afs_for_concat**2
         + af4 * max_number_afs_for_concat**3
     )
+    if useRingsInMol is not None:
+        concat_torsion_feature += (
+            torsion_is_in_Ring(useRingsInMol, (af1, af2, af3, af4)) * max_number_afs_for_concat**4
+        )
     return concat_torsion_feature

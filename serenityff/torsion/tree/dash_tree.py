@@ -2,6 +2,7 @@ import os
 import gzip
 import pickle
 import pandas as pd
+import numpy as np
 from serenityff.charge.tree.dash_tree import DASHTree
 
 # from serenityff.charge.tree.atom_features import AtomFeatures
@@ -70,6 +71,11 @@ class DASHTorsionTree(DASHTree):
             df.drop(columns=["histogram", "max_attention", "con_type", "con_atom"], inplace=True)
         except KeyError:
             pass
+        # remove empty csd arrays for memory efficiency
+        try:
+            df["csd"] = df["csd"].apply(lambda x: x if np.sum(x) > 0 else np.array([0]))
+        except KeyError:
+            pass
         self.tree_storage[branch_idx] = tree
         self.data_storage[branch_idx] = df
 
@@ -77,7 +83,7 @@ class DASHTorsionTree(DASHTree):
         if len(atom) != 4:
             raise ValueError(f"A list of 4 atom indices is required to define a torsion angle. Got {atom} instead.")
         af1, af2, af3, af4 = [self.atom_feature_type.atom_features_from_molecule(mol, atom_i) for atom_i in atom]
-        canon_init_torsion_feature = get_canon_torsion_feature(af1, af2, af3, af4)
+        canon_init_torsion_feature = get_canon_torsion_feature(af1, af2, af3, af4, useRingsInMol=mol)
         matched_node_path = [canon_init_torsion_feature, 0]
         max_depth = max(max_depth - 3, 0)
         return canon_init_torsion_feature, matched_node_path, atom, max_depth

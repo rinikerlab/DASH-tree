@@ -6,7 +6,7 @@ from serenityff.charge.tree.atom_features_reduced import AtomFeaturesReduced as 
 
 def torsion_is_in_Ring(mol: Molecule, indices: List[int]) -> int:
     a, b, c, d = indices
-    bond = mol.GetBondBetweenAtoms(b, c)
+    bond = mol.GetBondBetweenAtoms(int(b), int(c))
     return int(bond.IsInRing())
 
 

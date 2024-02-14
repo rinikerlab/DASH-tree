@@ -5,7 +5,11 @@ import pytest
 from rdkit import Chem
 
 from serenityff.charge.gnn.utils import MolGraphConvFeaturizer
-from serenityff.charge.gnn.utils.custom_data import CustomData, CustomGraphData, GraphData
+from serenityff.charge.gnn.utils.custom_data import (
+    CustomData,
+    CustomGraphData,
+    GraphData,
+)
 from serenityff.charge.gnn.utils.featurizer import (
     Featurizer,
     MolecularFeaturizer,
@@ -17,8 +21,18 @@ from serenityff.charge.gnn.utils.featurizer import (
     get_atom_total_degree_one_hot,
     one_hot_encode,
 )
-from serenityff.charge.gnn.utils.split_utils import get_split_numbers, split_data_Kfold, split_data_random
-from serenityff.charge.utils import Atom, Bond, ExtractionError, Molecule, NotInitializedError
+from serenityff.charge.gnn.utils.split_utils import (
+    get_split_numbers,
+    split_data_Kfold,
+    split_data_random,
+)
+from serenityff.charge.utils import (
+    Atom,
+    Bond,
+    ExtractionError,
+    Molecule,
+    NotInitializedError,
+)
 
 
 @pytest.fixture
@@ -248,20 +262,20 @@ def test_getters(
     node_pos_features,
 ) -> None:
     graph = graph_data
-    np.array_equal(graph.node_features, node_features)
-    np.array_equal(graph.edge_index, edge_index)
-    np.array_equal(graph.edge_features, edge_features)
-    np.array_equal(graph.node_pos_features, node_pos_features)
+    np.testing.assert_array_equal(graph.node_features, node_features)
+    np.testing.assert_array_equal(graph.edge_index, edge_index)
+    np.testing.assert_array_equal(graph.edge_features, edge_features)
+    np.testing.assert_array_equal(graph.node_pos_features, node_pos_features)
     assert graph.num_nodes == 5
     assert graph.num_node_features == 3
     assert graph.num_edges == 5
     assert graph.num_edge_features == 2
 
     graph = custom_graph_data
-    np.array_equal(graph.node_features, node_features)
-    np.array_equal(graph.edge_index, edge_index)
-    np.array_equal(graph.edge_features, edge_features)
-    np.array_equal(graph.node_pos_features, node_pos_features)
+    np.testing.assert_array_equal(graph.node_features, node_features)
+    np.testing.assert_array_equal(graph.edge_index, edge_index)
+    np.testing.assert_array_equal(graph.edge_features, edge_features)
+    np.testing.assert_array_equal(graph.node_pos_features, node_pos_features)
     assert graph.num_nodes == 5
     assert graph.num_node_features == 3
     assert graph.num_edges == 5
@@ -278,10 +292,10 @@ def test_to_pyg(
 ) -> None:
     pyg_graph = custom_graph_data.to_pyg_graph()
     assert isinstance(pyg_graph, CustomData)
-    np.array_equal(pyg_graph.x.tolist(), node_features.tolist())
-    np.array_equal(pyg_graph.edge_index.tolist(), edge_index.tolist())
-    np.array_equal(pyg_graph.edge_attr.tolist(), edge_features.tolist())
-    np.array_equal(pyg_graph.pos.tolist(), node_pos_features.tolist())
+    np.testing.assert_array_equal(pyg_graph.x.tolist(), node_features.tolist())
+    np.testing.assert_array_equal(pyg_graph.edge_index.tolist(), edge_index.tolist())
+    np.testing.assert_array_equal(pyg_graph.edge_attr.tolist(), edge_features.tolist())
+    np.testing.assert_array_equal(pyg_graph.pos.tolist(), node_pos_features.tolist())
     return
 
 

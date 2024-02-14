@@ -10,7 +10,10 @@ import torch
 from rdkit import Chem
 from tqdm import tqdm
 
-from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
+from serenityff.charge.gnn.utils import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    get_graph_from_mol,
+)
 from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.utils.exceptions import ExtractionError
 
@@ -88,7 +91,12 @@ class Extractor:
         self.explainer = Explainer(model=self.model, epochs=epochs, verbose=verbose)
 
     def _explain_molecules_in_sdf(
-        self, sdf_file: str, scratch: str, output: Optional[str] = None, verbose: Optional[bool] = False
+        self,
+        sdf_file: str,
+        scratch: str,
+        output: Optional[str] = None,
+        verbose: Optional[bool] = False,
+        sdf_property_name="MBIScharge",
     ) -> None:
         """
         ! Needs an initialized explainer (use initialize_explainer()) !
@@ -98,11 +106,12 @@ class Extractor:
         Args:
             sdf_file (str): sdf containing the molecules to be examined.
             scratch (str): Only used on HPC clusters.
+            sdf_property_name (str, optional): Name of the property in the sdf to explain. Defaults to 'MBIScharge'.
         """
         dataframe = []
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
         for mol_iterator, mol in tqdm(enumerate(suppl), total=len(suppl), disable=not verbose):
-            graph = get_graph_from_mol(mol=mol, index=mol_iterator)
+            graph = get_graph_from_mol(mol=mol, index=mol_iterator, sdf_property_name=sdf_property_name)
             graph.to(device="cpu")
             prediction = self.model(
                 graph.x,
@@ -211,7 +220,9 @@ class Extractor:
 
     @staticmethod
     def _split_sdf(
-        sdf_file: str, directory: Optional[str] = f"{os.getcwd()}/sdf_data", desiredNumFiles=10000
+        sdf_file: str,
+        directory: Optional[str] = f"{os.getcwd()}/sdf_data",
+        desiredNumFiles=10000,
     ) -> Tuple[int]:
         """
         Splits a big sdf file in a number (<10000) of smaller sdf file,
@@ -392,7 +403,7 @@ class Extractor:
         Extractor._summarize_csvs(
             num_files=num_files,
             batch_size=batch_size,
-            directory="./sdf_data" if working_dir is None else working_dir + "/sdf_data",
+            directory=("./sdf_data" if working_dir is None else working_dir + "/sdf_data"),
             combined_filename=combined_filename,
         )
         if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):

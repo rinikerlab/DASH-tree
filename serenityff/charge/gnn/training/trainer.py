@@ -276,39 +276,6 @@ class Trainer:
         self.data = torch.load(pt_file)
         return
 
-    def _random_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
-        """
-        performs a random split on self.data.
-
-        Args:
-            train_ratio (Optional[float], optional): train/eval set ratio. Defaults to 0.8.
-        """
-        self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio, seed=seed)
-        return
-
-    def _kfold_split(
-        self,
-        n_splits: Optional[int] = 5,
-        split: Optional[int] = 0,
-        seed: Optional[int] = 1613311,
-    ) -> None:
-        """
-        performs a kfold split on self.data
-
-        Args:
-            n_splits (Optional[int], optional): number of splits. Defaults to 5.
-            split (Optional[int], optional): which split you want.. Defaults to 0.
-        """
-        self.train_data, self.eval_data = split_data_Kfold(
-            data_list=self.data, n_splits=n_splits, split=split, seed=seed
-        )
-        return
-
-    def _smiles_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
-
-        self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio, seed=seed)
-        return
-
     def prepare_training_data(
         self,
         split_type: Optional[Literal["random", "kfold", "smiles"]] = "random",
@@ -402,7 +369,7 @@ class Trainer:
         loader = DataLoader(self.eval_data, batch_size=64)
         if verbose:
             print(f"Training model with {len(self.eval_data)} molecules.")
-        for data in tqdm(loader, disable=not verbose, desc="Validating model"):
+        for data in tqdm(loader, disable=not verbose, desc="Validating model", leave=False):
             data.to(self.device)
             prediction = self.model(
                 data.x,
@@ -455,7 +422,7 @@ class Trainer:
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
 
-            for data in tqdm(loader, disable=not verbose, desc="Training in batches", leave=True):
+            for data in tqdm(loader, disable=not verbose, desc="Training in batches", leave=False):
                 self.optimizer.zero_grad()
                 data.to(self.device)
                 prediction = self.model(

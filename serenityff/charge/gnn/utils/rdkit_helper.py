@@ -7,9 +7,7 @@ from serenityff.charge.gnn.utils import CustomData, MolGraphConvFeaturizer
 from serenityff.charge.utils import Molecule
 
 
-def mols_from_sdf(
-    sdf_file: str, removeHs: Optional[bool] = False
-) -> Sequence[Molecule]:
+def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[Molecule]:
     """
     Returns a Sequence of rdkit molecules read in from a .sdf file.
 
@@ -78,13 +76,9 @@ def get_graph_from_mol(
             sdf_property_name is not None
         ), "'sdf_property_name' can only be None in case you selected 'no_y'. Please provide sdf_property_name."
         value = mol.GetProp(sdf_property_name)
-        graph.y = torch.tensor(
-            list(float(x) for x in value.split("|")), dtype=torch.float
-        )
+        graph.y = torch.tensor(list(float(x) for x in value.split("|")), dtype=torch.float)
         try:
-            assert not torch.isnan(
-                graph.y
-            ).any(), f"y found in graph {str(graph)} for molecule with value {value}."
+            assert not torch.isnan(graph.y).any(), f"y found in graph {str(graph)} for molecule with value {value}."
         except AssertionError as exc:
             print(exc)
             print("this molecule is skipped")

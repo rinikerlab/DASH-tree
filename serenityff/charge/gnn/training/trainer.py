@@ -425,13 +425,11 @@ class Trainer:
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
-
             for data in tqdm(
-                loader, disable=not verbose, desc=f"Training with bachsize {batch_size}"
+                loader,
+                disable=not verbose,
+                desc=f"Training with bachsize {batch_size}",
             ):
-                self.optimizer.zero_grad()
-                data.to(self.device)
-                data.validate()
                 prediction = self.model(
                     data.x,
                     data.edge_index,
@@ -439,8 +437,6 @@ class Trainer:
                     data.edge_attr,
                     data.molecule_charge,
                 )
-                if any(torch.isnan(prediction)):
-                    sys.exit(0)
                 loss = self.loss_function(torch.squeeze(prediction), data.y)
                 loss.backward()
                 self.optimizer.step()

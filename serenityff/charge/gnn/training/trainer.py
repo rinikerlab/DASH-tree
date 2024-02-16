@@ -420,16 +420,17 @@ class Trainer:
         for epo in tqdm(
             range(epochs),
             disable=not verbose,
-            desc=f"Training Epoch 1",
+            desc="Training Epoch 1",
         ):
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
             for data in tqdm(
-                loader,
-                disable=not verbose,
-                desc=f"Training with bachsize {batch_size}",
+                loader, disable=not verbose, desc=f"Training with bachsize {batch_size}"
             ):
+                self.optimizer.zero_grad()
+                data.to(self.device)
+                data.validate()
                 prediction = self.model(
                     data.x,
                     data.edge_index,

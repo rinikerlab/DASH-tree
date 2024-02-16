@@ -1,5 +1,6 @@
 import contextlib
 import os
+import sys
 from typing import Callable, List, Optional, OrderedDict, Sequence, Tuple, Union
 from warnings import warn
 
@@ -10,7 +11,6 @@ try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
-import time
 import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
@@ -367,8 +367,6 @@ class Trainer:
         self.model.eval()
         val_loss = []
         loader = DataLoader(self.eval_data, batch_size=64)
-        if verbose:
-            print(f"Training model with {len(self.eval_data)} molecules.")
         for data in tqdm(loader, disable=not verbose, desc="Validating model", leave=False):
             data.to(self.device)
             prediction = self.model(
@@ -390,6 +388,7 @@ class Trainer:
         epochs: int,
         batch_size: Optional[int] = 64,
         verbose: Optional[bool] = verbose,
+        save_after_every_step: bool = False,
     ) -> Tuple[Sequence[float]]:
         """
         Trains self.model if everything is initialized.
@@ -411,13 +410,12 @@ class Trainer:
         train_loss = []
         eval_losses = []
         if verbose:
-            print(f"Training model with {len(self.train_data)} molecules.")
+            print(f"Training model with {len(self.train_data)} molecules.", flush=True)
         for epo in tqdm(
             range(epochs),
             disable=not verbose,
             desc=f"Training model for {epochs} epochs",
         ):
-            start = time.time()
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
@@ -425,6 +423,7 @@ class Trainer:
             for data in tqdm(loader, disable=not verbose, desc="Training in batches", leave=False):
                 self.optimizer.zero_grad()
                 data.to(self.device)
+                data.validate()
                 prediction = self.model(
                     data.x,
                     data.edge_index,
@@ -432,6 +431,8 @@ class Trainer:
                     data.edge_attr,
                     data.molecule_charge,
                 )
+                if any(torch.isnan(prediction)):
+                    sys.exit(0)
                 loss = self.loss_function(torch.squeeze(prediction), data.y)
                 loss.backward()
                 self.optimizer.step()
@@ -441,8 +442,10 @@ class Trainer:
                     torch.cuda.empty_cache()
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
+            if save_after_every_step:
+                self._save_training_data(train_loss, eval_losses)
+                torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")
             if verbose:
-                print(time.time() - start, flush=True)
                 print(
                     f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",
                     flush=True,

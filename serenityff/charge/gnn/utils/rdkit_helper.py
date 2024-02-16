@@ -88,6 +88,7 @@ def get_graph_from_mol(
         except AssertionError as exc:
             print(exc)
             print("this molecule is skipped")
+            return None
     # TODO: Check if batch is needed, otherwise this could lead to a problem if all batches are set to 0
     # Batch will be overwritten by the DataLoader class
     graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)

@@ -7,7 +7,9 @@ from serenityff.charge.gnn.utils import CustomData, MolGraphConvFeaturizer
 from serenityff.charge.utils import Molecule
 
 
-def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[Molecule]:
+def mols_from_sdf(
+    sdf_file: str, removeHs: Optional[bool] = False
+) -> Sequence[Molecule]:
     """
     Returns a Sequence of rdkit molecules read in from a .sdf file.
 
@@ -75,10 +77,9 @@ def get_graph_from_mol(
         assert (
             sdf_property_name is not None
         ), "'sdf_property_name' can only be None in case you selected 'no_y'. Please provide sdf_property_name."
-        graph.y = torch.tensor(
-            [float(x) for x in mol.GetProp(sdf_property_name).split("|")],
-            dtype=torch.float,
-        )
+        value = mol.GetProp(sdf_property_name)
+        graph.y = torch.tensor((float(x) for x in value.split("|")), dtype=torch.float)
+        assert not torch.isnan(graph.y).any()
     # TODO: Check if batch is needed, otherwise this could lead to a problem if all batches are set to 0
     # Batch will be overwritten by the DataLoader class
     graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)

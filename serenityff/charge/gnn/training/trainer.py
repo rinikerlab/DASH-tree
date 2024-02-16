@@ -445,6 +445,10 @@ class Trainer:
                 del data, prediction, loss
                 if self._on_gpu:
                     torch.cuda.empty_cache()
+                print(
+                    f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",
+                    flush=True,
+                )
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
             if save_after_every_step:

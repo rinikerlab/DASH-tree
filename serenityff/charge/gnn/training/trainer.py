@@ -414,12 +414,17 @@ class Trainer:
         for epo in tqdm(
             range(epochs),
             disable=not verbose,
-            desc="Training Epoch 1",
+            desc=f"Training for {epochs} epochs",
         ):
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
-            for data in tqdm(loader, disable=not verbose, desc=f"Training with bachsize {batch_size}"):
+            for data in tqdm(
+                loader,
+                disable=not verbose,
+                desc=f"Training with {len(loader)} batches",
+                leave=False,
+            ):
                 self.optimizer.zero_grad()
                 data.to(self.device)
                 data.validate()
@@ -487,7 +492,7 @@ class Trainer:
         loader = DataLoader(graphs, batch_size=1, shuffle=False)
         predictions = []
         self.model.eval()
-        for data in tqdm(loader, disable=not verbose, desc="Predicting in batches"):
+        for data in tqdm(loader, disable=not verbose, desc="Predicting values"):
             data.to(self.device)
             predictions.append(
                 self.model(

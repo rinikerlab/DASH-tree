@@ -38,7 +38,7 @@ def get_graph_from_mol(
         "H",
     ],
     no_y: Optional[bool] = False,
-) -> CustomData:
+) -> CustomData | None:
     """
     Creates an pytorch_geometric Graph from an rdkit molecule.
     The graph contains following features:

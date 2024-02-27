@@ -415,6 +415,7 @@ class Trainer:
             range(epochs),
             disable=not verbose,
             desc=f"Training for {epochs} epochs",
+            leave=False,
         ):
             self.model.train()
             losses = []
@@ -446,15 +447,17 @@ class Trainer:
             train_loss.append(np.mean(losses))
             if save_after_every_step:
                 self._save_training_data(train_loss, eval_losses)
-                torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")
-            if verbose:
+                self.save_model_statedict()
+                self.save_model()
+            if tqdm.write:
                 print(
                     f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",
                     flush=True,
                 )
 
         self._save_training_data(train_loss, eval_losses)
-        torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")
+        self.save_model()
+        self.save_model_statedict()
         return train_loss, eval_losses
 
     def predict(
@@ -492,7 +495,7 @@ class Trainer:
         loader = DataLoader(graphs, batch_size=1, shuffle=False)
         predictions = []
         self.model.eval()
-        for data in tqdm(loader, disable=not verbose, desc="Predicting values"):
+        for data in tqdm(loader, disable=not verbose, desc="Predicting values", leave=False):
             data.to(self.device)
             predictions.append(
                 self.model(
@@ -510,18 +513,34 @@ class Trainer:
                 torch.cuda.empty_cache()
         return predictions
 
-    def save_model_statedict(self, name: Optional[str] = "_model.pt", verbose: bool = verbose) -> None:
+    def save_model_statedict(self, name: Optional[str] = "_model_sd.pt", verbose: bool = verbose) -> None:
         """
         Saves a models statedict to self.save_prefix + name
 
         Args:
-            name (Optional[str], optional): name the model to be saved under. Defaults to "_model.pt".
+            name (Optional[str], optional): name the model to be saved under. Defaults to "_model_sd.pt".
         """
         try:
             self.model
         except AttributeError:
             raise NotInitializedError("No model initialized, cannot save nothing ;^)")
         torch.save(self.model.state_dict(), f"{self.save_prefix}{name}")
+        if verbose:
+            print(f"Models statedict saved to {self.save_prefix}{name}")
+        return
+
+    def save_model(self, name: Optional[str] = "_model.pt", verbose: bool = verbose) -> None:
+        """
+        Saves a models statedict to self.save_prefix + name
+
+        Args:
+            name (Optional[str], optional): name the model to be saved under. Defaults to "_model_sd.pt".
+        """
+        try:
+            self.model
+        except AttributeError:
+            raise NotInitializedError("No model initialized, cannot save nothing ;^)")
+        torch.save(self.model, f"{self.save_prefix}{name}")
         if verbose:
             print(f"Models statedict saved to {self.save_prefix}{name}")
         return

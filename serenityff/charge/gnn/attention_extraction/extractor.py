@@ -113,7 +113,9 @@ class Extractor:
         dataframe = []
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
         for mol_iterator, mol in tqdm(
-            enumerate(suppl), total=len(suppl), disable=not verbose
+            enumerate(suppl),
+            total=len(suppl),
+            disable=not verbose,
         ):
             graph = get_graph_from_mol(
                 mol=mol, index=mol_iterator, sdf_property_name=sdf_property_name

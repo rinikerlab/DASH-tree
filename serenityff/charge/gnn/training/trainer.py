@@ -210,6 +210,7 @@ class Trainer:
     def gen_graphs_from_sdf(
         self,
         sdf_file: str,
+        sdf_property_name: str = "MBIScharge",
         allowable_set: Optional[List[int]] = [
             "C",
             "N",
@@ -229,10 +230,19 @@ class Trainer:
 
         Args:
             sdf_file (str): path to .sdf file holding the molecules.
+            sdf_property_name (str, optional): Name of the property in the sdf file to be used for training. Defaults to 'MBIScharge'.
             allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
         """
         mols = mols_from_sdf(sdf_file)
-        self.data = [get_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
+        self.data = [
+            get_graph_from_mol(
+                mol=mol,
+                index=index,
+                sdf_property_name=sdf_property_name,
+                allowable_set=allowable_set,
+            )
+            for index, mol in enumerate(mols)
+        ]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:

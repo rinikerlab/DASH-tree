@@ -9,7 +9,11 @@ from torch.nn.functional import mse_loss
 from torch.optim import Adam
 
 from serenityff.charge.gnn.training import Trainer
-from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, CustomData, get_graph_from_mol
+from serenityff.charge.gnn.utils import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    CustomData,
+    get_graph_from_mol,
+)
 from serenityff.charge.utils import NotInitializedError
 
 
@@ -50,7 +54,7 @@ def molecule(sdf_path) -> CustomData:
 
 @pytest.fixture
 def graph(molecule) -> CustomData:
-    return get_graph_from_mol(molecule, index=0)
+    return get_graph_from_mol(molecule, index=0, sdf_property_name="MBIScharge")
 
 
 @pytest.fixture

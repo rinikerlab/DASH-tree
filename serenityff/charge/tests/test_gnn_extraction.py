@@ -8,7 +8,10 @@ import pytest
 import torch
 from rdkit import Chem
 
-from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
+from serenityff.charge.gnn.utils import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    get_graph_from_mol,
+)
 from serenityff.charge.gnn.attention_extraction import Extractor
 from serenityff.charge.gnn.attention_extraction import Explainer
 from serenityff.charge.gnn.attention_extraction.explainer import FixedGNNExplainer
@@ -91,7 +94,11 @@ def explainer(model) -> Explainer:
 
 @pytest.fixture
 def graph(cwd) -> CustomData:
-    return get_graph_from_mol(Chem.SDMolSupplier(f"{cwd}/../data/example.sdf", removeHs=False)[0], index=0)
+    return get_graph_from_mol(
+        Chem.SDMolSupplier(f"{cwd}/../data/example.sdf", removeHs=False)[0],
+        index=0,
+        sdf_property_name="MBIScharge",
+    )
 
 
 def test_getter_setter(explainer) -> None:
@@ -101,14 +108,12 @@ def test_getter_setter(explainer) -> None:
     return
 
 
-# Fails due to changes in numpy array_equal
-# def test_load(model, statedict) -> None:
-#    np.array_equal(model.state_dict(), statedict)
-#    return
+def test_load(model, statedict) -> None:
+    assert all(a == b for a, b in zip(model.state_dict(), statedict))
+    return
 
 
 def test_explain_atom(explainer, graph) -> None:
-    print(graph.x.shape, graph.edge_index.shape, graph.edge_attr.shape)
     explainer.gnn_explainer.explain_node(
         node_idx=0,
         x=graph.x,
@@ -182,8 +187,9 @@ def test_mol_from_sdf(sdf_path):
 
 
 def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> None:
-    graph = get_graph_from_mol(mol=mol, index=0, no_y=True)
-    graph = get_graph_from_mol(mol=mol, index=0)
+    with pytest.raises(AssertionError):
+        graph = get_graph_from_mol(mol=mol, index=0)
+    graph = get_graph_from_mol(mol=mol, index=0, sdf_property_name="MBIScharge")
     assert graph.num_nodes == num_atoms
     assert graph.num_edges == num_bonds * 2
     assert graph.edge_attr.shape == torch.Size([38, 11])
@@ -191,6 +197,20 @@ def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> Non
     assert graph.smiles == smiles
     assert graph.x.shape[0] == num_atoms
     assert len(graph.y) == num_atoms
+    return
+
+
+@pytest.mark.parametrize("sdf_prop", [(None), ("MBIScharge")])
+def test_graph_from_mol_no_y(mol, num_atoms, num_bonds, formal_charge, smiles, sdf_prop) -> None:
+    graph = get_graph_from_mol(mol=mol, index=0, sdf_property_name=sdf_prop, no_y=True)
+    assert graph.num_nodes == num_atoms
+    assert graph.num_edges == num_bonds * 2
+    assert graph.edge_attr.shape == torch.Size([38, 11])
+    assert graph.molecule_charge.item() == formal_charge
+    assert graph.smiles == smiles
+    assert graph.x.shape[0] == num_atoms
+    assert len(graph.y) == num_atoms
+    assert all(y == 0 for y in graph.y)
     return
 
 

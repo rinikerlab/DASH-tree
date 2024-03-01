@@ -187,9 +187,11 @@ def test_mol_from_sdf(sdf_path):
 
 
 def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> None:
-    with pytest.raises(AssertionError):
-        graph = get_graph_from_mol(mol=mol, index=0)
-    graph = get_graph_from_mol(mol=mol, index=0, sdf_property_name="MBIScharge")
+    with pytest.raises(ValueError):
+        get_graph_from_mol(mol=mol, index=0, sdf_property_name=None)
+    with pytest.raises(ValueError):
+        get_graph_from_mol(mol=mol, index=0, sdf_property_name="not in props")
+    graph = get_graph_from_mol(mol=mol, index=0)
     assert graph.num_nodes == num_atoms
     assert graph.num_edges == num_bonds * 2
     assert graph.edge_attr.shape == torch.Size([38, 11])
@@ -197,6 +199,7 @@ def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> Non
     assert graph.smiles == smiles
     assert graph.x.shape[0] == num_atoms
     assert len(graph.y) == num_atoms
+
     return
 
 

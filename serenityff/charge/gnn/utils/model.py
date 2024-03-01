@@ -53,14 +53,16 @@ class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
             batch_location = torch.where(batch == b, True, False)
             mol_charge = molecule_charge[b]
             charge_correction = mol_charge / len(x[batch_location])
-            x[batch_location] = x[batch_location] - torch.mean(x[batch_location]) + charge_correction
+            x[batch_location] = (
+                x[batch_location] - torch.mean(x[batch_location]) + charge_correction
+            )
         return x
 
 
 class NodeWiseAttentiveFP(AttentiveFP):
     def __init__(
         self,
-        in_channels: Optional[int] = 25,
+        in_channels: Optional[int] = 23,
         hidden_channels: Optional[int] = 200,
         out_channels: Optional[int] = 1,
         edge_dim: Optional[int] = 11,

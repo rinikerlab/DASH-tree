@@ -7,7 +7,9 @@ from serenityff.charge.gnn.utils import CustomData, MolGraphConvFeaturizer
 from serenityff.charge.utils import Molecule
 
 
-def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[Molecule]:
+def mols_from_sdf(
+    sdf_file: str, removeHs: Optional[bool] = False
+) -> Sequence[Molecule]:
     """
     Returns a Sequence of rdkit molecules read in from a .sdf file.
 
@@ -66,17 +68,14 @@ def get_graph_from_mol(
     """
     grapher = MolGraphConvFeaturizer(use_edges=True)
     graph = grapher._featurize(mol, allowable_set).to_pyg_graph()
-    if no_y:
+    if not no_y:
         graph.y = torch.tensor(
-            [0 for _ in mol.GetAtoms()],
+            [float(x) for x in mol.GetProp("MBIScharge").split("|")],
             dtype=torch.float,
         )
     else:
-        assert (
-            sdf_property_name is not None
-        ), "'sdf_property_name' can only be None in case you selected 'no_y'. Please provide sdf_property_name."
         graph.y = torch.tensor(
-            [float(x) for x in mol.GetProp(sdf_property_name).split("|")],
+            [0 for _ in mol.GetAtoms()],
             dtype=torch.float,
         )
     # TODO: Check if batch is needed, otherwise this could lead to a problem if all batches are set to 0

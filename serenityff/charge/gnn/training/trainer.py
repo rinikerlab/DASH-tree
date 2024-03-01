@@ -1,12 +1,15 @@
+import contextlib
 import os
 from typing import Callable, List, Optional, OrderedDict, Sequence, Tuple, Union
 from warnings import warn
+
+from tqdm import tqdm
+
 
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
-import time
 import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
@@ -36,15 +39,17 @@ class Trainer:
 
     def __init__(
         self,
-        device: Optional[Union[torch.device, Literal["cpu", "cuda", "available"]]] = "available",
+        device: Union[torch.device, Literal["cpu", "cuda", "available"]] = "available",
         loss_function: Optional[Callable] = torch.nn.functional.mse_loss,
         physicsInformed: Optional[bool] = True,
         seed: Optional[int] = 161311,
+        verbose: bool = False,
     ) -> None:
         self.device = device
         self.loss_function = loss_function
         self.physicsInformed = physicsInformed
         self.seed = seed
+        self.verbose = verbose
 
     @property
     def device(self) -> torch.device:
@@ -85,6 +90,14 @@ class Trainer:
     @property
     def save_prefix(self) -> str:
         return self._save_prefix
+
+    @property
+    def verbose(self) -> bool:
+        return self._verbose
+
+    @property
+    def _on_gpu(self) -> bool:
+        return self.device == torch.device("cuda")
 
     @model.setter
     def model(self, value: Union[str, torch.nn.Module]) -> None:
@@ -197,15 +210,16 @@ class Trainer:
             self._save_prefix = value
         return
 
+    @verbose.setter
+    def verbose(self, value: bool) -> None:
+        self._verbose = value
+
     def _update_device(self) -> None:
         """
         Moves model to the device specified in self.device.
         """
-        try:
+        with contextlib.suppress(AttributeError):
             self.model.to(self.device)
-        except AttributeError:
-            pass
-        return
 
     def gen_graphs_from_sdf(
         self,
@@ -223,6 +237,7 @@ class Trainer:
             "I",
             "H",
         ],
+        verbose: bool = verbose,
     ) -> None:
         """
         Creates pytorch geometric graphs using the custom featurizer for all molecules in a sdf file. 'MolFileAlias' in the sdf is taken
@@ -241,8 +256,14 @@ class Trainer:
                 sdf_property_name=sdf_property_name,
                 allowable_set=allowable_set,
             )
-            for index, mol in enumerate(mols)
+            for index, mol in tqdm(
+                enumerate(mols),
+                disable=not verbose,
+                desc="Creating molecular graphs from sdf file entries",
+                total=len(mols),
+            )
         ]
+        self.data = [d for d in self.data if d is not None]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:
@@ -253,39 +274,6 @@ class Trainer:
             pt_file (str): path to .pt file.
         """
         self.data = torch.load(pt_file)
-        return
-
-    def _random_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
-        """
-        performs a random split on self.data.
-
-        Args:
-            train_ratio (Optional[float], optional): train/eval set ratio. Defaults to 0.8.
-        """
-        self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio, seed=seed)
-        return
-
-    def _kfold_split(
-        self,
-        n_splits: Optional[int] = 5,
-        split: Optional[int] = 0,
-        seed: Optional[int] = 1613311,
-    ) -> None:
-        """
-        performs a kfold split on self.data
-
-        Args:
-            n_splits (Optional[int], optional): number of splits. Defaults to 5.
-            split (Optional[int], optional): which split you want.. Defaults to 0.
-        """
-        self.train_data, self.eval_data = split_data_Kfold(
-            data_list=self.data, n_splits=n_splits, split=split, seed=seed
-        )
-        return
-
-    def _smiles_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
-
-        self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio, seed=seed)
         return
 
     def prepare_training_data(
@@ -314,16 +302,19 @@ class Trainer:
         except AttributeError:
             warn("No data has been loaded to this trainer. Load Data firstt!")
             return
+        seed = self.seed if seed is None else seed
         if split_type.lower() == "random":
-            self._random_split(train_ratio=train_ratio, seed=self.seed if seed is None else seed)
+            self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio, seed=seed)
             return
-        elif split_type.lower() == "kfold":
-            self._kfold_split(n_splits=n_splits, split=split, seed=self.seed if seed is None else seed)
+        if split_type.lower() == "kfold":
+            self.train_data, self.eval_data = split_data_Kfold(
+                data_list=self.data, n_splits=n_splits, split=split, seed=seed
+            )
             return
-        elif split_type.lower() == "smiles":
-            self._smiles_split(train_ratio=train_ratio, seed=self.seed if seed is None else seed)
-        else:
-            raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
+        if split_type.lower() == "smiles":
+            self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio, seed=seed)
+            return
+        raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
     def _save_training_data(
         self,
@@ -362,17 +353,7 @@ class Trainer:
                      and a loss_function have been set in this instance!"
             )
 
-    # TODO: Could be a property
-    def _on_gpu(self) -> bool:
-        """
-        Returns true if self.device is equal to torch.device('cuda')
-
-        Returns:
-            bool: true if on cuda
-        """
-        return self.device == torch.device("cuda")
-
-    def validate_model(self) -> List[float]:
+    def validate_model(self, verbose: bool = verbose) -> List[float]:
         """
         predicts values for self.eval_data and returns the losses.
 
@@ -386,7 +367,7 @@ class Trainer:
         self.model.eval()
         val_loss = []
         loader = DataLoader(self.eval_data, batch_size=64)
-        for data in loader:
+        for data in tqdm(loader, disable=not verbose, desc="Validating model", leave=False):
             data.to(self.device)
             prediction = self.model(
                 data.x,
@@ -407,7 +388,8 @@ class Trainer:
         self,
         epochs: int,
         batch_size: Optional[int] = 64,
-        verbose: Optional[bool] = False,
+        verbose: Optional[bool] = verbose,
+        save_after_every_step: bool = False,
     ) -> Tuple[Sequence[float]]:
         """
         Trains self.model if everything is initialized.
@@ -428,16 +410,26 @@ class Trainer:
             raise e
         train_loss = []
         eval_losses = []
-
-        for epo in range(epochs):
-            start = time.time()
+        if verbose:
+            print(f"Training model with {len(self.train_data)} molecules.", flush=True)
+        for epo in tqdm(
+            range(epochs),
+            disable=not verbose,
+            desc=f"Training for {epochs} epochs",
+            leave=False,
+        ):
             self.model.train()
             losses = []
             loader = DataLoader(self.train_data, batch_size=batch_size, shuffle=True)
-
-            for data in loader:
+            for data in tqdm(
+                loader,
+                disable=not verbose,
+                desc=f"Training with {len(loader)} batches",
+                leave=False,
+            ):
                 self.optimizer.zero_grad()
                 data.to(self.device)
+                data.validate()
                 prediction = self.model(
                     data.x,
                     data.edge_index,
@@ -456,20 +448,25 @@ class Trainer:
                     torch.cuda.empty_cache()
             eval_losses.append(self.validate_model())
             train_loss.append(np.mean(losses))
-            if verbose:
-                print(time.time() - start, flush=True)
+            if save_after_every_step:
+                self._save_training_data(train_loss, eval_losses)
+                self.save_model_statedict()
+                self.save_model()
+            if tqdm.write:
                 print(
                     f"Epoch: {epo}/{epochs} - Train Loss: {train_loss[-1]:.2E} - Eval Loss: {eval_losses[-1]:.2E}",
                     flush=True,
                 )
 
         self._save_training_data(train_loss, eval_losses)
-        torch.save(self.model.state_dict(), self.save_prefix + "_model_sd.pt")
+        self.save_model()
+        self.save_model_statedict()
         return train_loss, eval_losses
 
     def predict(
         self,
         data: Union[Molecule, Sequence[Molecule], CustomData, Sequence[CustomData]],
+        verbose: bool = verbose,
     ) -> Sequence[Sequence[float]]:
         """
         Predict values for graphs given in data using self.model.
@@ -496,10 +493,12 @@ class Trainer:
             graphs = data
         else:
             raise TypeError("Input has to be a Sequence or single rdkit molecule or a CustomData graph.")
+        if verbose:
+            print(f"Predicting values for {len(data)} molecules.")
         loader = DataLoader(graphs, batch_size=1, shuffle=False)
         predictions = []
         self.model.eval()
-        for data in loader:
+        for data in tqdm(loader, disable=not verbose, desc="Predicting values", leave=False):
             data.to(self.device)
             predictions.append(
                 self.model(
@@ -518,16 +517,34 @@ class Trainer:
                 torch.cuda.empty_cache()
         return predictions
 
-    def save_model_statedict(self, name: Optional[str] = "_model.pt") -> None:
+    def save_model_statedict(self, name: Optional[str] = "_model_sd.pt", verbose: bool = verbose) -> None:
         """
         Saves a models statedict to self.save_prefix + name
 
         Args:
-            name (Optional[str], optional): name the model to be saved under. Defaults to "_model.pt".
+            name (Optional[str], optional): name the model to be saved under. Defaults to "_model_sd.pt".
         """
         try:
             self.model
         except AttributeError:
             raise NotInitializedError("No model initialized, cannot save nothing ;^)")
         torch.save(self.model.state_dict(), f"{self.save_prefix}{name}")
+        if verbose:
+            print(f"Models statedict saved to {self.save_prefix}{name}")
+        return
+
+    def save_model(self, name: Optional[str] = "_model.pt", verbose: bool = verbose) -> None:
+        """
+        Saves a models statedict to self.save_prefix + name
+
+        Args:
+            name (Optional[str], optional): name the model to be saved under. Defaults to "_model_sd.pt".
+        """
+        try:
+            self.model
+        except AttributeError:
+            raise NotInitializedError("No model initialized, cannot save nothing ;^)")
+        torch.save(self.model, f"{self.save_prefix}{name}")
+        if verbose:
+            print(f"Models statedict saved to {self.save_prefix}{name}")
         return

@@ -6,7 +6,9 @@ from torch.nn import Module
 # from torch_geometric.nn import GNNExplainer
 
 # Above line does not work anymore fix 10.01.2023
-from torch_geometric.explain.algorithm.gnn_explainer import GNNExplainer_ as GNNExplainer
+from torch_geometric.explain.algorithm.gnn_explainer import (
+    GNNExplainer_ as GNNExplainer,
+)
 from torch_geometric.utils import k_hop_subgraph
 
 from serenityff.charge.gnn.utils import CustomData

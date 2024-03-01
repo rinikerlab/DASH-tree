@@ -110,7 +110,11 @@ class Extractor:
         """
         dataframe = []
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
-        for mol_iterator, mol in tqdm(enumerate(suppl), total=len(suppl), disable=not verbose):
+        for mol_iterator, mol in tqdm(
+            enumerate(suppl),
+            total=len(suppl),
+            disable=not verbose,
+        ):
             graph = get_graph_from_mol(mol=mol, index=mol_iterator, sdf_property_name=sdf_property_name)
             graph.to(device="cpu")
             prediction = self.model(
@@ -120,7 +124,7 @@ class Extractor:
                 batch=graph.batch,
                 molecule_charge=graph.molecule_charge,
             )
-            ref_charges = mol.GetProp("MBIScharge").split("|")
+            ref_charges = mol.GetProp(sdf_property_name).split("|")
             node_attentions, edge_attentions = self.explainer.explain_molecule(graph)
             for atom_iterator, atom in enumerate(mol.GetAtoms()):
                 smiles = str(Chem.MolToSmiles(mol)) if atom_iterator == 0 else np.nan
@@ -307,6 +311,7 @@ class Extractor:
             > -m, --mlmodel:    The MLModel to use. .pt file
             > -s, --sdffile:    .SDF file containing a list of molecules\
                 you want a prediction and attention extaction for.
+            > -p, --property:  Name of the property in the sdf to explain. Defaults to 'MBIScharge'.
 
         Returns:
             argparse.Namespace: Namespace containing necessary strings.
@@ -314,6 +319,7 @@ class Extractor:
         parser = argparse.ArgumentParser()
         parser.add_argument("-m", "--mlmodel", type=str, required=True)
         parser.add_argument("-s", "--sdffile", type=str, required=True)
+        parser.add_argument("-p", "--property", type=str, default="MBIScharge")
         return parser.parse_args(args)
 
     @staticmethod
@@ -324,6 +330,7 @@ class Extractor:
         epochs: Optional[int] = 1000,
         working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
+        sdf_property_name: Optional[str] = "MBIScharge",
     ) -> None:
         """
         Extracts the attention weights a model uses for predictions of \
@@ -340,11 +347,15 @@ class Extractor:
         print(scratch, working_dir)
         extractor = Extractor()
         extractor._initialize_expaliner(model=model, epochs=epochs, verbose=verbose)
-        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, scratch=scratch)
+        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, scratch=scratch, sdf_property_name=sdf_property_name)
         return
 
     @staticmethod
-    def _write_worker(directory: Optional[str] = None, useSlurm=False) -> None:
+    def _write_worker(
+        directory: Optional[str] = None,
+        useSlurm=False,
+        sdf_property_name: str = "MBIScharge",
+    ) -> None:
         """
         Writes a bash script called worker.sh, that is then again submitted to the lsf/slurm queue.
         This worker script, does the actual attention extraction on the lsf/slurm hpc cluster.
@@ -353,11 +364,13 @@ class Extractor:
         text = "#!/bin/bash\n"
         text += 'python -c "'
         if useSlurm:
-            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${SLURM_ARRAY_TASK_ID}), scratch='${TMPDIR}')"
+            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
+            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${SLURM_ARRAY_TASK_ID}), scratch='${TMPDIR}', sdf_property_name=${3})"
             text += '"\n'
             text += r"mv ${TMPDIR}/${SLURM_ARRAY_TASK_ID}.csv ${2}/."
         else:
-            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
+            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
+            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}', sdf_property_name=${3})"
             text += '"\n'
             text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:
@@ -374,7 +387,8 @@ class Extractor:
         file = "cleaner.sh" if not directory else f"{directory}/cleaner.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
+        text += r"serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
+        text += "Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
         text += '"\n'
         with open(file, "w") as f:
             f.write(text)
@@ -432,6 +446,7 @@ class Extractor:
         epochs: Optional[int] = 1000,
         verbose: Optional[bool] = True,
         verbose_every_atom: Optional[bool] = False,
+        sdf_property_name: Optional[str] = "MBIScharge",
     ) -> None:
         """
         Use this function if you want to run the feature extraction on your local machine.
@@ -447,7 +462,13 @@ class Extractor:
         """
         extractor = Extractor()
         extractor._initialize_expaliner(model=ml_model, epochs=epochs, verbose=verbose_every_atom)
-        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, output=output, scratch=None, verbose=verbose)
+        extractor._explain_molecules_in_sdf(
+            sdf_file=sdf_file,
+            output=output,
+            scratch=None,
+            verbose=verbose,
+            sdf_property_name=sdf_property_name,
+        )
         if not extractor._check_final_csv(sdf_file=sdf_file, csv_file=output):
             raise ExtractionError(
                 "Oops Something went wrong with the extraction. \
@@ -476,7 +497,7 @@ class Extractor:
         Extractor._write_worker()
         if not os.path.exists("logfiles"):
             os.mkdir("logfiles")
-        lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 120:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
+        lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 120:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"} {files.property}" > id.txt'
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
 
@@ -499,6 +520,7 @@ class Extractor:
         all the needed information:
             > -m:   path to the ml model .pt file
             > -s:   path to the .sdf file containing the molecules.
+            > -p:   name of the property in the sdf to explain. Defaults to 'MBIScharge'.
 
         """
         files = Extractor._parse_filenames(args)
@@ -508,7 +530,7 @@ class Extractor:
         Extractor._write_worker(useSlurm=True)
         if not os.path.exists("logfiles"):
             os.mkdir("logfiles")
-        slurm_command = f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" --array=1-{num_files} --mem-per-cpu=1024 --tmp=64000 --output="logfiles/extraction.out" --error="logfiles/extraction.err" --open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"}" > id.txt'
+        slurm_command = f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" --array=1-{num_files} --mem-per-cpu=1024 --tmp=64000 --output="logfiles/extraction.out" --error="logfiles/extraction.err" --open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"} {files.property}" > id.txt'
         command_to_shell_file(slurm_command, "run_extraction.sh")
         os.system(slurm_command)
 

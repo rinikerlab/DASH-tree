@@ -187,5 +187,5 @@ def test_prediction(trainer, graph, molecule) -> None:
     return
 
 
-def test_on_gpu(trainer):
-    assert not trainer._on_gpu()
+def test_on_gpu(trainer) -> None:
+    assert not trainer._on_gpu

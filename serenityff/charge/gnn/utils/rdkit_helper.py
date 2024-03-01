@@ -38,7 +38,7 @@ def get_graph_from_mol(
         "H",
     ],
     no_y: Optional[bool] = False,
-) -> CustomData:
+) -> CustomData | None:
     """
     Creates an pytorch_geometric Graph from an rdkit molecule.
     The graph contains following features:
@@ -75,10 +75,14 @@ def get_graph_from_mol(
         assert (
             sdf_property_name is not None
         ), "'sdf_property_name' can only be None in case you selected 'no_y'. Please provide sdf_property_name."
-        graph.y = torch.tensor(
-            [float(x) for x in mol.GetProp(sdf_property_name).split("|")],
-            dtype=torch.float,
-        )
+        value = mol.GetProp(sdf_property_name)
+        graph.y = torch.tensor(list(float(x) for x in value.split("|")), dtype=torch.float)
+        try:
+            assert not torch.isnan(graph.y).any(), f"y found in graph {str(graph)} for molecule with value {value}."
+        except AssertionError as exc:
+            print(exc)
+            print("this molecule is skipped")
+            return None
     # TODO: Check if batch is needed, otherwise this could lead to a problem if all batches are set to 0
     # Batch will be overwritten by the DataLoader class
     graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)

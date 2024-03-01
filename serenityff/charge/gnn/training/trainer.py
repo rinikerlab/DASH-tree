@@ -20,7 +20,6 @@ from serenityff.charge.gnn.utils import (
     split_data_Kfold,
     split_data_random,
     split_data_smiles,
-    get_torsion_graph_from_mol,
 )
 from serenityff.charge.utils import Molecule, NotInitializedError
 
@@ -37,7 +36,9 @@ class Trainer:
 
     def __init__(
         self,
-        device: Optional[Union[torch.device, Literal["cpu", "cuda", "available"]]] = "available",
+        device: Optional[
+            Union[torch.device, Literal["cpu", "cuda", "available"]]
+        ] = "available",
         loss_function: Optional[Callable] = torch.nn.functional.mse_loss,
         physicsInformed: Optional[bool] = True,
         seed: Optional[int] = 161311,
@@ -233,27 +234,10 @@ class Trainer:
             allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
         """
         mols = mols_from_sdf(sdf_file)
-        self.data = [get_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
-        return
-
-    def gen_torsion_grahs_from_sdf(
-        self,
-        sdf_file: str,
-        allowable_set: Optional[List[int]] = [
-            "C",
-            "N",
-            "O",
-            "F",
-            "P",
-            "S",
-            "Cl",
-            "Br",
-            "I",
-            "H",
-        ],
-    ) -> None:
-        mols = mols_from_sdf(sdf_file)
-        self.data = [get_torsion_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
+        self.data = [
+            get_graph_from_mol(mol, index, allowable_set)
+            for index, mol in enumerate(mols)
+        ]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:
@@ -266,18 +250,25 @@ class Trainer:
         self.data = torch.load(pt_file)
         return
 
-    def _random_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
+    def _random_split(
+        self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311
+    ) -> None:
         """
         performs a random split on self.data.
 
         Args:
             train_ratio (Optional[float], optional): train/eval set ratio. Defaults to 0.8.
         """
-        self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio, seed=seed)
+        self.train_data, self.eval_data = split_data_random(
+            data_list=self.data, train_ratio=train_ratio, seed=seed
+        )
         return
 
     def _kfold_split(
-        self, n_splits: Optional[int] = 5, split: Optional[int] = 0, seed: Optional[int] = 1613311
+        self,
+        n_splits: Optional[int] = 5,
+        split: Optional[int] = 0,
+        seed: Optional[int] = 1613311,
     ) -> None:
         """
         performs a kfold split on self.data
@@ -291,9 +282,13 @@ class Trainer:
         )
         return
 
-    def _smiles_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
+    def _smiles_split(
+        self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311
+    ) -> None:
 
-        self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio, seed=seed)
+        self.train_data, self.eval_data = split_data_smiles(
+            data_list=self.data, train_ratio=train_ratio, seed=seed
+        )
         return
 
     def prepare_training_data(
@@ -323,15 +318,23 @@ class Trainer:
             warn("No data has been loaded to this trainer. Load Data firstt!")
             return
         if split_type.lower() == "random":
-            self._random_split(train_ratio=train_ratio, seed=self.seed if seed is None else seed)
+            self._random_split(
+                train_ratio=train_ratio, seed=self.seed if seed is None else seed
+            )
             return
         elif split_type.lower() == "kfold":
-            self._kfold_split(n_splits=n_splits, split=split, seed=self.seed if seed is None else seed)
+            self._kfold_split(
+                n_splits=n_splits, split=split, seed=self.seed if seed is None else seed
+            )
             return
         elif split_type.lower() == "smiles":
-            self._smiles_split(train_ratio=train_ratio, seed=self.seed if seed is None else seed)
+            self._smiles_split(
+                train_ratio=train_ratio, seed=self.seed if seed is None else seed
+            )
         else:
-            raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
+            raise NotImplementedError(
+                f"split_type {split_type} is not implemented yet."
+            )
 
     def _save_training_data(
         self,
@@ -397,7 +400,12 @@ class Trainer:
         for data in loader:
             data.to(self.device)
             prediction = self.model(
-                data.x, data.edge_index, data.batch, data.edge_attr, data.molecule_charge, data.torch_indices
+                data.x,
+                data.edge_index,
+                data.batch,
+                data.edge_attr,
+                data.molecule_charge,
+                data.torch_indices,
             )
             loss = self.loss_function(torch.squeeze(prediction), data.y)
             val_loss.append(np.mean(loss.to("cpu").tolist()))
@@ -442,7 +450,12 @@ class Trainer:
                 self.optimizer.zero_grad()
                 data.to(self.device)
                 prediction = self.model(
-                    data.x, data.edge_index, data.batch, data.edge_attr, data.molecule_charge, data.torch_indices
+                    data.x,
+                    data.edge_index,
+                    data.batch,
+                    data.edge_attr,
+                    data.molecule_charge,
+                    data.torch_indices,
                 )
 
                 loss = self.loss_function(torch.squeeze(prediction), data.y)
@@ -489,11 +502,16 @@ class Trainer:
         if not isinstance(data, list):
             data = [data]
         if isinstance(data[0], Molecule):
-            graphs = [get_torsion_graph_from_mol(mol, index, no_y=False) for index, mol in enumerate(data)]
+            graphs = [
+                get_graph_from_mol(mol, index, no_y=False)
+                for index, mol in enumerate(data)
+            ]
         elif isinstance(data[0], CustomData):
             graphs = data
         else:
-            raise TypeError("Input has to be a Sequence or single rdkit molecule or a CustomData graph.")
+            raise TypeError(
+                "Input has to be a Sequence or single rdkit molecule or a CustomData graph."
+            )
         loader = DataLoader(graphs, batch_size=1, shuffle=False)
         predictions = []
         self.model.eval()
@@ -501,7 +519,12 @@ class Trainer:
             data.to(self.device)
             predictions.append(
                 self.model(
-                    data.x, data.edge_index, data.batch, data.edge_attr, data.molecule_charge, data.torch_indices
+                    data.x,
+                    data.edge_index,
+                    data.batch,
+                    data.edge_attr,
+                    data.molecule_charge,
+                    data.torch_indices,
                 )
                 .to("cpu")
                 .tolist()
@@ -524,137 +547,3 @@ class Trainer:
             raise NotInitializedError("No model initialized, cannot save nothing ;^)")
         torch.save(self.model.state_dict(), f"{self.save_prefix}{name}")
         return
-
-
-# def cross_entropy_loss_for_torsionProfile(x, y, num_buckets=100, device="cpu"):
-#     y_bucket = torch.bucketize(y.unsqueeze(1), torch.tensor(np.arange(-1, 1, 2 / num_buckets), device=device))
-#     bin_tensor = torch.zeros(x.shape, device=device)
-#     bin_tensor.scatter_(1, y_bucket, 1)
-#     loss_fn = torch.nn.CrossEntropyLoss()
-#     loss = loss_fn(x, bin_tensor)
-#     return loss
-
-
-def cross_entropy_loss_for_torsionProfile(x, y, num_buckets=100, device="cpu"):
-    y_bucket = torch.bucketize(y.unsqueeze(1), torch.tensor(np.linspace(-0.5, 0.5, num_buckets, True), device=device))
-    # y_weight = torch.ones(y_bucket.shape, device=device, dtype=torch.float32)
-    # y_weight[45:55] = 0.0001
-    y_weight = get_weight_from_all_torsions(num_buckets=num_buckets, device=device)
-    bin_tensor = torch.zeros(x.shape, device=device)
-    bin_tensor.scatter_(1, y_bucket, 1)
-    loss_fn = torch.nn.MSELoss()
-    # loss_fn = torch.nn.CrossEntropyLoss(weight=y_weight, reduction="mean", ignore_index=-1, label_smoothing=0.1)
-    bin_tensor = bin_tensor * y_weight
-    loss = loss_fn(x, bin_tensor)
-    return loss
-
-
-def get_weight_from_all_torsions(num_buckets=100, device="cpu"):
-    y_weight = torch.tensor(
-        [
-            0.09309104,
-            0.23312431,
-            0.38103787,
-            0.51468828,
-            0.64580364,
-            0.74998323,
-            0.8202632,
-            0.84015634,
-            0.87060595,
-            0.87661421,
-            0.91715669,
-            0.86961257,
-            0.99673047,
-            0.98334409,
-            1.0,
-            0.95024086,
-            0.75824176,
-            0.82818404,
-            0.93993329,
-            0.95729375,
-            0.88389256,
-            0.82138833,
-            0.77861107,
-            0.69957234,
-            0.58209655,
-            0.51647184,
-            0.50845299,
-            0.48741988,
-            0.42555838,
-            0.3643891,
-            0.28013399,
-            0.19459516,
-            0.11201598,
-            0.08383249,
-            0.13716403,
-            0.23445759,
-            0.2861336,
-            0.30471327,
-            0.27438979,
-            0.25903182,
-            0.25751409,
-            0.27352589,
-            0.28908371,
-            0.29662194,
-            0.26184527,
-            0.22256735,
-            0.19826531,
-            0.13469255,
-            0.04161398,
-            0.0027252,
-            0.04163268,
-            0.1348171,
-            0.19795633,
-            0.22109406,
-            0.25746862,
-            0.29151381,
-            0.28752465,
-            0.27625921,
-            0.25799751,
-            0.26287981,
-            0.28187412,
-            0.30028745,
-            0.2778961,
-            0.23537917,
-            0.13859086,
-            0.08265388,
-            0.11244342,
-            0.19663191,
-            0.28176517,
-            0.3675402,
-            0.42292849,
-            0.48776018,
-            0.5066707,
-            0.52006824,
-            0.58441966,
-            0.70924896,
-            0.78383432,
-            0.8292695,
-            0.89773518,
-            0.95010625,
-            0.94544532,
-            0.83609255,
-            0.75213637,
-            0.94061878,
-            0.99551729,
-            0.99578335,
-            0.99122107,
-            0.87028963,
-            0.91502947,
-            0.86837403,
-            0.87266766,
-            0.84517479,
-            0.80577649,
-            0.75169801,
-            0.64641363,
-            0.51423051,
-            0.37800974,
-            0.23222027,
-            0.09314897,
-            0.1,  # 1.59685714e03,  # 1.0,
-        ],
-        device=device,
-    )
-    if num_buckets != 100:
-        raise NotImplementedError("Weighting by total torsion profile is only implemented for 100 buckets.")
-    return y_weight

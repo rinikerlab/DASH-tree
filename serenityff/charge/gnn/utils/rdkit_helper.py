@@ -3,15 +3,13 @@ from typing import List, Optional, Sequence
 import torch
 from rdkit import Chem
 
-# from rdkit.Chem.TorsionFingerprints import CalculateTorsionLists
-# from rdkit.Chem.rdMolTransforms import GetDihedralDeg
-
 from serenityff.charge.gnn.utils import CustomData, MolGraphConvFeaturizer
 from serenityff.charge.utils import Molecule
-from serenityff.torsion.tree.rdkit_helper import get_all_torsion_angles, get_number_of_torsions
 
 
-def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[Molecule]:
+def mols_from_sdf(
+    sdf_file: str, removeHs: Optional[bool] = False
+) -> Sequence[Molecule]:
     """
     Returns a Sequence of rdkit molecules read in from a .sdf file.
 
@@ -81,45 +79,6 @@ def get_graph_from_mol(
     # TODO: Check if batch is needed, otherwise this could lead to a problem if all batches are set to 0
     # Batch will be overwritten by the DataLoader class
     graph.batch = torch.tensor([0 for _ in mol.GetAtoms()], dtype=int)
-    graph.molecule_charge = Chem.GetFormalCharge(mol)
-    graph.smiles = Chem.MolToSmiles(mol, canonical=True)
-    graph.sdf_idx = index
-    return graph
-
-
-def get_torsion_graph_from_mol(
-    mol: Molecule,
-    index: int,
-    allowable_set: Optional[List[str]] = [
-        "C",
-        "N",
-        "O",
-        "F",
-        "P",
-        "S",
-        "Cl",
-        "Br",
-        "I",
-        "H",
-    ],
-    no_y: Optional[bool] = False,
-) -> CustomData:
-    grapher = MolGraphConvFeaturizer(use_edges=True)
-    graph = grapher._featurize(mol, allowable_set).to_pyg_graph()
-    if not no_y:
-        torsions = get_all_torsion_angles(mol)
-        graph.y = torch.tensor(
-            [float(x[1]) for x in torsions],
-            dtype=torch.float,
-        )
-        graph.torch_indices = torch.tensor([x[0] for x in torsions], dtype=torch.long)
-    else:
-        graph.y = torch.tensor(
-            [0 for _ in range(get_number_of_torsions(mol))],
-            dtype=torch.float,
-        )
-
-    graph.batch = torch.tensor([0 for _ in range(get_number_of_torsions(mol))], dtype=int)
     graph.molecule_charge = Chem.GetFormalCharge(mol)
     graph.smiles = Chem.MolToSmiles(mol, canonical=True)
     graph.sdf_idx = index

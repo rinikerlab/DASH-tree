@@ -1,20 +1,16 @@
 from typing import List
 import numpy as np
 
-# from openff.toolkit.topology import TopologyAtom, TopologyVirtualSite
 from openff.toolkit.typing.engines.smirnoff import (
     ElectrostaticsHandler,
     LibraryChargeHandler,
     vdWHandler,
-    #    ToolkitAM1BCCHandler,
 )
 from openff.toolkit.typing.engines.smirnoff.parameters import _NonbondedHandler
 from openff.toolkit.utils.base_wrapper import ToolkitWrapper
 from openmm.unit import Quantity, elementary_charge
 from packaging.version import Version
 
-# from serenityff.charge.tree.tree import Tree
-# from serenityff.charge.data import default_tree_path
 from serenityff.charge.tree.dash_tree import DASHTree as Tree
 
 
@@ -67,7 +63,6 @@ class SerenityFFChargeHandler(_NonbondedHandler, ToolkitWrapper):
             )["charges"]
         ]
         partial_charges_with_units = Quantity(np.array(partial_charges), unit=elementary_charge)
-        # charges = unit.Quantity(charges, unit.elementary_charge)
         molecule.partial_charges = partial_charges_with_units
         print(f"Assigned partial charges: {partial_charges_with_units}")
         return partial_charges_with_units
@@ -88,12 +83,6 @@ class SerenityFFChargeHandler(_NonbondedHandler, ToolkitWrapper):
                             ref_mol_particle_index = topology_particle.virtual_site.molecule_particle_index
                         except AttributeError:
                             raise ValueError(f"Particles of type {type(topology_particle)} are not supported")
-                    # if type(topology_particle) is TopologyAtom:
-                    #     ref_mol_particle_index = topology_particle.atom.molecule_particle_index
-                    # elif type(topology_particle) is TopologyVirtualSite:
-                    #     ref_mol_particle_index = topology_particle.virtual_site.molecule_particle_index
-                    # else:
-                    #     raise ValueError(f"Particles of type {type(topology_particle)} are not supported")
 
                     topology_particle_index = topology_particle.topology_particle_index
 

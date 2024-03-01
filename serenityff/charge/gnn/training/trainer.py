@@ -374,7 +374,6 @@ class Trainer:
                 data.batch,
                 data.edge_attr,
                 data.molecule_charge,
-                data.torch_indices,
             )
             loss = self.loss_function(torch.squeeze(prediction), data.y)
             val_loss.append(np.mean(loss.to("cpu").tolist()))
@@ -428,14 +427,12 @@ class Trainer:
             ):
                 self.optimizer.zero_grad()
                 data.to(self.device)
-                data.validate()
                 prediction = self.model(
                     data.x,
                     data.edge_index,
                     data.batch,
                     data.edge_attr,
                     data.molecule_charge,
-                    data.torch_indices,
                 )
 
                 loss = self.loss_function(torch.squeeze(prediction), data.y)
@@ -506,7 +503,6 @@ class Trainer:
                     data.batch,
                     data.edge_attr,
                     data.molecule_charge,
-                    data.torch_indices,
                 )
                 .to("cpu")
                 .tolist()

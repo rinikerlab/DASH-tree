@@ -3,9 +3,6 @@ from typing import List, Optional, Tuple
 from torch import Tensor, is_tensor
 from torch.nn import Module
 
-# from torch_geometric.nn import GNNExplainer
-
-# Above line does not work anymore fix 10.01.2023
 from torch_geometric.explain.algorithm.gnn_explainer import (
     GNNExplainer_ as GNNExplainer,
 )

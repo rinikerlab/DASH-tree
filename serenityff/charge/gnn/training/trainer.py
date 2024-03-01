@@ -224,7 +224,6 @@ class Trainer:
     def gen_graphs_from_sdf(
         self,
         sdf_file: str,
-        sdf_property_name: str = "MBIScharge",
         allowable_set: Optional[List[int]] = [
             "C",
             "N",
@@ -238,6 +237,7 @@ class Trainer:
             "H",
         ],
         verbose: bool = verbose,
+        sdf_property_name: str = "MBIScharge",
     ) -> None:
         """
         Creates pytorch geometric graphs using the custom featurizer for all molecules in a sdf file. 'MolFileAlias' in the sdf is taken
@@ -245,7 +245,6 @@ class Trainer:
 
         Args:
             sdf_file (str): path to .sdf file holding the molecules.
-            sdf_property_name (str, optional): Name of the property in the sdf file to be used for training. Defaults to 'MBIScharge'.
             allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
         """
         mols = mols_from_sdf(sdf_file)
@@ -531,7 +530,6 @@ class Trainer:
         torch.save(self.model.state_dict(), f"{self.save_prefix}{name}")
         if verbose:
             print(f"Models statedict saved to {self.save_prefix}{name}")
-        return
 
     def save_model(self, name: Optional[str] = "_model.pt", verbose: bool = verbose) -> None:
         """
@@ -547,4 +545,3 @@ class Trainer:
         torch.save(self.model, f"{self.save_prefix}{name}")
         if verbose:
             print(f"Models statedict saved to {self.save_prefix}{name}")
-        return

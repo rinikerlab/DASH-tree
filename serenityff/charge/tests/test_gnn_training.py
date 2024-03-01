@@ -123,6 +123,13 @@ def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, m
     trainer.save_prefix = os.path.dirname(__file__)
     trainer.save_prefix = os.path.dirname(__file__) + "/test/testprefix"
     trainer.save_model_statedict()
+    assert os.path.isfile(os.path.dirname(__file__) + "/test/testprefix_model_sd.pt")
+    assert os.path.isdir(os.path.dirname(__file__) + "/test")
+    os.remove(os.path.dirname(__file__) + "/test/testprefix_model_sd.pt")
+    os.rmdir(os.path.dirname(__file__) + "/test")
+    trainer.save_prefix = os.path.dirname(__file__)
+    trainer.save_prefix = os.path.dirname(__file__) + "/test/testprefix"
+    trainer.save_model()
     assert os.path.isfile(os.path.dirname(__file__) + "/test/testprefix_model.pt")
     assert os.path.isdir(os.path.dirname(__file__) + "/test")
     os.remove(os.path.dirname(__file__) + "/test/testprefix_model.pt")

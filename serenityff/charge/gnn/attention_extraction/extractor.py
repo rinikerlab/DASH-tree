@@ -365,12 +365,12 @@ class Extractor:
         text += 'python -c "'
         if useSlurm:
             text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
-            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${SLURM_ARRAY_TASK_ID}), scratch='${TMPDIR}', sdf_property_name=${3})"
+            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${SLURM_ARRAY_TASK_ID}), scratch='${TMPDIR}', sdf_property_name='${3}')"
             text += '"\n'
             text += r"mv ${TMPDIR}/${SLURM_ARRAY_TASK_ID}.csv ${2}/."
         else:
             text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
-            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}', sdf_property_name=${3})"
+            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}', sdf_property_name='${3}')"
             text += '"\n'
             text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:

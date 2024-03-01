@@ -329,6 +329,7 @@ class Extractor:
             > -m, --mlmodel:    The MLModel to use. .pt file
             > -s, --sdffile:    .SDF file containing a list of molecules\
                 you want a prediction and attention extaction for.
+            > -p, --property:  Name of the property in the sdf to explain. Defaults to 'MBIScharge'.
 
         Returns:
             argparse.Namespace: Namespace containing necessary strings.
@@ -336,6 +337,7 @@ class Extractor:
         parser = argparse.ArgumentParser()
         parser.add_argument("-m", "--mlmodel", type=str, required=True)
         parser.add_argument("-s", "--sdffile", type=str, required=True)
+        parser.add_argument("-p", "--property", type=str, default="MBIScharge")
         return parser.parse_args(args)
 
     @staticmethod
@@ -346,6 +348,7 @@ class Extractor:
         epochs: Optional[int] = 1000,
         working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
+        sdf_property_name: Optional[str] = "MBIScharge",
     ) -> None:
         """
         Extracts the attention weights a model uses for predictions of \
@@ -366,11 +369,17 @@ class Extractor:
         print(scratch, working_dir)
         extractor = Extractor()
         extractor._initialize_expaliner(model=model, epochs=epochs, verbose=verbose)
-        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, scratch=scratch)
+        extractor._explain_molecules_in_sdf(
+            sdf_file=sdf_file, scratch=scratch, sdf_property_name=sdf_property_name
+        )
         return
 
     @staticmethod
-    def _write_worker(directory: Optional[str] = None, useSlurm=False) -> None:
+    def _write_worker(
+        directory: Optional[str] = None,
+        useSlurm=False,
+        sdf_property_name: str = "MBIScharge",
+    ) -> None:
         """
         Writes a bash script called worker.sh, that is then again submitted to the lsf/slurm queue.
         This worker script, does the actual attention extraction on the lsf/slurm hpc cluster.
@@ -379,12 +388,14 @@ class Extractor:
         text = "#!/bin/bash\n"
         text += 'python -c "'
         if useSlurm:
-            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${SLURM_ARRAY_TASK_ID}), scratch='${TMPDIR}')"
-            text += '"\n'
+            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
+            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${SLURM_ARRAY_TASK_ID}), scratch='${TMPDIR}'"
+            text += f', sdf_property_name={sdf_property_name})"\n'
             text += r"mv ${TMPDIR}/${SLURM_ARRAY_TASK_ID}.csv ${2}/."
         else:
-            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}')"
-            text += '"\n'
+            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
+            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}'"
+            text += f', sdf_property_name={sdf_property_name})"\n'
             text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
         with open(file, "w") as f:
             f.write(text)
@@ -400,7 +411,12 @@ class Extractor:
         file = "cleaner.sh" if not directory else f"{directory}/cleaner.sh"
         text = "#!/bin/bash\n"
         text += 'python -c "'
-        text += r"serenityff.charge.gnn.attention_extraction.extractor import Extractor; Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
+        text += (
+            r"serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
+        )
+        text += (
+            "Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
+        )
         text += '"\n'
         with open(file, "w") as f:
             f.write(text)
@@ -540,6 +556,7 @@ class Extractor:
         all the needed information:
             > -m:   path to the ml model .pt file
             > -s:   path to the .sdf file containing the molecules.
+            > -p:   name of the property in the sdf to explain. Defaults to 'MBIScharge'.
 
         """
         files = Extractor._parse_filenames(args)

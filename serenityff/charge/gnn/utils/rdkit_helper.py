@@ -7,9 +7,7 @@ from serenityff.charge.gnn.utils import CustomData, MolGraphConvFeaturizer
 from serenityff.charge.utils import Molecule
 
 
-def mols_from_sdf(
-    sdf_file: str, removeHs: Optional[bool] = False
-) -> Sequence[Molecule]:
+def mols_from_sdf(sdf_file: str, removeHs: Optional[bool] = False) -> Sequence[Molecule]:
     """
     Returns a Sequence of rdkit molecules read in from a .sdf file.
 

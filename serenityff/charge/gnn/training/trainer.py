@@ -36,9 +36,7 @@ class Trainer:
 
     def __init__(
         self,
-        device: Optional[
-            Union[torch.device, Literal["cpu", "cuda", "available"]]
-        ] = "available",
+        device: Optional[Union[torch.device, Literal["cpu", "cuda", "available"]]] = "available",
         loss_function: Optional[Callable] = torch.nn.functional.mse_loss,
         physicsInformed: Optional[bool] = True,
         seed: Optional[int] = 161311,
@@ -234,10 +232,7 @@ class Trainer:
             allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
         """
         mols = mols_from_sdf(sdf_file)
-        self.data = [
-            get_graph_from_mol(mol, index, allowable_set)
-            for index, mol in enumerate(mols)
-        ]
+        self.data = [get_graph_from_mol(mol, index, allowable_set) for index, mol in enumerate(mols)]
         return
 
     def load_graphs_from_pt(self, pt_file: str) -> None:
@@ -250,18 +245,14 @@ class Trainer:
         self.data = torch.load(pt_file)
         return
 
-    def _random_split(
-        self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311
-    ) -> None:
+    def _random_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
         """
         performs a random split on self.data.
 
         Args:
             train_ratio (Optional[float], optional): train/eval set ratio. Defaults to 0.8.
         """
-        self.train_data, self.eval_data = split_data_random(
-            data_list=self.data, train_ratio=train_ratio, seed=seed
-        )
+        self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio, seed=seed)
         return
 
     def _kfold_split(
@@ -282,13 +273,9 @@ class Trainer:
         )
         return
 
-    def _smiles_split(
-        self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311
-    ) -> None:
+    def _smiles_split(self, train_ratio: Optional[float] = 0.8, seed: Optional[int] = 161311) -> None:
 
-        self.train_data, self.eval_data = split_data_smiles(
-            data_list=self.data, train_ratio=train_ratio, seed=seed
-        )
+        self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio, seed=seed)
         return
 
     def prepare_training_data(
@@ -318,23 +305,15 @@ class Trainer:
             warn("No data has been loaded to this trainer. Load Data firstt!")
             return
         if split_type.lower() == "random":
-            self._random_split(
-                train_ratio=train_ratio, seed=self.seed if seed is None else seed
-            )
+            self._random_split(train_ratio=train_ratio, seed=self.seed if seed is None else seed)
             return
         elif split_type.lower() == "kfold":
-            self._kfold_split(
-                n_splits=n_splits, split=split, seed=self.seed if seed is None else seed
-            )
+            self._kfold_split(n_splits=n_splits, split=split, seed=self.seed if seed is None else seed)
             return
         elif split_type.lower() == "smiles":
-            self._smiles_split(
-                train_ratio=train_ratio, seed=self.seed if seed is None else seed
-            )
+            self._smiles_split(train_ratio=train_ratio, seed=self.seed if seed is None else seed)
         else:
-            raise NotImplementedError(
-                f"split_type {split_type} is not implemented yet."
-            )
+            raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
     def _save_training_data(
         self,
@@ -502,16 +481,11 @@ class Trainer:
         if not isinstance(data, list):
             data = [data]
         if isinstance(data[0], Molecule):
-            graphs = [
-                get_graph_from_mol(mol, index, no_y=False)
-                for index, mol in enumerate(data)
-            ]
+            graphs = [get_graph_from_mol(mol, index, no_y=False) for index, mol in enumerate(data)]
         elif isinstance(data[0], CustomData):
             graphs = data
         else:
-            raise TypeError(
-                "Input has to be a Sequence or single rdkit molecule or a CustomData graph."
-            )
+            raise TypeError("Input has to be a Sequence or single rdkit molecule or a CustomData graph.")
         loader = DataLoader(graphs, batch_size=1, shuffle=False)
         predictions = []
         self.model.eval()

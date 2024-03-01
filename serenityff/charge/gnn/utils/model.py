@@ -56,8 +56,8 @@ class ChargeCorrectedNodeWiseAttentiveFP(AttentiveFP):
             x[batch_location] = x[batch_location] - torch.mean(x[batch_location]) + charge_correction
         return x
 
-class TorsionWiseAttentiveFP(AttentiveFP):
 
+class TorsionWiseAttentiveFP(AttentiveFP):
     def __init__(
         self,
         in_channels: Optional[int] = 23,
@@ -78,11 +78,11 @@ class TorsionWiseAttentiveFP(AttentiveFP):
             dropout,
         )
 
-        self._adalin1 = nn.Linear(hidden_channels*4, hidden_channels)
+        self._adalin1 = nn.Linear(hidden_channels * 4, hidden_channels)
         self._adalin2 = nn.Linear(hidden_channels, hidden_channels)
         self._adalin3 = nn.Linear(hidden_channels, out_channels)
 
-    def forward(self, x, edge_index, batch, edge_attr, molecule_charge,torsion_indices):
+    def forward(self, x, edge_index, batch, edge_attr, molecule_charge, torsion_indices):
         # Atom Embedding:
         x = F.leaky_relu_(self.lin1(x))
         h = F.elu_(self.atom_convs[0](x, edge_index, edge_attr))
@@ -94,7 +94,9 @@ class TorsionWiseAttentiveFP(AttentiveFP):
             h = F.dropout(h, p=self.dropout, training=self.training)
             x = gru(h, x).relu_()
 
-        x = torch.index_select(x, 0, torsion_indices.view(-1)).view(torsion_indices.shape[0], torsion_indices.shape[1], -1)
+        x = torch.index_select(x, 0, torsion_indices.view(-1)).view(
+            torsion_indices.shape[0], torsion_indices.shape[1], -1
+        )
         x = x.flatten(start_dim=1)
 
         # MLP decoding
@@ -103,7 +105,7 @@ class TorsionWiseAttentiveFP(AttentiveFP):
         x = self._adalin3(x)
         x = torch.sigmoid(x)
 
-        return x/torch.sum(x,dim=1).view(-1,1)
+        return x / torch.sum(x, dim=1).view(-1, 1)
 
 
 class NodeWiseAttentiveFP(AttentiveFP):

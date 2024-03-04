@@ -4,9 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  if: ${{ github.repository.private == false }}
 
 jobs:
-  if: ${{ github.repository.private == false }}
   pre-commit:
     runs-on: ubuntu-latest
     steps:

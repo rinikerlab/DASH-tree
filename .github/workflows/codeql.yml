@@ -12,6 +12,7 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    if: ${{ github.repository.private == false }}
     permissions:
       actions: read
       contents: read

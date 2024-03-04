@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, List
 
 import numpy as np
@@ -7,7 +9,7 @@ from copy import deepcopy, copy
 from serenityff.charge.tree.atom_features import AtomFeatures
 
 
-class node:
+class Node:
     def __init__(
         self,
         atom: List = [],
@@ -18,7 +20,7 @@ class node:
         count: int = 0,
         number: int = 0,
         parent_number: int = 0,
-    ):
+    ) -> None:
         self.level = level
         self.atoms = None
         if atom is not None:
@@ -50,7 +52,7 @@ class node:
         return False
 
     def __copy__(self):
-        new_node = node(
+        new_node = Node(
             atom=copy(self.atoms),
             level=copy(self.level),
             result=copy(self.result),
@@ -64,7 +66,7 @@ class node:
         return new_node
 
     def __deepcopy__(self, memo):
-        new_node = node(
+        new_node = Node(
             atom=deepcopy(self.atoms),
             level=deepcopy(self.level),
             result=deepcopy(self.result),
@@ -77,7 +79,7 @@ class node:
         new_node.children = deepcopy(self.children)
         return new_node
 
-    def copy(self, deep=False):
+    def copy(self, deep: bool = False) -> Node:
         if deep:
             return deepcopy(self)
         else:
@@ -333,7 +335,7 @@ class node:
                         index = temp_index
         return index
 
-    def _get_attribute_from_df_line(self, df_line):
+    def _get_attribute_from_df_line(self, df_line) -> None:
         self.level = df_line["level"]
         atom_data = df_line["atom"].split(" ") if isinstance(df_line["atom"], str) else []
         self.atom = AtomFeatures.atom_features_from_data_w_connection_info(data=atom_data)
@@ -347,7 +349,7 @@ class node:
         except KeyError:
             pass
 
-    def node_is_similar(self, other, min_deviation: float = 0.001, af_similar: float = 0.7):
+    def node_is_similar(self, other, min_deviation: float = 0.001, af_similar: float = 0.7) -> bool:
         """
         Check if two nodes are similar (if results are close enough)
 
@@ -384,7 +386,11 @@ class node:
         return False
 
     def try_to_merge_similar_branches(
-        self, min_deviation=0.0001, children_overlap_acceptance=0.8, af_similar=0.7, merge_counter=0
+        self,
+        min_deviation=0.0001,
+        children_overlap_acceptance=0.8,
+        af_similar=0.7,
+        merge_counter=0,
     ):
         """
         Try to merge similar branches.
@@ -428,7 +434,7 @@ class node:
             )
         return ret_merge_counter
 
-    def get_tree_length(self, length_dict: Dict):
+    def get_tree_length(self, length_dict: Dict) -> Dict:
         """
         Get the length of the tree. And store it in a dictionary with level as key.
 

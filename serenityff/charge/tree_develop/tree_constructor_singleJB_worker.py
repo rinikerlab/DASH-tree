@@ -8,7 +8,9 @@ from serenityff.charge.tree.tree_utils import (
     get_DASH_tree_from_DEV_tree,
 )
 from serenityff.charge.tree_develop.develop_node import DevelopNode
-from serenityff.charge.tree_develop.tree_constructor_parallel_worker import Tree_constructor_parallel_worker
+from serenityff.charge.tree_develop.tree_constructor_parallel_worker import (
+    Tree_constructor_parallel_worker,
+)
 
 
 class Tree_constructor_singleJB_worker:
@@ -20,7 +22,7 @@ class Tree_constructor_singleJB_worker:
         return parser.parse_args(args)
 
     @staticmethod
-    def build_singleJB(args: Sequence[str]):
+    def build_singleJB(args: Sequence[str]) -> None:
         args = Tree_constructor_singleJB_worker._parse_filenames(args)
         tree_pickle = args.tree_pickle
         AF_idx = args.AF_idx
@@ -37,7 +39,7 @@ class Tree_constructor_singleJB_worker:
         #    pickle.dump(new_root.children[0], f)
 
     @staticmethod
-    def run_singleJB(Tree_constructor_parallel_worker_path: str, AF_idx: int):
+    def run_singleJB(Tree_constructor_parallel_worker_path: str, AF_idx: int) -> None:
         local_tree_constructor = "tree_const_pickle.pkl"
         sub_folder = os.getcwd()
         out_folder = "tree_out"

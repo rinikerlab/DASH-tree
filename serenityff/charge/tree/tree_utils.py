@@ -1,17 +1,14 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
 from numba import njit
 
-# from rdkit import Chem
 
 from serenityff.charge.tree.atom_features import AtomFeatures
 
-# from serenityff.charge.tree.node import node
 from serenityff.charge.tree_develop.develop_node import DevelopNode
 
-# from serenityff.charge.utils.rdkit_typing import Molecule
 from serenityff.charge.tree.dash_tree import DASHTree
 
 
@@ -56,47 +53,7 @@ def get_possible_atom_features(mol, connected_atoms):
     return possible_atom_features, possible_atom_idxs
 
 
-# def create_new_node_from_develop_node(current_develop_node: DevelopNode) -> node:
-#     """
-#     Create a new node from a develop node. Used to convert a the raw construction tree to a final tree.
-
-#     Parameters
-#     ----------
-#     current_develop_node : DevelopNode
-#         The develop node to convert.
-#     current_new_node : node
-#         The new node to create.
-
-#     Returns
-#     -------
-#     node
-#         The new node.
-#     """
-#     # get current node properties
-#     atom = current_develop_node.atom_features
-#     level = current_develop_node.level
-#     (
-#         result,
-#         std,
-#         attention,
-#         size,
-#     ) = current_develop_node.get_node_result_and_std_and_attention_and_length()
-#     current_new_node = node(
-#         atom=[atom],
-#         level=level,
-#         result=result,
-#         stdDeviation=std,
-#         attention=attention,
-#         count=size,
-#     )
-#     # do the same things recursively for the children (get their properties and create the new nodes)
-#     for child in current_develop_node.children:
-#         current_new_node.add_child(create_new_node_from_develop_node(child))
-#     return current_new_node
-
-
 def get_data_from_DEV_node(dev_node: DevelopNode):
-    # dev_node.update_average()
     atom = dev_node.atom_features
     level = dev_node.level
     (
@@ -110,8 +67,12 @@ def get_data_from_DEV_node(dev_node: DevelopNode):
 
 
 def recursive_DEV_node_to_DASH_tree(
-    dev_node: DevelopNode, id_counter: int, parent_id: int, tree_storage: list, data_storage: list
-):
+    dev_node: DevelopNode,
+    id_counter: int,
+    parent_id: int,
+    tree_storage: list,
+    data_storage: list,
+) -> Union[int, None]:
     # check if tree_storage length is equal to id_counter
     if len(tree_storage) != id_counter:
         print("ERROR: tree_storage length is not equal to id_counter")
@@ -137,7 +98,16 @@ def get_DASH_tree_from_DEV_tree(dev_root: DevelopNode, tree_folder_path: str = "
         recursive_DEV_node_to_DASH_tree(child, 0, 0, branch_tree_storage, branch_data_storage)
         branch_data_df = pd.DataFrame(
             branch_data_storage,
-            columns=["level", "atom_type", "con_atom", "con_type", "result", "stdDeviation", "max_attention", "size"],
+            columns=[
+                "level",
+                "atom_type",
+                "con_atom",
+                "con_type",
+                "result",
+                "stdDeviation",
+                "max_attention",
+                "size",
+            ],
         )
         child_id = int(child.atom_features[0])
         tree_storage[child_id] = branch_tree_storage
@@ -145,12 +115,10 @@ def get_DASH_tree_from_DEV_tree(dev_root: DevelopNode, tree_folder_path: str = "
     tree = DASHTree(tree_folder_path=tree_folder_path, preload=False)
     tree.data_storage = data_storage
     tree.tree_storage = tree_storage
-    # print("tree_storage: ", tree_storage)
-    # print("data_storage: ", data_storage)
     tree.save_all_trees_and_data()
 
 
-@njit
+@njit()
 def get_possible_connected_new_atom(matrix: np.ndarray, indices: np.ndarray) -> np.ndarray:
     """
     Get indices of every neighbor of every atom in indices that is not in indices.
@@ -170,7 +138,7 @@ def get_possible_connected_new_atom(matrix: np.ndarray, indices: np.ndarray) -> 
     return np.where(final ^ begin)[0]
 
 
-@njit
+@njit()
 def get_connected_atom_with_max_attention(
     matrix: np.ndarray, attentions: np.ndarray, indices: np.ndarray
 ) -> Tuple[float, int]:
@@ -194,7 +162,7 @@ def get_connected_atom_with_max_attention(
         return (np.NaN, np.NaN)
 
 
-@njit
+@njit()
 def get_connected_neighbor(matrix: np.ndarray, idx: int, indices: np.ndarray):
     """
     Get the relative and (rdkit) absolute index of the smallest neighbor of idx that is in the subgraph (indices)

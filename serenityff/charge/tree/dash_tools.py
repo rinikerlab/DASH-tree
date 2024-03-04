@@ -1,14 +1,9 @@
-# from typing import Tuple
-# import numpy as np
-# from numba import njit
-
 from rdkit import Chem
 
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.utils.rdkit_typing import Molecule
 
 
-# @njit(cache=True, fastmath=True)
 def new_neighbors(neighbor_dict, connected_atoms) -> tuple:
     connected_atoms_set = set(connected_atoms)
     new_neighbors_afs = []
@@ -17,13 +12,10 @@ def new_neighbors(neighbor_dict, connected_atoms) -> tuple:
         for neighbor in neighbor_dict[atom_idx]:
             if neighbor[0] not in connected_atoms_set and neighbor[0] not in new_neighbors:
                 new_neighbors.append(neighbor[0])
-                new_neighbors_afs.append(
-                    (neighbor[1][0], rel_atom_idx, neighbor[1][2])
-                )  # fix rel_atom_idx (the atom index in the subgraph)
+                new_neighbors_afs.append((neighbor[1][0], rel_atom_idx, neighbor[1][2]))
     return new_neighbors_afs, new_neighbors
 
 
-# @njit(cache=True, fastmath=True)
 def new_neighbors_atomic(neighbor_dict, connected_atoms, atom_idx_added) -> tuple:
     connected_atoms_set = set(connected_atoms)
     new_neighbors_afs = []
@@ -31,9 +23,7 @@ def new_neighbors_atomic(neighbor_dict, connected_atoms, atom_idx_added) -> tupl
     for neighbor in neighbor_dict[atom_idx_added]:
         if neighbor[0] not in connected_atoms_set:
             new_neighbors.append(neighbor[0])
-            new_neighbors_afs.append(
-                (neighbor[1][0], atom_idx_added, neighbor[1][2])
-            )  # fix rel_atom_idx (the atom index in the subgraph)
+            new_neighbors_afs.append((neighbor[1][0], atom_idx_added, neighbor[1][2]))
     return new_neighbors_afs, new_neighbors
 
 
@@ -51,6 +41,7 @@ def init_neighbor_dict(mol: Molecule, af=AtomFeatures):
 
 def get_rdkit_fragment_from_node_path(node_path) -> Chem.RWMol:
     """
+    FIXME: Needs fixing!
     Get the rdkit fragment from a node path as rdkit molecule.
 
     Args:

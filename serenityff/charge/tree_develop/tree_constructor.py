@@ -4,6 +4,7 @@ import random
 import os
 import logging
 import time
+from typing import NoReturn
 
 import numpy as np
 import pandas as pd
@@ -11,12 +12,19 @@ from rdkit import Chem
 from tqdm import tqdm
 from collections import defaultdict
 
-from serenityff.charge.tree.atom_features import AtomFeatures, get_connection_info_bond_type
-from serenityff.charge.tree.node import node
+from serenityff.charge.tree.atom_features import (
+    AtomFeatures,
+    get_connection_info_bond_type,
+)
+from serenityff.charge.tree.node import Node
 from serenityff.charge.tree.tree_utils import get_DASH_tree_from_DEV_tree
 from serenityff.charge.tree_develop.develop_node import DevelopNode
-from serenityff.charge.tree_develop.tree_constructor_parallel_worker import Tree_constructor_parallel_worker
-from serenityff.charge.tree_develop.tree_constructor_singleJB_worker import Tree_constructor_singleJB_worker
+from serenityff.charge.tree_develop.tree_constructor_parallel_worker import (
+    Tree_constructor_parallel_worker,
+)
+from serenityff.charge.tree_develop.tree_constructor_singleJB_worker import (
+    Tree_constructor_singleJB_worker,
+)
 
 
 class Tree_constructor:
@@ -37,7 +45,7 @@ class Tree_constructor:
         save_cleaned_df_path=None,
         save_feature_dict_path=None,
         atom_feature_type=AtomFeatures,
-    ):
+    ) -> None:
         """Initialize Tree_constructor object for DASH tree building (SerenityFF)
         This constructor can:
         I)  load a dataframe from a csv file and a sdf file
@@ -103,7 +111,10 @@ class Tree_constructor:
 
         # load data
         if verbose:
-            print(f"{datetime.datetime.now()}\tMols imported, starting df import", flush=True)
+            print(
+                f"{datetime.datetime.now()}\tMols imported, starting df import",
+                flush=True,
+            )
         self.original_df = pd.read_csv(
             df_path,
             usecols=[
@@ -132,7 +143,10 @@ class Tree_constructor:
             self.original_df.to_csv(save_cleaned_df_path, index=False)
 
         if verbose:
-            print(f"{datetime.datetime.now()}\tdf imported, starting data spliting", flush=True)
+            print(
+                f"{datetime.datetime.now()}\tdf imported, starting data spliting",
+                flush=True,
+            )
 
         # split data in train and validation set
         random.seed(seed)
@@ -145,7 +159,10 @@ class Tree_constructor:
             test_set = set(test_set)
         else:
             if verbose:
-                print(f"{datetime.datetime.now()}\tUsing split indices from {split_indices_path}", flush=True)
+                print(
+                    f"{datetime.datetime.now()}\tUsing split indices from {split_indices_path}",
+                    flush=True,
+                )
             df_test_set = pd.read_csv(split_indices_path)
             test_set = df_test_set["sdf_idx"].tolist()
             test_set = [int(i) for i in test_set]
@@ -201,10 +218,13 @@ class Tree_constructor:
         for af in self.atom_feature_type.feature_list:
             af_key = self.atom_feature_type.afTuple_2_afKey[af]
             self.roots[af_key] = self.node_type(atom_features=[af_key, -1, -1], level=1)
-        self.new_root = node(level=0)
+        self.new_root = Node(level=0)
 
         if verbose:
-            print(f"{datetime.datetime.now()}\tTable filled, starting adjacency matrix creation", flush=True)
+            print(
+                f"{datetime.datetime.now()}\tTable filled, starting adjacency matrix creation",
+                flush=True,
+            )
         self._create_adjacency_matrices()
 
         print(f"Number of train mols: {len(self.df.mol_index.unique())}")
@@ -227,14 +247,18 @@ class Tree_constructor:
                         break
                     if i == 4:
                         self._raise_index_missmatch_error(
-                            mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf
+                            mol_index,
+                            number_of_atoms_in_mol_df,
+                            number_of_atoms_in_mol_sdf,
                         )
             else:
                 pass
         if self.verbose:
             print(f"Number of missmatches found in sanitizing: {num_missmatches}")
 
-    def _raise_index_missmatch_error(self, mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf):
+    def _raise_index_missmatch_error(
+        self, mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf
+    ) -> NoReturn:
         print(
             f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
         )
@@ -248,7 +272,7 @@ class Tree_constructor:
         print("--------------------------------------------------")
         raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
 
-    def _check_charge_sanity(self):
+    def _check_charge_sanity(self) -> None:
         """
         Checks if the charges in the original_df are reasonable. Deletes mols with unphysical charges
         """
@@ -266,7 +290,7 @@ class Tree_constructor:
                 f"Number of wrong charged mols: {len(self.wrong_charged_mols_list)} of {len(self.original_df.mol_index.unique())} mols"
             )
 
-    def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index):
+    def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index) -> None:
         """
         Thresholds for reasonable charges
         """

@@ -7,6 +7,8 @@ from rdkit import Chem
 from torch import device, load
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
+from torch.cuda import is_available
+
 
 from serenityff.charge.gnn.training import Trainer
 from serenityff.charge.gnn.utils import (
@@ -97,7 +99,7 @@ def test_init_and_forward_model(model, graph) -> None:
 
 def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, model_path, statedict) -> None:
     # test init
-    assert trainer.device == device("cpu")
+    assert trainer.device == device("cuda") if is_available() else device("cpu")
     trainer.device = "CPU"
     trainer.device = "cpu"
     trainer.device = device("cpu")
@@ -195,4 +197,5 @@ def test_prediction(trainer, graph, molecule) -> None:
 
 
 def test_on_gpu(trainer) -> None:
-    assert not trainer._on_gpu
+
+    assert trainer._on_gpu == is_available()

@@ -14,7 +14,7 @@ from serenityff.charge.gnn.utils import (
 )
 from serenityff.charge.gnn.attention_extraction import Extractor
 from serenityff.charge.gnn.attention_extraction import Explainer
-from serenityff.charge.gnn.attention_extraction.explainer import FixedGNNExplainer
+from serenityff.charge.gnn.attention_extraction.explainer import GNNExplainer
 from serenityff.charge.gnn.utils import CustomData
 from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
 from serenityff.charge.utils import Molecule, command_to_shell_file
@@ -104,7 +104,7 @@ def graph(cwd) -> CustomData:
 def test_getter_setter(explainer) -> None:
     with pytest.raises(TypeError):
         explainer.gnn_explainer = "asdf"
-    assert isinstance(explainer.gnn_explainer, FixedGNNExplainer)
+    assert isinstance(explainer.gnn_explainer, GNNExplainer)
     return
 
 

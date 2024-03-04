@@ -1,10 +1,7 @@
-# import datetime
 import traceback
 from typing import List
 import numpy as np
 import pandas as pd
-
-# from serenityff.charge.tree.atom_features import AtomFeatures
 
 from serenityff.charge.tree.tree_utils import (
     get_connected_atom_with_max_attention,
@@ -37,7 +34,7 @@ class Tree_constructor_parallel_worker:
         verbose=False,
         logger=None,
         node_type=DevelopNode,
-    ):
+    ) -> None:
         self.df_af_split = df_af_split
         self.matrices = matrices
         self.feature_dict = feature_dict
@@ -141,9 +138,7 @@ class Tree_constructor_parallel_worker:
                     line.iloc[layer] = new_node.atom_features
                     connected_atoms.append(current_atom_idx)
                 return new_atom_feature
-            except Exception as e:
-                if False:  # use this to debug
-                    print(f"TODO in AF {line['atom_feature']} - Layer {layer} - {e}")
+            except Exception:
                 # fill connected atoms with all atoms in the molecule
                 num_atoms = len(self.feature_dict[mol_index])
                 line["connected_atoms"] = list(range(num_atoms))
@@ -180,7 +175,11 @@ class Tree_constructor_parallel_worker:
                 return matching_child.atom_features
             else:
                 current_atom_idx = int(line["connected_atom_max_attention_idx"])
-                new_atom_feature = [self.feature_dict[mol_index][current_atom_idx], -1, -1]
+                new_atom_feature = [
+                    self.feature_dict[mol_index][current_atom_idx],
+                    -1,
+                    -1,
+                ]
                 new_node = self.node_type(
                     atom_features=new_atom_feature,
                     level=1 + 1,
@@ -219,13 +218,15 @@ class Tree_constructor_parallel_worker:
         df_work["connected_atom_max_attention"] = ca
         df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
         df_work[1] = [
-            self._add_node_conn_to_hydrogen(
-                row,
-            )
-            if row["atomtype"] == "H"
-            else self._try_to_add_new_node(
-                row,
-                1,
+            (
+                self._add_node_conn_to_hydrogen(
+                    row,
+                )
+                if row["atomtype"] == "H"
+                else self._try_to_add_new_node(
+                    row,
+                    1,
+                )
             )
             for _, row in df_work.iterrows()
         ]

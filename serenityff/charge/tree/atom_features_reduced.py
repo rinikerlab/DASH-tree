@@ -1,4 +1,7 @@
-from serenityff.charge.tree.atom_features import AtomFeatures, get_connection_info_bond_type
+from serenityff.charge.tree.atom_features import (
+    AtomFeatures,
+    get_connection_info_bond_type,
+)
 from typing import Any, Tuple
 import numpy as np
 from rdkit import Chem
@@ -6,9 +9,7 @@ from serenityff.charge.utils import Molecule
 
 
 class AtomFeaturesReduced(AtomFeatures):
-    """
-    Reduced set of atom features.
-    """
+    """Reduced set of atom features."""
 
     feature_list = (
         (5, 1, 0, 2),

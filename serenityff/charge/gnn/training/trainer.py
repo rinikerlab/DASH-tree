@@ -303,9 +303,7 @@ class Trainer:
             return
         seed = self.seed if seed is None else seed
         if split_type.lower() == "random":
-            self.train_data, self.eval_data = split_data_random(
-                data_list=self.data, train_ratio=train_ratio, seed=seed
-            )
+            self.train_data, self.eval_data = split_data_random(data_list=self.data, train_ratio=train_ratio, seed=seed)
             return
         if split_type.lower() == "kfold":
             self.train_data, self.eval_data = split_data_Kfold(
@@ -313,9 +311,7 @@ class Trainer:
             )
             return
         if split_type.lower() == "smiles":
-            self.train_data, self.eval_data = split_data_smiles(
-                data_list=self.data, train_ratio=train_ratio, seed=seed
-            )
+            self.train_data, self.eval_data = split_data_smiles(data_list=self.data, train_ratio=train_ratio, seed=seed)
             return
         raise NotImplementedError(f"split_type {split_type} is not implemented yet.")
 
@@ -370,9 +366,7 @@ class Trainer:
         self.model.eval()
         val_loss = []
         loader = DataLoader(self.eval_data, batch_size=64)
-        for data in tqdm(
-            loader, disable=not verbose, desc="Validating model", leave=False
-        ):
+        for data in tqdm(loader, disable=not verbose, desc="Validating model", leave=False):
             data.to(self.device)
             prediction = self.model(
                 data.x,
@@ -489,24 +483,17 @@ class Trainer:
         if not isinstance(data, list):
             data = [data]
         if isinstance(data[0], Molecule):
-            graphs = [
-                get_graph_from_mol(mol, index, no_y=True)
-                for index, mol in enumerate(data)
-            ]
+            graphs = [get_graph_from_mol(mol, index, no_y=True) for index, mol in enumerate(data)]
         elif isinstance(data[0], CustomData):
             graphs = data
         else:
-            raise TypeError(
-                "Input has to be a Sequence or single rdkit molecule or a CustomData graph."
-            )
+            raise TypeError("Input has to be a Sequence or single rdkit molecule or a CustomData graph.")
         if verbose:
             print(f"Predicting values for {len(data)} molecules.")
         loader = DataLoader(graphs, batch_size=1, shuffle=False)
         predictions = []
         self.model.eval()
-        for data in tqdm(
-            loader, disable=not verbose, desc="Predicting values", leave=False
-        ):
+        for data in tqdm(loader, disable=not verbose, desc="Predicting values", leave=False):
             data.to(self.device)
             predictions.append(
                 self.model(
@@ -524,9 +511,7 @@ class Trainer:
                 torch.cuda.empty_cache()
         return predictions
 
-    def save_model_statedict(
-        self, name: Optional[str] = "_model_sd.pt", verbose: bool = verbose
-    ) -> None:
+    def save_model_statedict(self, name: Optional[str] = "_model_sd.pt", verbose: bool = verbose) -> None:
         """
         Saves a models statedict to self.save_prefix + name
 
@@ -541,9 +526,7 @@ class Trainer:
         if verbose:
             print(f"Models statedict saved to {self.save_prefix}{name}")
 
-    def save_model(
-        self, name: Optional[str] = "_model.pt", verbose: bool = verbose
-    ) -> None:
+    def save_model(self, name: Optional[str] = "_model.pt", verbose: bool = verbose) -> None:
         """
         Saves a models statedict to self.save_prefix + name
 

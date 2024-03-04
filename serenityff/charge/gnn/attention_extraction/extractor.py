@@ -16,8 +16,12 @@ from serenityff.charge.gnn.utils import (
 )
 from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.utils.exceptions import ExtractionError
-
-from .explainer import Explainer
+from serenityff.charge.gnn.attention_extraction import Explainer
+from serenityff.charge.gnn.attention_extraction.bash_templates import (
+    CLEANER_CONTENT,
+    get_lsf_worker_content,
+    get_slurm_worker_content,
+)
 
 
 class Extractor:
@@ -361,20 +365,8 @@ class Extractor:
         This worker script, does the actual attention extraction on the lsf/slurm hpc cluster.
         """
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
-        text = "#!/bin/bash\n"
-        text += 'python -c "'
-        if useSlurm:
-            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
-            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${SLURM_ARRAY_TASK_ID}), scratch='${TMPDIR}', sdf_property_name='${3}')"
-            text += '"\n'
-            text += r"mv ${TMPDIR}/${SLURM_ARRAY_TASK_ID}.csv ${2}/."
-        else:
-            text += r"from serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
-            text += r"Extractor._extract_hpc(model='${1}', sdf_index=int(${LSB_JOBINDEX}), scratch='${TMPDIR}', sdf_property_name='${3}')"
-            text += '"\n'
-            text += r"mv ${TMPDIR}/${LSB_JOBINDEX}.csv ${2}/."
-        with open(file, "w") as f:
-            f.write(text)
+        with open(file, "w") as worker:
+            worker.write(get_slurm_worker_content() if useSlurm else get_lsf_worker_content())
         os.system(f"chmod u+x {file}")
         return
 
@@ -385,13 +377,9 @@ class Extractor:
         it runs the Extractor._clean_up() function.
         """
         file = "cleaner.sh" if not directory else f"{directory}/cleaner.sh"
-        text = "#!/bin/bash\n"
-        text += 'python -c "'
-        text += r"serenityff.charge.gnn.attention_extraction.extractor import Extractor; "
-        text += "Extractor._clean_up(num_files=${1}, batch_size=int(${2}), sdf_file='${3}')"
-        text += '"\n'
-        with open(file, "w") as f:
-            f.write(text)
+
+        with open(file, mode="w") as cleaner:
+            cleaner.write(CLEANER_CONTENT)
         os.system(f"chmod u+x {file}")
         return
 
@@ -429,6 +417,7 @@ class Extractor:
                 "cleaner.sh",
             ]:
                 os.remove(file)
+            working_dir = "." if working_dir is None else working_dir
             make_archive(working_dir + "/sdf_data", "zip", working_dir + "/sdf_data")
             rmtree(working_dir + "/sdf_data/")
         else:
@@ -459,6 +448,8 @@ class Extractor:
         all the needed information:
             > -m:   path to the ml model .pt file
             > -s:   path to the .sdf file containing the molecules.
+            > -p:   name of the property in the sdf to explain. Defaults to 'MBIScharge'.
+
         """
         extractor = Extractor()
         extractor._initialize_expaliner(model=ml_model, epochs=epochs, verbose=verbose_every_atom)
@@ -488,6 +479,8 @@ class Extractor:
         all the needed information:
             > -m:   path to the ml model .pt file
             > -s:   path to the .sdf file containing the molecules.
+            > -p:   name of the property in the sdf to explain. Defaults to 'MBIScharge'.
+
 
         """
         files = Extractor._parse_filenames(args)
@@ -501,9 +494,9 @@ class Extractor:
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
 
-        id = Extractor._get_job_id("id.txt")
+        job_id = Extractor._get_job_id("id.txt")
         Extractor._write_cleaner()
-        lsf_command = f"bsub -n 1 -J 'clean_up' -o logfiles/cleanup.out -e logfiles/cleanup.err -w 'done({id})' './cleaner.sh {num_files} {batch_size} {files.sdffile}'"
+        lsf_command = f"bsub -n 1 -J 'clean_up' -o logfiles/cleanup.out -e logfiles/cleanup.err -w 'done({job_id})' './cleaner.sh {num_files} {batch_size} {files.sdffile}'"
         os.system(lsf_command)
         command_to_shell_file(lsf_command, "run_cleanup.sh")
         return

@@ -55,3 +55,44 @@ jobs:
       run: |
         python setup.py install
         pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
+
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    if: ${{ github.repository.private == false }}
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ javascript, python ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+        if: ${{ matrix.language == 'javascript' || matrix.language == 'python' }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  pre-commit:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository.private == false }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+    - uses: pre-commit/action@v3.0.0

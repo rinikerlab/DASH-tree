@@ -33,15 +33,11 @@ jobs:
         ulimit -a
 
 
-    - uses: mamba-org/provision-with-micromamba@main
+    - uses: mamba-org/setup-micromamba@v1
       with:
         python-version: ${{ matrix.python-version }}
+        init-shell: bash
         environment-file:  dev/conda-env/test_env.yaml
-        channels: conda-forge,defaults
-        activate-environment: serenityff-charge-test
-        auto-update-conda: true
-        auto-activate-base: false
-        show-channel-urls: true
 
     - name: Install package
       shell: bash -l {0}

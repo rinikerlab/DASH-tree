@@ -7,7 +7,6 @@ channels:
   - defaults
 dependencies:
   # Base depends
-  - python
   - pip
   ## Testing
   - pytest

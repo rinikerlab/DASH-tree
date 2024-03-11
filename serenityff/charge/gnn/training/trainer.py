@@ -388,6 +388,7 @@ class Trainer:
         batch_size: Optional[int] = 64,
         verbose: Optional[bool] = verbose,
         save_after_every_step: bool = False,
+        save_best_model: bool = False,
     ) -> Tuple[Sequence[float]]:
         """
         Trains self.model if everything is initialized.
@@ -408,6 +409,7 @@ class Trainer:
             raise e
         train_loss = []
         eval_losses = []
+        lowest_loss = float("inf")
         if verbose:
             print(f"Training model with {len(self.train_data)} molecules.", flush=True)
         for epo in tqdm(
@@ -442,7 +444,12 @@ class Trainer:
                 del data, prediction, loss
                 if self._on_gpu:
                     torch.cuda.empty_cache()
-            eval_losses.append(self.validate_model())
+            eval_loss = self.validate_model()
+            if eval_loss < lowest_loss:
+                lowest_loss = eval_loss
+                if save_best_model:
+                    self.save_model_statedict(name="_best_model_sd.pt")
+            eval_losses.append(eval_loss)
             train_loss.append(np.mean(losses))
             if save_after_every_step:
                 self._save_training_data(train_loss, eval_losses)

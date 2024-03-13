@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from serenityff.charge.gnn.utils import (
     ChargeCorrectedNodeWiseAttentiveFP,
+    NodeWiseAttentiveFP,
     get_graph_from_mol,
 )
 from serenityff.charge.utils import command_to_shell_file
@@ -36,35 +37,31 @@ class Extractor:
     def model(self) -> torch.nn.Module:
         return self._model
 
-    @model.setter
-    def model(self, value: Union[str, torch.nn.Module]) -> None:
+    def _set_model(self, value: Union[str, torch.nn.Module], no_charge_correction: bool = False) -> None:
         if isinstance(value, str):
             load = torch.load(value, map_location=torch.device("cpu"))
             try:
                 load.state_dict()
                 self._model = load
-                print(self._model.state_dict().keys())
             except AttributeError:
-                self._model = ChargeCorrectedNodeWiseAttentiveFP()
+                if no_charge_correction:
+                    self._model = NodeWiseAttentiveFP()
+                else:
+                    self._model = ChargeCorrectedNodeWiseAttentiveFP()
                 self._model.load_state_dict(load)
         elif isinstance(value, torch.nn.Module):
             self._model = value
         elif isinstance(value, OrderedDict):
-            self._model = ChargeCorrectedNodeWiseAttentiveFP(
-                in_channels=25,
-                hidden_channels=200,
-                out_channels=1,
-                edge_dim=11,
-                num_layers=5,
-                num_timesteps=2,
-            )
+            if no_charge_correction:
+                self._model = NodeWiseAttentiveFP()
+            else:
+                self._model = ChargeCorrectedNodeWiseAttentiveFP()
             self._model.load_state_dict(value)
         else:
             raise TypeError(
                 "model has to be either of type torch.nn.Module, OrderedDict, \
                     or the str path to a .pt model holding either of the aforementioned types."
             )
-        return
 
     @property
     def explainer(self) -> Explainer:
@@ -81,6 +78,7 @@ class Extractor:
         self,
         model: torch.nn.Module,
         epochs: Optional[int] = 1000,
+        no_charge_correction: bool = False,
         verbose: Optional[bool] = False,
     ) -> None:
         """
@@ -91,7 +89,7 @@ class Extractor:
             epochs (Optional[int], optional): Epochs used to explain every node. Defaults to 2000.
             verbose (Optional[bool], optional): Wheter to use tqdm progress bars. Defaults to False.
         """
-        self.model = model
+        self._set_model(model, no_charge_correction=no_charge_correction)
         self.explainer = Explainer(model=self.model, epochs=epochs, verbose=verbose)
 
     def _explain_molecules_in_sdf(
@@ -316,6 +314,7 @@ class Extractor:
             > -s, --sdffile:    .SDF file containing a list of molecules\
                 you want a prediction and attention extaction for.
             > -p, --property:  Name of the property in the sdf to explain. Defaults to 'MBIScharge'.
+            > --no-charge-correction: if flag is present, the model is not physics informed (i.e. not charge corrected.).
 
         Returns:
             argparse.Namespace: Namespace containing necessary strings.
@@ -324,6 +323,7 @@ class Extractor:
         parser.add_argument("-m", "--mlmodel", type=str, required=True)
         parser.add_argument("-s", "--sdffile", type=str, required=True)
         parser.add_argument("-p", "--property", type=str, default="MBIScharge")
+        parser.add_argument("--no-charge-correction", action="store_true")
         return parser.parse_args(args)
 
     @staticmethod
@@ -335,6 +335,7 @@ class Extractor:
         working_dir: Optional[str] = None,
         verbose: Optional[bool] = False,
         sdf_property_name: Optional[str] = "MBIScharge",
+        no_charge_correction: bool = False,
     ) -> None:
         """
         Extracts the attention weights a model uses for predictions of \
@@ -350,7 +351,12 @@ class Extractor:
         sdf_file = f"sdf_data/{sdf_index}.sdf" if not working_dir else f"{working_dir.rstrip('/')}/{sdf_index}.sdf"
         print(scratch, working_dir)
         extractor = Extractor()
-        extractor._initialize_expaliner(model=model, epochs=epochs, verbose=verbose)
+        extractor._initialize_expaliner(
+            model=model,
+            epochs=epochs,
+            verbose=verbose,
+            no_charge_correction=no_charge_correction,
+        )
         extractor._explain_molecules_in_sdf(sdf_file=sdf_file, scratch=scratch, sdf_property_name=sdf_property_name)
         return
 
@@ -358,7 +364,6 @@ class Extractor:
     def _write_worker(
         directory: Optional[str] = None,
         useSlurm=False,
-        sdf_property_name: str = "MBIScharge",
     ) -> None:
         """
         Writes a bash script called worker.sh, that is then again submitted to the lsf/slurm queue.
@@ -435,6 +440,7 @@ class Extractor:
         epochs: Optional[int] = 1000,
         verbose: Optional[bool] = True,
         verbose_every_atom: Optional[bool] = False,
+        no_charge_correction: bool = False,
         sdf_property_name: Optional[str] = "MBIScharge",
     ) -> None:
         """
@@ -452,7 +458,12 @@ class Extractor:
 
         """
         extractor = Extractor()
-        extractor._initialize_expaliner(model=ml_model, epochs=epochs, verbose=verbose_every_atom)
+        extractor._initialize_expaliner(
+            model=ml_model,
+            epochs=epochs,
+            verbose=verbose_every_atom,
+            no_charge_correction=no_charge_correction,
+        )
         extractor._explain_molecules_in_sdf(
             sdf_file=sdf_file,
             output=output,
@@ -490,13 +501,20 @@ class Extractor:
         Extractor._write_worker()
         if not os.path.exists("logfiles"):
             os.mkdir("logfiles")
-        lsf_command = f'bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err -W 120:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"} {files.property}" > id.txt'
+        lsf_command = (
+            f"bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err "
+            f'-W 120:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} '
+            f'{os.getcwd()+"/sdf_data"} {files.property} {files.no_charge_correction}" > id.txt'
+        )
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
 
         job_id = Extractor._get_job_id("id.txt")
         Extractor._write_cleaner()
-        lsf_command = f"bsub -n 1 -J 'clean_up' -o logfiles/cleanup.out -e logfiles/cleanup.err -w 'done({job_id})' './cleaner.sh {num_files} {batch_size} {files.sdffile}'"
+        lsf_command = (
+            f"bsub -n 1 -J 'clean_up' -o logfiles/cleanup.out -e logfiles/cleanup.err -w"
+            f" 'done({job_id})' './cleaner.sh {num_files} {batch_size} {files.sdffile}'"
+        )
         os.system(lsf_command)
         command_to_shell_file(lsf_command, "run_cleanup.sh")
         return
@@ -523,13 +541,23 @@ class Extractor:
         Extractor._write_worker(useSlurm=True)
         if not os.path.exists("logfiles"):
             os.mkdir("logfiles")
-        slurm_command = f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" --array=1-{num_files} --mem-per-cpu=1024 --tmp=64000 --output="logfiles/extraction.out" --error="logfiles/extraction.err" --open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"} {files.property}" > id.txt'
+        slurm_command = (
+            f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" '
+            f"--array=1-{num_files} --mem-per-cpu=1024 --tmp=64000 "
+            f'--output="logfiles/extraction.out" --error="logfiles/extraction.err" '
+            f'--open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"} '
+            f'{files.property} {files.no_charge_correction}" > id.txt'
+        )
         command_to_shell_file(slurm_command, "run_extraction.sh")
         os.system(slurm_command)
 
         id = Extractor._get_job_id("id.txt", useSlurm=True)
         Extractor._write_cleaner()
-        slurm_command = f"sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name='clean_up' --mem-per-cpu=1024 --output='logfiles/cleanup.out' --error='logfiles/cleanup.err' --open-mode=append --dependency=afterok:{id} --wrap='./cleaner.sh {num_files} {batch_size} {files.sdffile}'"
+        slurm_command = (
+            f"sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name='clean_up' "
+            f"--mem-per-cpu=1024 --output='logfiles/cleanup.out' --error='logfiles/cleanup.err' "
+            f"--open-mode=append --dependency=afterok:{id} --wrap='./cleaner.sh {num_files} {batch_size} {files.sdffile}'"
+        )
         os.system(slurm_command)
         command_to_shell_file(slurm_command, "run_cleanup.sh")
         return

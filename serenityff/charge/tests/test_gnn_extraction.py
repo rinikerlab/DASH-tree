@@ -16,6 +16,7 @@ from serenityff.charge.gnn.attention_extraction import Extractor
 from serenityff.charge.gnn.attention_extraction import Explainer
 from serenityff.charge.gnn.attention_extraction.explainer import GNNExplainer
 from serenityff.charge.gnn.utils import CustomData
+from serenityff.charge.gnn.utils.model import NodeWiseAttentiveFP
 from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
 from serenityff.charge.utils import Molecule, command_to_shell_file
 
@@ -148,16 +149,19 @@ def test_explain_atom(explainer, graph) -> None:
 
 
 def test_extractor_properties(extractor, model, model_path, statedict_path, explainer) -> None:
-    extractor.model = model
-    extractor.model = model_path
-    extractor.model = statedict_path
+    extractor._set_model(model)
+    assert isinstance(extractor.model, ChargeCorrectedNodeWiseAttentiveFP)
+    extractor._set_model(model_path)
+    extractor._set_model(statedict_path)
     with pytest.raises(TypeError):
-        extractor.model = 2
+        extractor._set_model(2)
     with pytest.raises(FileNotFoundError):
-        extractor.model = "faulty.py"
+        extractor._set_model("faulty.py")
     with pytest.raises(TypeError):
         extractor.explainer = 2
     extractor.explainer = explainer
+    extractor._set_model(extractor.model.state_dict(), no_charge_correction=True)
+    assert isinstance(extractor.model, NodeWiseAttentiveFP)
 
 
 def test_split_sdf(cwd, sdf_path) -> None:

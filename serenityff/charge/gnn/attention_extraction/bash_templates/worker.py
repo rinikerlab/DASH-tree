@@ -2,7 +2,7 @@ worker_template = """
 #! /bin/bash
 
 python -c "from serenityff.charge.gnn.attention_extraction.extractor import Extractor;
-Extractor._extract_hpc(model='$1', sdf_index=int(${{ varname }}), scratch='$TMPDIR', sdf_property_name='$3')"
+Extractor._extract_hpc(model='$1', sdf_index=int(${{ varname }}), scratch='$TMPDIR', sdf_property_name='$3', physics_informed='$4')"
 
 mv ${TMPDIR}/${{{ varname }}}.csv ${2}/.
 """

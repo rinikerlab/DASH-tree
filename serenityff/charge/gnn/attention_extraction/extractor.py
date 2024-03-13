@@ -37,7 +37,9 @@ class Extractor:
     def model(self) -> torch.nn.Module:
         return self._model
 
-    def _set_model(self, value: Union[str, torch.nn.Module], no_charge_correction: bool = False) -> None:
+    def _set_model(
+        self, value: Union[str, torch.nn.Module], no_charge_correction: bool = False
+    ) -> None:
         if isinstance(value, str):
             load = torch.load(value, map_location=torch.device("cpu"))
             try:
@@ -70,7 +72,9 @@ class Extractor:
     @explainer.setter
     def explainer(self, value: Explainer) -> None:
         if not isinstance(value, Explainer):
-            raise TypeError("Explainer has to be (derived) of type GNNExplainer from torch_geometric.nn")
+            raise TypeError(
+                "Explainer has to be (derived) of type GNNExplainer from torch_geometric.nn"
+            )
         self._explainer = value
         return
 
@@ -117,7 +121,9 @@ class Extractor:
             total=len(suppl),
             disable=not verbose,
         ):
-            graph = get_graph_from_mol(mol=mol, index=mol_iterator, sdf_property_name=sdf_property_name)
+            graph = get_graph_from_mol(
+                mol=mol, index=mol_iterator, sdf_property_name=sdf_property_name
+            )
             graph.to(device="cpu")
             prediction = self.model(
                 graph.x,
@@ -156,7 +162,11 @@ class Extractor:
                 "truth",
             ],
         )
-        out = output if output else f'{scratch}/{sdf_file.split(".")[0].split("/")[-1] + ".csv"}'
+        out = (
+            output
+            if output
+            else f'{scratch}/{sdf_file.split(".")[0].split("/")[-1] + ".csv"}'
+        )
         df.to_csv(
             path_or_buf=out,
             index=False,
@@ -194,17 +204,23 @@ class Extractor:
                 try:
                     if atom_iterator == 0:
                         assert smiles == csv.smiles[csv_iterator]
-                    assert mol.GetNumAtoms() == len(csv["node_attentions"][atom_iterator + csv_iterator])
+                    assert mol.GetNumAtoms() == len(
+                        csv["node_attentions"][atom_iterator + csv_iterator]
+                    )
                     assert mol_idx == csv.mol_index[atom_iterator + csv_iterator]
                     assert csv.idx_in_mol[atom_iterator + csv_iterator] == atom_iterator
-                    assert csv.atomtype[atom_iterator + csv_iterator] == atom.GetSymbol()
+                    assert (
+                        csv.atomtype[atom_iterator + csv_iterator] == atom.GetSymbol()
+                    )
                 except AssertionError:
                     is_healthy = False
             csv_iterator += mol.GetNumAtoms()
         return is_healthy
 
     @staticmethod
-    def _open_next_file(writer: Chem.SDWriter, file_name: str, directory: str) -> Chem.SDWriter:
+    def _open_next_file(
+        writer: Chem.SDWriter, file_name: str, directory: str
+    ) -> Chem.SDWriter:
         """
         Closes an SDWriter and opens a new one. The new file has the number given
         as file_iterator as its name.
@@ -243,13 +259,17 @@ class Extractor:
             Tuple[int]: number of files written, number of molecule per file.
         """
         suppl = Chem.SDMolSupplier(sdf_file, removeHs=False)
-        batchsize = ceil(len(suppl) / desiredNumFiles) if len(suppl) > desiredNumFiles else 1
+        batchsize = (
+            ceil(len(suppl) / desiredNumFiles) if len(suppl) > desiredNumFiles else 1
+        )
         writer = None
         file_iterator = 0
         for molidx, mol in tqdm(enumerate(suppl), total=len(suppl)):
             if not molidx % batchsize:
                 file_iterator += 1
-                writer = Extractor._open_next_file(writer=writer, file_name=str(file_iterator), directory=directory)
+                writer = Extractor._open_next_file(
+                    writer=writer, file_name=str(file_iterator), directory=directory
+                )
             writer.write(mol)
         return file_iterator, batchsize
 
@@ -348,7 +368,11 @@ class Extractor:
             epochs (Optional[int], optional): number of epochs per prediction. Defaults to 2000.
             verbose (Optional[bool], optional): wheter to show tqdm update bar. Defaults to False.
         """
-        sdf_file = f"sdf_data/{sdf_index}.sdf" if not working_dir else f"{working_dir.rstrip('/')}/{sdf_index}.sdf"
+        sdf_file = (
+            f"sdf_data/{sdf_index}.sdf"
+            if not working_dir
+            else f"{working_dir.rstrip('/')}/{sdf_index}.sdf"
+        )
         print(scratch, working_dir)
         extractor = Extractor()
         extractor._initialize_expaliner(
@@ -357,7 +381,9 @@ class Extractor:
             verbose=verbose,
             no_charge_correction=no_charge_correction,
         )
-        extractor._explain_molecules_in_sdf(sdf_file=sdf_file, scratch=scratch, sdf_property_name=sdf_property_name)
+        extractor._explain_molecules_in_sdf(
+            sdf_file=sdf_file, scratch=scratch, sdf_property_name=sdf_property_name
+        )
         return
 
     @staticmethod
@@ -371,7 +397,9 @@ class Extractor:
         """
         file = "worker.sh" if not directory else f"{directory}/worker.sh"
         with open(file, "w") as worker:
-            worker.write(get_slurm_worker_content() if useSlurm else get_lsf_worker_content())
+            worker.write(
+                get_slurm_worker_content() if useSlurm else get_lsf_worker_content()
+            )
         os.system(f"chmod u+x {file}")
         return
 
@@ -406,14 +434,20 @@ class Extractor:
         Raises:
             Exception: Thrown if the generated.csv file is not matching the original .sdf file
         """
-        combined_filename = "combined" if not working_dir else f"{working_dir.rstrip('/')}/combined"
+        combined_filename = (
+            "combined" if not working_dir else f"{working_dir.rstrip('/')}/combined"
+        )
         Extractor._summarize_csvs(
             num_files=num_files,
             batch_size=batch_size,
-            directory=("./sdf_data" if working_dir is None else working_dir + "/sdf_data"),
+            directory=(
+                "./sdf_data" if working_dir is None else working_dir + "/sdf_data"
+            ),
             combined_filename=combined_filename,
         )
-        if Extractor._check_final_csv(sdf_file=sdf_file, csv_file=combined_filename + ".csv"):
+        if Extractor._check_final_csv(
+            sdf_file=sdf_file, csv_file=combined_filename + ".csv"
+        ):
             for file in [
                 "id.txt",
                 "worker.sh",
@@ -504,7 +538,7 @@ class Extractor:
         lsf_command = (
             f"bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err "
             f'-W 120:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} '
-            f'{os.getcwd()+"/sdf_data"} {files.property} {files.no_charge_correction}" > id.txt'
+            f'{os.getcwd()+"/sdf_data"} {files.property} {int(files.no_charge_correction)}" > id.txt'
         )
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
@@ -546,7 +580,7 @@ class Extractor:
             f"--array=1-{num_files} --mem-per-cpu=1024 --tmp=64000 "
             f'--output="logfiles/extraction.out" --error="logfiles/extraction.err" '
             f'--open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"} '
-            f'{files.property} {files.no_charge_correction}" > id.txt'
+            f'{files.property} {int(files.no_charge_correction)}" > id.txt'
         )
         command_to_shell_file(slurm_command, "run_extraction.sh")
         os.system(slurm_command)

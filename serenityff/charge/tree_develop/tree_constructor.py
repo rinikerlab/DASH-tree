@@ -4,6 +4,7 @@ import random
 import os
 import logging
 import time
+from typing import NoReturn
 
 import numpy as np
 import pandas as pd
@@ -11,14 +12,19 @@ from rdkit import Chem
 from tqdm import tqdm
 from collections import defaultdict
 
-from serenityff.charge.tree.atom_features import AtomFeatures, get_connection_info_bond_type
-from serenityff.charge.tree.node import node
-from serenityff.charge.tree.tree_utils import (
-    create_new_node_from_develop_node,
+from serenityff.charge.tree.atom_features import (
+    AtomFeatures,
+    get_connection_info_bond_type,
 )
+from serenityff.charge.tree.node import Node
+from serenityff.charge.tree.tree_utils import get_DASH_tree_from_DEV_tree
 from serenityff.charge.tree_develop.develop_node import DevelopNode
-from serenityff.charge.tree_develop.tree_constructor_parallel_worker import Tree_constructor_parallel_worker
-from serenityff.charge.tree_develop.tree_constructor_singleJB_worker import Tree_constructor_singleJB_worker
+from serenityff.charge.tree_develop.tree_constructor_parallel_worker import (
+    Tree_constructor_parallel_worker,
+)
+from serenityff.charge.tree_develop.tree_constructor_singleJB_worker import (
+    Tree_constructor_singleJB_worker,
+)
 
 
 class Tree_constructor:
@@ -38,7 +44,8 @@ class Tree_constructor:
         split_indices_path=None,
         save_cleaned_df_path=None,
         save_feature_dict_path=None,
-    ):
+        atom_feature_type=AtomFeatures,
+    ) -> None:
         """Initialize Tree_constructor object for DASH tree building (SerenityFF)
         This constructor can:
         I)  load a dataframe from a csv file and a sdf file
@@ -79,6 +86,8 @@ class Tree_constructor:
             Debug option for skipping steps, by default None
         """
         # init
+        self.node_type = DevelopNode
+        self.atom_feature_type = atom_feature_type
         if loggingBuild:
             self.loggingBuild = True
             logging.basicConfig(
@@ -102,7 +111,10 @@ class Tree_constructor:
 
         # load data
         if verbose:
-            print(f"{datetime.datetime.now()}\tMols imported, starting df import", flush=True)
+            print(
+                f"{datetime.datetime.now()}\tMols imported, starting df import",
+                flush=True,
+            )
         self.original_df = pd.read_csv(
             df_path,
             usecols=[
@@ -131,7 +143,10 @@ class Tree_constructor:
             self.original_df.to_csv(save_cleaned_df_path, index=False)
 
         if verbose:
-            print(f"{datetime.datetime.now()}\tdf imported, starting data spliting", flush=True)
+            print(
+                f"{datetime.datetime.now()}\tdf imported, starting data spliting",
+                flush=True,
+            )
 
         # split data in train and validation set
         random.seed(seed)
@@ -144,7 +159,10 @@ class Tree_constructor:
             test_set = set(test_set)
         else:
             if verbose:
-                print(f"{datetime.datetime.now()}\tUsing split indices from {split_indices_path}", flush=True)
+                print(
+                    f"{datetime.datetime.now()}\tUsing split indices from {split_indices_path}",
+                    flush=True,
+                )
             df_test_set = pd.read_csv(split_indices_path)
             test_set = df_test_set["sdf_idx"].tolist()
             test_set = [int(i) for i in test_set]
@@ -169,7 +187,9 @@ class Tree_constructor:
             h.append(self._get_hydrogen_connectivity(row))
             c.append(([] if row["atomtype"] == "H" else [row["idx_in_mol"]]))
             t.append(row["node_attentions"][row["idx_in_mol"]])
-            tmp_af = AtomFeatures.atom_features_from_molecule(self.sdf_suplier[row["mol_index"]], row["idx_in_mol"])
+            tmp_af = self.atom_feature_type.atom_features_from_molecule(
+                self.sdf_suplier[row["mol_index"]], row["idx_in_mol"]
+            )
             af.append(tmp_af)
             if row["idx_in_mol"] == 0:
                 self.feature_dict[row["mol_index"]] = dict()
@@ -195,13 +215,16 @@ class Tree_constructor:
         self.attention_percentage = attention_percentage
         self.num_layers_to_build = num_layers_to_build
         self.roots = {}
-        for af in AtomFeatures.feature_list:
-            af_key = AtomFeatures.lookup_str(af)
-            self.roots[af_key] = DevelopNode(atom_features=[af_key, -1, -1], level=1)
-        self.new_root = node(level=0)
+        for af in self.atom_feature_type.feature_list:
+            af_key = self.atom_feature_type.afTuple_2_afKey[af]
+            self.roots[af_key] = self.node_type(atom_features=[af_key, -1, -1], level=1)
+        self.new_root = Node(level=0)
 
         if verbose:
-            print(f"{datetime.datetime.now()}\tTable filled, starting adjacency matrix creation", flush=True)
+            print(
+                f"{datetime.datetime.now()}\tTable filled, starting adjacency matrix creation",
+                flush=True,
+            )
         self._create_adjacency_matrices()
 
         print(f"Number of train mols: {len(self.df.mol_index.unique())}")
@@ -211,23 +234,31 @@ class Tree_constructor:
         """
         Brute force method to clean molecule indices in df and sdf_suplier
         """
+        num_missmatches = 0
         molecule_idx_in_df = self.original_df.mol_index.unique().tolist()
         for mol_index in molecule_idx_in_df:
             number_of_atoms_in_mol_df = len(self.original_df.loc[self.original_df.mol_index == mol_index])
             number_of_atoms_in_mol_sdf = self.sdf_suplier[mol_index].GetNumAtoms()
             if number_of_atoms_in_mol_df > number_of_atoms_in_mol_sdf:
+                num_missmatches += 1
                 for i in range(5):
                     if number_of_atoms_in_mol_df <= self.sdf_suplier[mol_index + 1 + i].GetNumAtoms():
                         self.original_df.loc[self.original_df.mol_index >= mol_index, "mol_index"] += 1 + i
                         break
                     if i == 4:
                         self._raise_index_missmatch_error(
-                            mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf
+                            mol_index,
+                            number_of_atoms_in_mol_df,
+                            number_of_atoms_in_mol_sdf,
                         )
             else:
                 pass
+        if self.verbose:
+            print(f"Number of missmatches found in sanitizing: {num_missmatches}")
 
-    def _raise_index_missmatch_error(self, mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf):
+    def _raise_index_missmatch_error(
+        self, mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf
+    ) -> NoReturn:
         print(
             f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
         )
@@ -241,7 +272,7 @@ class Tree_constructor:
         print("--------------------------------------------------")
         raise ValueError(f"Number of atoms in df and sdf are not the same for molecule {mol_index}")
 
-    def _check_charge_sanity(self):
+    def _check_charge_sanity(self) -> None:
         """
         Checks if the charges in the original_df are reasonable. Deletes mols with unphysical charges
         """
@@ -259,7 +290,7 @@ class Tree_constructor:
                 f"Number of wrong charged mols: {len(self.wrong_charged_mols_list)} of {len(self.original_df.mol_index.unique())} mols"
             )
 
-    def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index):
+    def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index) -> None:
         """
         Thresholds for reasonable charges
         """
@@ -296,7 +327,7 @@ class Tree_constructor:
             return -1
 
     def _create_atom_features(self, line):
-        return AtomFeatures.atom_features_from_molecule_w_connection_info(
+        return self.atom_feature_type.atom_features_from_molecule_w_connection_info(
             self.sdf_suplier[line["mol_index"]], line["idx_in_mol"]
         )
 
@@ -336,11 +367,14 @@ class Tree_constructor:
         """
         print("Preparing Dataframe:")
         self.df_af_split = {}
-        for af in range(AtomFeatures.get_number_of_features()):
+        self.unique_afs_in_df = self.df.atom_feature.unique().tolist()
+        if self.verbose:
+            print(f"Number of unique atom features in df: {len(self.unique_afs_in_df)}")
+        for af in self.unique_afs_in_df:
             self.df_af_split[af] = self.df.loc[self.df.atom_feature == af].copy()
 
         print("Creating Tree Level 0:")
-        for af in tqdm(range(AtomFeatures.get_number_of_features())):
+        for af in tqdm(self.unique_afs_in_df):
             df_work = self.df_af_split[af]
             current_node = self.roots[af]
             try:
@@ -366,7 +400,8 @@ class Tree_constructor:
         out_folder = "tree_out"
         if not os.path.exists(out_folder):
             os.makedirs(out_folder)
-        for af in range(AtomFeatures.get_number_of_features() + 2):
+        for af in self.unique_afs_in_df:
+            # for af in range(self.atom_feature_type.get_number_of_features() + 2):
             try:
                 temp = pickle.load(open(f"{out_folder}/{af}.pkl", "rb"))
                 assert temp is not None
@@ -379,7 +414,8 @@ class Tree_constructor:
             time.sleep(200)
             num_slurm_jobs = int(os.popen("squeue | grep  't_' | wc -l").read())
         # collect all pickle files
-        for af in range(AtomFeatures.get_number_of_features() + 2):
+        for af in self.unique_afs_in_df:
+            # for af in range(self.atom_feature_type.get_number_of_features() + 2):
             try:
                 with open(f"{out_folder}/{af}.pkl", "rb") as f:
                     self.root.children.append(pickle.load(f))
@@ -402,6 +438,7 @@ class Tree_constructor:
             attention_percentage=self.attention_percentage,
             verbose=self.verbose,
             logger=[self.logger if self.loggingBuild else None],
+            node_type=self.node_type,
         )
         if build_with_sperate_jobs:
             self._build_with_seperate_slurm_jobs(tree_worker)
@@ -409,14 +446,15 @@ class Tree_constructor:
             tree_worker.build_tree(num_processes=num_processes)
             self.root = tree_worker.root
 
-    def convert_tree_to_node(self, delDevelop=False):
+    def convert_tree_to_node(self, delDevelop=False, tree_folder_path: str = "./"):
         """
         Helper function to convert develop nodes to normal nodes
         """
-        self.new_root = create_new_node_from_develop_node(self.root)
-        if delDevelop:
-            del self.root
-            self.root = None
+        # self.new_root = create_new_node_from_develop_node(self.root)
+        # if delDevelop:
+        #    del self.root
+        #    self.root = None
+        get_DASH_tree_from_DEV_tree(self.root, tree_folder_path=tree_folder_path)
 
     def calculate_tree_length(self):
         self.tree_length = self.new_root.calculate_tree_length()

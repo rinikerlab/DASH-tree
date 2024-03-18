@@ -1,12 +1,4 @@
-class Error(Exception):
-    """
-    Bass class for Exceptions in this package.
-    """
-
-    pass
-
-
-class ExtractionError(Error):
+class ExtractionError(Exception):
     """
     Error thrown if Feature extraction did not work properly.
     Called by Extractor.check_final_csv()
@@ -20,7 +12,7 @@ class ExtractionError(Error):
         super().__init__(message)
 
 
-class NotInitializedError(Error):
+class NotInitializedError(Exception):
     """
     Error thrown if Feature extraction did not work properly.
     Called by Extractor.check_final_csv()

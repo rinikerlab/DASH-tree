@@ -35,7 +35,7 @@ class AtomFeatures:
     It has a single atom form, or a form with the connection information like the relative index of the connected atom and the bond type.
     a atom with connection information can be called for example with the function atom_features_from_molecule_w_connection_info() and a
     example would be:
-    [(6, 3, 0, False, 0), 0, "SINGLE"]
+    [(6, 3, 0, False, 0), 0, 1]
     Wich is a carbon atom with 3 bonds, 0 formal charge, not aromatic and 0 hydrogens connected to an atom
     with index 0 via a single bond.
     """
@@ -217,7 +217,7 @@ class AtomFeatures:
     @staticmethod
     def atom_features_from_molecule_w_connection_info(
         molecule: Molecule, index: int, connected_to: Tuple[Any] = (-1, -1)
-    ) -> int:
+    ) -> (int, int, int):
         connected_bond_type = (
             -1 if connected_to[1] == -1 else get_connection_info_bond_type(molecule, int(index), int(connected_to[1]))
         )

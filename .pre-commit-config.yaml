@@ -69,18 +69,3 @@ repos:
         files: \.ipynb$
         language: python
         stages: [push]
-
-      # - id: nbconvert
-      #   name: Removes ipynb content
-      #   entry: jupyter nbconvert
-      #   args:
-      #     [
-      #       "--ClearOutputPreprocessor.enabled=True",
-      #       "--ClearMetadataPreprocessor.enabled=True",
-      #       "--RegexRemovePreprocessor.enabled=True",
-      #       "--to=notebook",
-      #       "--log-level=ERROR",
-      #       "--inplace",
-      #     ]
-      #   files: \.ipynb$
-      #   language: python

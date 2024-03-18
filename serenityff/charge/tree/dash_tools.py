@@ -1,57 +1,78 @@
-import numpy as np
-import pandas as pd
+from rdkit import Chem
 
-from newick import loads, Node
-
-
-def atoms_to_Name(atom_list: list) -> str:
-    ret_str = ""
-    for atom in atom_list:
-        ret_str += "#"
-        ret_str += "_".join([str(x) for x in atom])
-    return ret_str
+from serenityff.charge.tree.atom_features import AtomFeatures
+from serenityff.charge.utils.rdkit_typing import Molecule
 
 
-def name_to_atoms(name: str) -> list:
-    ret_list = []
-    for atom in name.split("#")[1:]:
-        ret_list.append(tuple([int(x) for x in atom.split("_")]))
-    return ret_list
+def new_neighbors(neighbor_dict, connected_atoms) -> tuple:
+    connected_atoms_set = set(connected_atoms)
+    new_neighbors_afs = []
+    new_neighbors = []
+    for rel_atom_idx, atom_idx in enumerate(connected_atoms):
+        for neighbor in neighbor_dict[atom_idx]:
+            if neighbor[0] not in connected_atoms_set and neighbor[0] not in new_neighbors:
+                new_neighbors.append(neighbor[0])
+                new_neighbors_afs.append((neighbor[1][0], rel_atom_idx, neighbor[1][2]))
+    return new_neighbors_afs, new_neighbors
 
 
-df_entry_list = []
+def new_neighbors_atomic(neighbor_dict, connected_atoms, atom_idx_added) -> tuple:
+    connected_atoms_set = set(connected_atoms)
+    new_neighbors_afs = []
+    new_neighbors = []
+    for neighbor in neighbor_dict[atom_idx_added]:
+        if neighbor[0] not in connected_atoms_set:
+            new_neighbors.append(neighbor[0])
+            new_neighbors_afs.append((neighbor[1][0], atom_idx_added, neighbor[1][2]))
+    return new_neighbors_afs, new_neighbors
 
 
-def add_oldNode_toNewTree(oldNode, newParent, id_counter=0):
-    new_node_name = atoms_to_Name(oldNode.atoms)
-    atom_type, con_atom, con_type = oldNode.atoms[0]
-    df_entry_list.append(
-        [
-            oldNode.level,
-            atom_type,
-            con_atom,
-            con_type,
-            oldNode.result,
-            oldNode.stdDeviation,
-            oldNode.attention,
-            oldNode.count,
-        ]
+def init_neighbor_dict(mol: Molecule, af=AtomFeatures):
+    neighbor_dict = {}
+    for atom_idx, atom in enumerate(mol.GetAtoms()):
+        neighbor_dict[atom_idx] = []
+        for neighbor in atom.GetNeighbors():
+            af_with_connection_info = af.atom_features_from_molecule_w_connection_info(
+                mol, neighbor.GetIdx(), (0, atom_idx)
+            )
+            neighbor_dict[atom_idx].append((neighbor.GetIdx(), af_with_connection_info))
+    return neighbor_dict
+
+
+def get_rdkit_fragment_from_node_path(node_path) -> Chem.RWMol:
+    """
+    FIXME: Needs fixing!
+    Get the rdkit fragment from a node path as rdkit molecule.
+
+    Args:
+        node_path (list[node]): A list of nodes, forming the subgraph/path in the tree.
+
+    Returns:
+        Chem.RWMol: The rdkit molecule of the subgraph/path.
+    """
+    print("WARNING: get_rdkit_fragment_from_node_path is deprecated.")
+    raise DeprecationWarning
+    # start with an empty molecule
+    mol = Chem.RWMol()
+    # add the first atom
+    element, numBonds, charge, isConjugated, numHs = AtomFeatures.get_split_feature_typed_from_key(
+        node_path[0].atoms[0][0]
     )
-    new_node = Node(new_node_name, comment=str(id_counter))
-    newParent.add_descendant(new_node)
-    id_counter += 1
-    for child in oldNode.children:
-        id_counter = add_oldNode_toNewTree(child, new_node, id_counter)
-    return id_counter
-
-
-def get_NewickTree_and_df(oldNode):
-    df_entry_list = []
-    newick_tree = loads("root;")[0]
-    add_oldNode_toNewTree(oldNode, newick_tree)
-
-    columns = ["level", "atom", "con", "conType", "result", "stdDeviation", "attention", "count"]
-    dtypesRaw = [np.int8, np.int8, np.int8, np.int8, np.float16, np.float16, np.float16, np.int32]
-    dtypes = dict(zip(columns, dtypesRaw))
-    df = pd.DataFrame(df_entry_list, columns=columns).astype(dtypes)
-    return newick_tree, df
+    atom = Chem.Atom(element)
+    atom.SetFormalCharge(charge)
+    atom.SetNumExplicitHs(numHs)
+    mol.AddAtom(atom)
+    # add the rest of the atoms
+    for i in range(1, len(node_path)):
+        element, numBonds, charge, isConjugated, numHs = AtomFeatures.get_split_feature_typed_from_key(
+            node_path[i].atoms[0][0]
+        )
+        atom = Chem.Atom(element)
+        atom.SetFormalCharge(charge)
+        atom.SetNumExplicitHs(numHs)
+        mol.AddAtom(atom)
+        # add the bond
+        bonded_atom = node_path[i].atoms[0][1]
+        bond_type_number = node_path[i].atoms[0][2]
+        mol.AddBond(i, bonded_atom, Chem.rdchem.BondType.values[bond_type_number])
+    return mol

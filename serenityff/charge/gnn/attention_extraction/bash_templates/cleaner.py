@@ -1,4 +1,4 @@
-CLEANER_CONTENT = """/
+CLEANER_CONTENT = """
 #! /bin/bash
 
 python -c "from serenityff.charge.gnn.attention_extraction.extractor import Extractor;

@@ -1,8 +1,7 @@
 # typing tools for the use of rdkit
 from rdkit import Chem
-#from typing import TypeAlias
-from typing import TypeAlias as TA
+import typing
 
-Molecule: TA = Chem.rdchem.Mol
-Atom: TA = Chem.rdchem.Atom
-Bond: TA = Chem.rdchem.Bond
+Molecule: typing.TypeAlias = Chem.rdchem.Mol
+Atom: typing.TypeAlias = Chem.rdchem.Atom
+Bond: typing.TypeAlias = Chem.rdchem.Bond

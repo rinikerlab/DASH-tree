@@ -351,7 +351,7 @@ class DASHTree:
             if not np.isnan(df.iloc[atom][property_name]):
                 return df.iloc[atom][property_name]
         Warning(f"No non NaN value found for {property_name} in hierarchy {matched_node_path}")
-        return np.NaN
+        return np.nan
 
     def _get_allAtoms_nodePaths(
         self,

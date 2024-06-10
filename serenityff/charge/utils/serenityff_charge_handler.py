@@ -1,20 +1,17 @@
 from typing import List
 import numpy as np
 
-# from openff.toolkit.topology import TopologyAtom, TopologyVirtualSite
 from openff.toolkit.typing.engines.smirnoff import (
     ElectrostaticsHandler,
     LibraryChargeHandler,
     vdWHandler,
-    #    ToolkitAM1BCCHandler,
 )
 from openff.toolkit.typing.engines.smirnoff.parameters import _NonbondedHandler
 from openff.toolkit.utils.base_wrapper import ToolkitWrapper
 from openmm.unit import Quantity, elementary_charge
 from packaging.version import Version
 
-from serenityff.charge.tree.tree import Tree
-from serenityff.charge.data import default_tree_path
+from serenityff.charge.tree.dash_tree import DASHTree as Tree
 
 
 class SerenityFFChargeHandler(_NonbondedHandler, ToolkitWrapper):
@@ -54,28 +51,24 @@ class SerenityFFChargeHandler(_NonbondedHandler, ToolkitWrapper):
         pass
 
     def assign_partial_charges(self, molecule, **kwargs) -> List[Quantity]:
-        if not self.sff_charge_tree.hasData:
-            print("Loading default tree")
-            self.sff_charge_tree.from_folder_pickle(default_tree_path)
-        rdkit_mol = molecule.to_rdkit()
+        print(type(molecule))
+        if hasattr(molecule, "to_rdkit"):
+            rdkit_mol = molecule.to_rdkit()
+        else:
+            rdkit_mol = molecule.reference_molecule.to_rdkit()
         partial_charges = [
             float(x)
-            for x in self.sff_charge_tree.match_molecule_atoms(
+            for x in self.sff_charge_tree.get_molecules_partial_charges(
                 mol=rdkit_mol, attention_threshold=self.attention_threshold
-            )[0]
+            )["charges"]
         ]
         partial_charges_with_units = Quantity(np.array(partial_charges), unit=elementary_charge)
-        # charges = unit.Quantity(charges, unit.elementary_charge)
         molecule.partial_charges = partial_charges_with_units
         print(f"Assigned partial charges: {partial_charges_with_units}")
         return partial_charges_with_units
 
     def create_force(self, system, topology, **kwargs) -> None:
         force = super().create_force(system, topology, **kwargs)
-
-        # init tree if needed
-        if not self.sff_charge_tree.hasData:
-            self.sff_charge_tree.from_folder_pickle(default_tree_path)
 
         for reference_molecule in topology.reference_molecules:
 
@@ -90,12 +83,6 @@ class SerenityFFChargeHandler(_NonbondedHandler, ToolkitWrapper):
                             ref_mol_particle_index = topology_particle.virtual_site.molecule_particle_index
                         except AttributeError:
                             raise ValueError(f"Particles of type {type(topology_particle)} are not supported")
-                    # if type(topology_particle) is TopologyAtom:
-                    #     ref_mol_particle_index = topology_particle.atom.molecule_particle_index
-                    # elif type(topology_particle) is TopologyVirtualSite:
-                    #     ref_mol_particle_index = topology_particle.virtual_site.molecule_particle_index
-                    # else:
-                    #     raise ValueError(f"Particles of type {type(topology_particle)} are not supported")
 
                     topology_particle_index = topology_particle.topology_particle_index
 

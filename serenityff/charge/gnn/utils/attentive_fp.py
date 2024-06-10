@@ -67,7 +67,13 @@ class GATEConv(MessagePassing):
         return out
 
     def message(
-        self, x_j: Tensor, x_i: Tensor, edge_attr: Tensor, index: Tensor, ptr: OptTensor, size_i: Optional[int]
+        self,
+        x_j: Tensor,
+        x_i: Tensor,
+        edge_attr: Tensor,
+        index: Tensor,
+        ptr: OptTensor,
+        size_i: Optional[int],
     ) -> Tensor:
 
         x_j = F.leaky_relu_(self.lin1(torch.cat([x_j, edge_attr], dim=-1)))
@@ -122,12 +128,22 @@ class AttentiveFP(torch.nn.Module):
         self.atom_convs = torch.nn.ModuleList([conv])
         self.atom_grus = torch.nn.ModuleList([gru])
         for _ in range(num_layers - 1):
-            conv = GATConv(hidden_channels, hidden_channels, dropout=dropout, add_self_loops=False, negative_slope=0.01)
+            conv = GATConv(
+                hidden_channels,
+                hidden_channels,
+                dropout=dropout,
+                add_self_loops=False,
+                negative_slope=0.01,
+            )
             self.atom_convs.append(conv)
             self.atom_grus.append(GRUCell(hidden_channels, hidden_channels))
 
         self.mol_conv = GATConv(
-            hidden_channels, hidden_channels, dropout=dropout, add_self_loops=False, negative_slope=0.01
+            hidden_channels,
+            hidden_channels,
+            dropout=dropout,
+            add_self_loops=False,
+            negative_slope=0.01,
         )
         self.mol_gru = GRUCell(hidden_channels, hidden_channels)
 

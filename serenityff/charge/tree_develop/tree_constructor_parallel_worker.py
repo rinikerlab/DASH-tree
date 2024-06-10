@@ -1,9 +1,7 @@
-# import datetime
 import traceback
 from typing import List
 import numpy as np
 import pandas as pd
-from serenityff.charge.tree.atom_features import AtomFeatures
 
 from serenityff.charge.tree.tree_utils import (
     get_connected_atom_with_max_attention,
@@ -35,7 +33,8 @@ class Tree_constructor_parallel_worker:
         attention_percentage,
         verbose=False,
         logger=None,
-    ):
+        node_type=DevelopNode,
+    ) -> None:
         self.df_af_split = df_af_split
         self.matrices = matrices
         self.feature_dict = feature_dict
@@ -44,6 +43,7 @@ class Tree_constructor_parallel_worker:
         self.num_layers_to_build = num_layers_to_build
         self.attention_percentage = attention_percentage
         self.verbose = verbose
+        self.node_type = node_type
         if logger is None:
             self.loggingBuild = False
         else:
@@ -54,7 +54,7 @@ class Tree_constructor_parallel_worker:
         current_node = self.roots[line["atom_feature"]]
         for i in range(layer):
             for child in current_node.children:
-                if child.atom_features == line[i]:
+                if np.all(child.atom_features == line[i]):
                     current_node = child
                     break
         return current_node
@@ -127,7 +127,7 @@ class Tree_constructor_parallel_worker:
                         rel,
                         bond_matrix[current_atom_idx][abs],
                     ]
-                    new_node = DevelopNode(
+                    new_node = self.node_type(
                         atom_features=new_atom_feature,
                         level=layer + 1,
                         truth_values=truth_value,
@@ -175,8 +175,12 @@ class Tree_constructor_parallel_worker:
                 return matching_child.atom_features
             else:
                 current_atom_idx = int(line["connected_atom_max_attention_idx"])
-                new_atom_feature = [self.feature_dict[mol_index][current_atom_idx], -1, -1]
-                new_node = DevelopNode(
+                new_atom_feature = [
+                    self.feature_dict[mol_index][current_atom_idx],
+                    -1,
+                    -1,
+                ]
+                new_node = self.node_type(
                     atom_features=new_atom_feature,
                     level=1 + 1,
                     truth_values=truth_value,
@@ -214,13 +218,15 @@ class Tree_constructor_parallel_worker:
         df_work["connected_atom_max_attention"] = ca
         df_work.sort_values(by="connected_atom_max_attention", ascending=False, inplace=True)
         df_work[1] = [
-            self._add_node_conn_to_hydrogen(
-                row,
-            )
-            if row["atomtype"] == "H"
-            else self._try_to_add_new_node(
-                row,
-                1,
+            (
+                self._add_node_conn_to_hydrogen(
+                    row,
+                )
+                if row["atomtype"] == "H"
+                else self._try_to_add_new_node(
+                    row,
+                    1,
+                )
             )
             for _, row in df_work.iterrows()
         ]
@@ -294,7 +300,7 @@ class Tree_constructor_parallel_worker:
 
     def build_tree(self, num_processes: int = 6, af_list: List[int] = None):
         if af_list is None:
-            af_list = list(range(AtomFeatures.get_number_of_features()))
+            af_list = self.df_af_split.keys()  # list(range(AtomFeatures.get_number_of_features()))
         all_args = [(x, self.df_af_split[x]) for x in af_list]
         res = []
         if num_processes == 1:

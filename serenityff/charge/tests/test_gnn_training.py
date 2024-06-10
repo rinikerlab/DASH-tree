@@ -7,9 +7,15 @@ from rdkit import Chem
 from torch import device, load
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
+from torch.cuda import is_available
+
 
 from serenityff.charge.gnn.training import Trainer
-from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, CustomData, get_graph_from_mol
+from serenityff.charge.gnn.utils import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    CustomData,
+    get_graph_from_mol,
+)
 from serenityff.charge.utils import NotInitializedError
 
 
@@ -50,7 +56,7 @@ def molecule(sdf_path) -> CustomData:
 
 @pytest.fixture
 def graph(molecule) -> CustomData:
-    return get_graph_from_mol(molecule, index=0)
+    return get_graph_from_mol(molecule, index=0, sdf_property_name="MBIScharge")
 
 
 @pytest.fixture
@@ -93,7 +99,7 @@ def test_init_and_forward_model(model, graph) -> None:
 
 def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, model_path, statedict) -> None:
     # test init
-    assert trainer.device == device("cpu")
+    assert trainer.device == device("cuda") if is_available() else device("cpu")
     trainer.device = "CPU"
     trainer.device = "cpu"
     trainer.device = device("cpu")
@@ -119,6 +125,13 @@ def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, m
     trainer.save_prefix = os.path.dirname(__file__)
     trainer.save_prefix = os.path.dirname(__file__) + "/test/testprefix"
     trainer.save_model_statedict()
+    assert os.path.isfile(os.path.dirname(__file__) + "/test/testprefix_model_sd.pt")
+    assert os.path.isdir(os.path.dirname(__file__) + "/test")
+    os.remove(os.path.dirname(__file__) + "/test/testprefix_model_sd.pt")
+    os.rmdir(os.path.dirname(__file__) + "/test")
+    trainer.save_prefix = os.path.dirname(__file__)
+    trainer.save_prefix = os.path.dirname(__file__) + "/test/testprefix"
+    trainer.save_model()
     assert os.path.isfile(os.path.dirname(__file__) + "/test/testprefix_model.pt")
     assert os.path.isdir(os.path.dirname(__file__) + "/test")
     os.remove(os.path.dirname(__file__) + "/test/testprefix_model.pt")
@@ -183,5 +196,6 @@ def test_prediction(trainer, graph, molecule) -> None:
     return
 
 
-def test_on_gpu(trainer):
-    assert not trainer._on_gpu()
+def test_on_gpu(trainer) -> None:
+
+    assert trainer._on_gpu == is_available()

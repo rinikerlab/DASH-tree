@@ -8,11 +8,15 @@ import pytest
 import torch
 from rdkit import Chem
 
-from serenityff.charge.gnn.utils import ChargeCorrectedNodeWiseAttentiveFP, get_graph_from_mol
+from serenityff.charge.gnn.utils import (
+    ChargeCorrectedNodeWiseAttentiveFP,
+    get_graph_from_mol,
+)
 from serenityff.charge.gnn.attention_extraction import Extractor
 from serenityff.charge.gnn.attention_extraction import Explainer
-from serenityff.charge.gnn.attention_extraction.explainer import FixedGNNExplainer
+from serenityff.charge.gnn.attention_extraction.explainer import GNNExplainer
 from serenityff.charge.gnn.utils import CustomData
+from serenityff.charge.gnn.utils.model import NodeWiseAttentiveFP
 from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
 from serenityff.charge.utils import Molecule, command_to_shell_file
 
@@ -91,23 +95,26 @@ def explainer(model) -> Explainer:
 
 @pytest.fixture
 def graph(cwd) -> CustomData:
-    return get_graph_from_mol(Chem.SDMolSupplier(f"{cwd}/../data/example.sdf", removeHs=False)[0], index=0)
+    return get_graph_from_mol(
+        Chem.SDMolSupplier(f"{cwd}/../data/example.sdf", removeHs=False)[0],
+        index=0,
+        sdf_property_name="MBIScharge",
+    )
 
 
 def test_getter_setter(explainer) -> None:
     with pytest.raises(TypeError):
         explainer.gnn_explainer = "asdf"
-    assert isinstance(explainer.gnn_explainer, FixedGNNExplainer)
+    assert isinstance(explainer.gnn_explainer, GNNExplainer)
     return
 
 
 def test_load(model, statedict) -> None:
-    np.array_equal(model.state_dict(), statedict)
+    assert all(a == b for a, b in zip(model.state_dict(), statedict))
     return
 
 
 def test_explain_atom(explainer, graph) -> None:
-    print(graph.x.shape, graph.edge_index.shape, graph.edge_attr.shape)
     explainer.gnn_explainer.explain_node(
         node_idx=0,
         x=graph.x,
@@ -142,16 +149,19 @@ def test_explain_atom(explainer, graph) -> None:
 
 
 def test_extractor_properties(extractor, model, model_path, statedict_path, explainer) -> None:
-    extractor.model = model
-    extractor.model = model_path
-    extractor.model = statedict_path
+    extractor._set_model(model)
+    assert isinstance(extractor.model, ChargeCorrectedNodeWiseAttentiveFP)
+    extractor._set_model(model_path)
+    extractor._set_model(statedict_path)
     with pytest.raises(TypeError):
-        extractor.model = 2
+        extractor._set_model(2)
     with pytest.raises(FileNotFoundError):
-        extractor.model = "faulty.py"
+        extractor._set_model("faulty.py")
     with pytest.raises(TypeError):
         extractor.explainer = 2
     extractor.explainer = explainer
+    extractor._set_model(extractor.model.state_dict(), no_charge_correction=True)
+    assert isinstance(extractor.model, NodeWiseAttentiveFP)
 
 
 def test_split_sdf(cwd, sdf_path) -> None:
@@ -181,7 +191,10 @@ def test_mol_from_sdf(sdf_path):
 
 
 def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> None:
-    graph = get_graph_from_mol(mol=mol, index=0, no_y=True)
+    with pytest.raises(ValueError):
+        get_graph_from_mol(mol=mol, index=0, sdf_property_name=None)
+    with pytest.raises(ValueError):
+        get_graph_from_mol(mol=mol, index=0, sdf_property_name="not in props")
     graph = get_graph_from_mol(mol=mol, index=0)
     assert graph.num_nodes == num_atoms
     assert graph.num_edges == num_bonds * 2
@@ -190,6 +203,21 @@ def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> Non
     assert graph.smiles == smiles
     assert graph.x.shape[0] == num_atoms
     assert len(graph.y) == num_atoms
+
+    return
+
+
+@pytest.mark.parametrize("sdf_prop", [(None), ("MBIScharge")])
+def test_graph_from_mol_no_y(mol, num_atoms, num_bonds, formal_charge, smiles, sdf_prop) -> None:
+    graph = get_graph_from_mol(mol=mol, index=0, sdf_property_name=sdf_prop, no_y=True)
+    assert graph.num_nodes == num_atoms
+    assert graph.num_edges == num_bonds * 2
+    assert graph.edge_attr.shape == torch.Size([38, 11])
+    assert graph.molecule_charge.item() == formal_charge
+    assert graph.smiles == smiles
+    assert graph.x.shape[0] == num_atoms
+    assert len(graph.y) == num_atoms
+    assert all(y == 0 for y in graph.y)
     return
 
 

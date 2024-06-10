@@ -17,7 +17,7 @@ repos:
       - id: trailing-whitespace
         exclude:  docs
       - id: check-added-large-files
-        args: ['--maxkb=50000']
+        args: ['--maxkb=100000']
       - id: end-of-file-fixer
         exclude: docs
       - id: check-yaml
@@ -31,6 +31,7 @@ repos:
         name: Fixes formatting
         language_version: python3
         args: ["--line-length=120"]
+
 
 
   - repo: https://github.com/PyCQA/flake8
@@ -68,18 +69,3 @@ repos:
         files: \.ipynb$
         language: python
         stages: [push]
-
-      # - id: nbconvert
-      #   name: Removes ipynb content
-      #   entry: jupyter nbconvert
-      #   args:
-      #     [
-      #       "--ClearOutputPreprocessor.enabled=True",
-      #       "--ClearMetadataPreprocessor.enabled=True",
-      #       "--RegexRemovePreprocessor.enabled=True",
-      #       "--to=notebook",
-      #       "--log-level=ERROR",
-      #       "--inplace",
-      #     ]
-      #   files: \.ipynb$
-      #   language: python

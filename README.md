@@ -11,7 +11,7 @@ Welcome to DASH
 Description
 -------------
 
-   Welcome to DASH-Charge. This repository is a collection of scripts, tools and other resources for partial charges in MD simulations.
+   Welcome to DASH. This repository is a collection of scripts, tools and other resources for partial charges in MD simulations.
 
    It contains tools to generate partial charges for given molecules quickly, using the DASH-charge workflow and using openff to generate all other parameters. A pre computed DASH (Dynamic Attention-based Substructure Hierarchy) tree can be used to generate charges for a given molecule.
 

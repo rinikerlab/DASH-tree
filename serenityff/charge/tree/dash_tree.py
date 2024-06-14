@@ -6,6 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from pathlib import Path
 
 # from multiprocessing import Process, Manager
 # from numba import njit, objmode, types
@@ -35,7 +36,7 @@ from serenityff.charge.tree.dash_tools import (
 class DASHTree:
     def __init__(
         self,
-        tree_folder_path: str = default_dash_tree_path,
+        tree_folder_path: Path = default_dash_tree_path,
         preload: bool = True,
         verbose: bool = True,
         num_processes: int = 1,
@@ -45,7 +46,7 @@ class DASHTree:
 
         Parameters
         ----------
-        tree_folder_path : str
+        tree_folder_path : Path
             Path to folder containing DASH trees and data
         preload : bool
             If True, load all trees and data into memory, if False, load on demand

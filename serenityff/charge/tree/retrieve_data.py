@@ -3,7 +3,7 @@ from urllib.request import urlretrieve
 from pathlib import Path
 
 from serenityff.charge.data import default_dash_tree_path
-from serenityff.charge.utils.exceptions import DataNotComplete
+from serenityff.charge.utils.exceptions import DataIncompleteError
 
 ADDITIONAL_DATA_DIR = Path(__file__).parent.parent/"data"/"additional_data"
 ZIP_FILE = ADDITIONAL_DATA_DIR / "dash_data_download.zip"
@@ -66,5 +66,5 @@ def get_additional_data(url: str = DATA_URL, zip_archive: Path = ZIP_FILE, folde
     download_tree_data_from_archive(url=url)
     extract_data(zip_archive=zip_archive)
     if not data_is_complete(folder=folder):
-        raise DataNotComplete("Not all files necessary for DASH-Props were found. "
+        raise DataIncompleteError("Not all files necessary for DASH-Props were found. "
         "Please download and extract them again")

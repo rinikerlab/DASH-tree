@@ -5,10 +5,11 @@ from pathlib import Path
 from serenityff.charge.data import default_dash_tree_path
 from serenityff.charge.utils.exceptions import DataIncompleteError
 
-ADDITIONAL_DATA_DIR = Path(__file__).parent.parent/"data"/"additional_data"
+ADDITIONAL_DATA_DIR = Path(__file__).parent.parent / "data" / "additional_data"
 ZIP_FILE = ADDITIONAL_DATA_DIR / "dash_data_download.zip"
 
 DATA_URL = ""
+
 
 def download_tree_data_from_archive(url: str = DATA_URL) -> None:
     """Download additional DASH Properties data.
@@ -21,6 +22,7 @@ def download_tree_data_from_archive(url: str = DATA_URL) -> None:
     """
     ...
 
+
 def extract_data(zip_archive: Path = ZIP_FILE) -> None:
     """
     Extract the Downloaded Zip archive to be readable by the DASH-Tree constructor.
@@ -30,6 +32,7 @@ def extract_data(zip_archive: Path = ZIP_FILE) -> None:
     """
     ...
 
+
 def data_is_complete(folder: Path = ADDITIONAL_DATA_DIR) -> bool:
     """Check if all necessary files are in the according folder.
 
@@ -38,7 +41,7 @@ def data_is_complete(folder: Path = ADDITIONAL_DATA_DIR) -> bool:
     same names as the default ones.
 
     Args:
-        folder (Path, optional): Folder containing the files and the filelist.txt file. 
+        folder (Path, optional): Folder containing the files and the filelist.txt file.
         Defaults to ADDITIONAL_DATA_DIR.
 
     Returns:
@@ -50,7 +53,7 @@ def data_is_complete(folder: Path = ADDITIONAL_DATA_DIR) -> bool:
         if len(default_files.intersection(loaded_files)) != len(default_files):
             return False
     return True
-    
+
 
 def get_additional_data(url: str = DATA_URL, zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DIR) -> None:
     """Download and extract additional data from ETH research archive.
@@ -66,5 +69,6 @@ def get_additional_data(url: str = DATA_URL, zip_archive: Path = ZIP_FILE, folde
     download_tree_data_from_archive(url=url)
     extract_data(zip_archive=zip_archive)
     if not data_is_complete(folder=folder):
-        raise DataIncompleteError("Not all files necessary for DASH-Props were found. "
-        "Please download and extract them again")
+        raise DataIncompleteError(
+            "Not all files necessary for DASH-Props were found. " "Please download and extract them again"
+        )

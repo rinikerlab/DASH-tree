@@ -1,17 +1,17 @@
 from pathlib import Path
 
+import pytest
+
+from serenityff.charge.data import default_dash_tree_path
 from serenityff.charge.tree.retrieve_data import (
+    ADDITIONAL_DATA_DIR,
     data_is_complete,
     download_tree_data_from_archive,
-    ADDITIONAL_DATA_DIR,
     extract_data,
     get_additional_data,
 )
-import pytest
 from serenityff.charge.utils.exceptions import DataDownloadError, DataExtractionError
-from serenityff.charge.data import default_dash_tree_path
-
-TEST_ZIP = Path(__file__).parent / "testfiles" / "test_archive.zip"
+from tests._testfiles import TEST_ARCHIVE
 
 
 def test_paths() -> None:
@@ -34,11 +34,13 @@ def test_extract_data_fails(zip_archive) -> None:
 def test_extract_data(tmp_path: Path) -> None:
     test_folder = tmp_path / "extracted"
     test_folder.mkdir()
-    extract_data(zip_archive=TEST_ZIP, folder=test_folder)
+    extract_data(zip_archive=TEST_ARCHIVE, folder=test_folder)
     assert data_is_complete(folder=test_folder)
 
 
-@pytest.mark.parametrize("folder, exception", [("faulty", None), (1, TypeError), (None, TypeError)])
+@pytest.mark.parametrize(
+    "folder, exception", [("faulty", None), (1, TypeError), (None, TypeError)]
+)
 def test_data_is_complete_fails(folder, exception):
     if exception is None:
         assert not data_is_complete(folder)
@@ -50,10 +52,10 @@ def test_data_is_complete_fails(folder, exception):
 def test_data_is_complete(tmp_path: Path):
     test_folder = tmp_path / "extracted"
     test_folder.mkdir()
-    extract_data(zip_archive=TEST_ZIP, folder=test_folder)
+    extract_data(zip_archive=TEST_ARCHIVE, folder=test_folder)
     assert data_is_complete(folder=test_folder)
     assert data_is_complete(folder=default_dash_tree_path)
 
 
 def test_get_additional_data_already_existing():
-    assert get_additional_data(folder=default_dash_tree_path)
+    assert get_additional_data(extracted_folder=default_dash_tree_path)

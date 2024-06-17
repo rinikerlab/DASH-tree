@@ -1,13 +1,14 @@
 """Functionality to obtain the DASH properties data from ETH research archive."""
-from urllib.request import urlretrieve
-from pathlib import Path
 import zipfile
+from pathlib import Path
+from urllib.request import urlretrieve
 
 from serenityff.charge.data import default_dash_tree_path
 from serenityff.charge.utils.exceptions import DataDownloadError, DataExtractionError
 
 ADDITIONAL_DATA_DIR = Path(__file__).parent.parent / "data" / "additional_data"
 ZIP_FILE = ADDITIONAL_DATA_DIR / "dash_data_download.zip"
+DASH_PROPS_DIR = ADDITIONAL_DATA_DIR / "dashProps"
 DATA_URL = ""
 
 
@@ -30,7 +31,9 @@ def download_tree_data_from_archive(url: str = DATA_URL, file: Path = ZIP_FILE) 
         raise DataDownloadError("URL for additional data cannot be None")
 
 
-def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DIR) -> None:
+def extract_data(
+    zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DIR
+) -> None:
     """
     Extract the Downloaded Zip archive to be readable by the DASH-Tree constructor.
 
@@ -48,7 +51,7 @@ def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DI
         pass
 
 
-def data_is_complete(folder: Path = ADDITIONAL_DATA_DIR) -> bool:
+def data_is_complete(folder: Path = DASH_PROPS_DIR) -> bool:
     """Check if all necessary files are in the according folder.
 
     Since the atom features dont change, the default tree files as well as the additional
@@ -72,7 +75,12 @@ def data_is_complete(folder: Path = ADDITIONAL_DATA_DIR) -> bool:
     return True
 
 
-def get_additional_data(url: str = DATA_URL, zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DIR) -> bool:
+def get_additional_data(
+    url: str = DATA_URL,
+    zip_archive: Path = ZIP_FILE,
+    add_data_folder: Path = ADDITIONAL_DATA_DIR,
+    extracted_folder: Path = DASH_PROPS_DIR,
+) -> bool:
     """Download and extract additional data from ETH research archive.
 
     Args:
@@ -81,14 +89,16 @@ def get_additional_data(url: str = DATA_URL, zip_archive: Path = ZIP_FILE, folde
         folder (Path, optional): where to store additional data.
 
     Returns:
-        bool: True if files already exist or were downloaded and extracted succesfully.
+        bool: True if files already exist or were downloaded and extracted successfully.
 
     Raises:
         DataNotComplete: Throw when not all data files necessary where found.
     """
-    if data_is_complete(folder=folder):
-        print("Data is already loaded.")
+    if data_is_complete(folder=extracted_folder):
         return True
-    download_tree_data_from_archive(url=url)
-    extract_data(zip_archive=zip_archive)
-    return data_is_complete(folder=folder)
+    print(
+        "The DASH Tree is missing additional data and will install that. This Can take a few minutes..."
+    )
+    download_tree_data_from_archive(url=url, file=zip_archive)
+    extract_data(zip_archive=zip_archive, folder=add_data_folder)
+    return data_is_complete(folder=extracted_folder)

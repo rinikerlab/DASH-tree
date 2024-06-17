@@ -38,7 +38,9 @@ def test_extract_data(tmp_path: Path) -> None:
     assert data_is_complete(folder=test_folder)
 
 
-@pytest.mark.parametrize("folder, exception", [("faulty", None), (1, TypeError), (None, TypeError)])
+@pytest.mark.parametrize(
+    "folder, exception", [("faulty", None), (1, TypeError), (None, TypeError)]
+)
 def test_data_is_complete_fails(folder, exception):
     if exception is None:
         assert not data_is_complete(folder)

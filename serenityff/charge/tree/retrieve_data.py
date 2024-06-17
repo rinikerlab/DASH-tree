@@ -31,9 +31,7 @@ def download_tree_data_from_archive(url: str = DATA_URL, file: Path = ZIP_FILE) 
         raise DataDownloadError("URL for additional data cannot be None")
 
 
-def extract_data(
-    zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DIR
-) -> None:
+def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DIR) -> None:
     """
     Extract the Downloaded Zip archive to be readable by the DASH-Tree constructor.
 
@@ -96,9 +94,7 @@ def get_additional_data(
     """
     if data_is_complete(folder=extracted_folder):
         return True
-    print(
-        "The DASH Tree is missing additional data and will install that. This Can take a few minutes..."
-    )
+    print("The DASH Tree is missing additional data and will install that. This Can take a few minutes...")
     download_tree_data_from_archive(url=url, file=zip_archive)
     extract_data(zip_archive=zip_archive, folder=add_data_folder)
     return data_is_complete(folder=extracted_folder)

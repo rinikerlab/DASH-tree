@@ -133,3 +133,4 @@ dmypy.json
 
 # SerenityFF charge dev files
 dev
+serenityff/charge/data/additional_data

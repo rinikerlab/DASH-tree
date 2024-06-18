@@ -224,7 +224,9 @@ class DASHTree:
         with gzip.open(tree_path, "rb") as f:
             tree = pickle.load(f)
         columns = [COLUMN_DICT[v] for v in COLUMNS[tree_type]]
-        df = pd.read_hdf(df_path, key=hdf_key, mode="r", columns=columns)
+        df = pd.read_hdf(df_path, key=hdf_key, mode="r")
+        columns_to_drop = [col for col in df.columns if col not in columns]
+        df.drop(columns_to_drop, axis=1, inplace=True)
         self.tree_storage[branch_idx] = tree
         self.data_storage[branch_idx] = df
 

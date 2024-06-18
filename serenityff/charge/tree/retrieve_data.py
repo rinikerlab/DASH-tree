@@ -116,9 +116,9 @@ def get_additional_data(
     Raises:
         DataNotComplete: Throw when not all data files necessary where found.
     """
-    if data_is_complete(folder=extracted_folder):
+    if data_is_complete(folder=DATA_DICT[extracted_folder]):
         return True
     print("The DASH Tree is missing additional data and will install that. This Can take a few minutes...")
-    download_tree_data_from_archive(url=url, file=zip_archive)
+    download_tree_data_from_archive(url=URL_DICT[url], file=zip_archive)
     extract_data(zip_archive=zip_archive, folder=add_data_folder)
-    return data_is_complete(folder=extracted_folder)
+    return data_is_complete(folder=DATA_DICT[extracted_folder])

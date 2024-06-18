@@ -7,7 +7,6 @@ import sys
 from setuptools import find_packages, setup
 
 import versioneer
-from serenityff.charge.tree.retrieve_data import get_additional_data
 
 needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
 pytest_runner = ["pytest-runner"] if needs_pytest else []

@@ -14,9 +14,9 @@ Description
 
    Welcome to DASH. This repository is a collection of scripts, tools and other resources for partial charges in MD simulations.
 
-   It contains tools to generate partial charges and other atomic and molecular properties for given molecules quickly. By using the DASH-charge workflow and using the OpenFF plugin and Forcefield to parametrize molecules quickly with QM-like charge quality. A pre computed DASH (Dynamic Attention-based Substructure Hierarchy) tree is included and can be used to generate charges for a given molecule. Threes with different properties are available for download from the ETHZ Research Collection.
+   It contains tools to generate partial charges and other atomic and molecular properties for given molecules quickly. By using the DASH-charge workflow and using the OpenFF plugin and Forcefield to parametrize molecules quickly with QM-like charge quality. A pre-computed DASH (Dynamic Attention-based Substructure Hierarchy) tree is included and can be used to generate charges for a given molecule. Threes with different properties are available for download from the ETHZ Research Collection.
 
-   Additionally, this repository contains all tools and functions needed to generate a new DASH tree for any property, like partial charge assignmend, based on the attention data of a graph neural network, capable of predicting the partial charges of a molecule.
+   Additionally, this repository contains all tools and functions needed to generate a new DASH tree for any property, like partial charge assignments, based on the attention data of a graph neural network, capable of predicting the partial charges of a molecule.
 
    This repository contains code for the publication by M. Lehner et al. DOI: [arXiv:2305.15981](https://doi.org/10.48550/arXiv.2305.15981), [10.1021/acs.jcim.3c00800](https://pubs.acs.org/doi/full/10.1021/acs.jcim.3c00800), and [chemrxiv](https://chemrxiv.org/engage/chemrxiv/article-details/6666e12112188379d8c44aa5).
 

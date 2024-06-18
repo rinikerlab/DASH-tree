@@ -43,7 +43,4 @@ setup(
         ]
     },
 )
-
-get_additional_data()
-
 print("test setup.py done")

@@ -68,7 +68,7 @@ def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = additional_data_di
     except (FileNotFoundError, AttributeError):
         raise DataExtractionError("Zip to archive was not found.")
     except KeyboardInterrupt:
-        pass
+        print("Extraction was interrupted by user.")
 
 
 def data_is_complete(folder: Path = DATA_DICT[DataPath.DASH_PROPS]) -> bool:

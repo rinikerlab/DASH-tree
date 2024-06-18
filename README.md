@@ -86,14 +86,14 @@ example_mol = Chem.AddHs(Chem.MolFromSmiles('CCO'))
 charges = tree.get_molecules_partial_charges(example_mol)["charges"]
 ```
 
-More atomic and molecular properties can be calculated from a DASH tree populated with these properties. 
-    
+More atomic and molecular properties can be calculated from a DASH tree populated with these properties.
+
 ```python
 # Import the DASH tree and RDKit
 from rdkit import Chem
 from serenityff.charge.tree.dash_tree import DASHTree, TreeType
 from serenityff.charge.data import dash_props_tree_path
-# Load the property tree. 
+# Load the property tree.
 # Note, that the files will be automatically downloaded the first time the tree is loaded from the ETHZ Research Collection.
 tree = DASHTree(tree_folder_path=dash_props_tree_path, tree_type=TreeType.FULL)
 # Create a RDKit molecule
@@ -102,4 +102,3 @@ example_mol = Chem.AddHs(Chem.MolFromSmiles('CCO'))
 tree.get_property_noNAN(mol=example_mol, atom=0, property_name="DFTD4:C6")
 # Or get partial charges with a different model
 charges = tree.get_molecules_partial_charges(example_mol, chg_key="AM1BCC", chg_std_key="AM1BCC_std")["charges"]
-

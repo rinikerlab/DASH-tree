@@ -44,7 +44,6 @@ repos:
           # Ignore imports in init files
           "--per-file-ignores=
             */__init__.py:F401,setup.py:E121
-            versioneer.py:W605
             ",
           # ignore long comments (E501), as long lines are formatted by black
           # ignore Whitespace before ':' (E203)

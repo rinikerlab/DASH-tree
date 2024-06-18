@@ -4,7 +4,6 @@ extraction:
       version: 3
 path_classifiers:
   library:
-    - versioneer.py
     - setup.py
     - devtools/*
   generated:

@@ -511,8 +511,8 @@ class DASHTree:
         attention_incremet_threshold: float = 0,
         verbose: bool = False,
         default_std_value: float = 0.1,
-        chg_key: str | None = None,
-        chg_std_key: str | None = None,
+        chg_key: str = None,
+        chg_std_key: str = None,
         nodePathList=None,
     ):
         """
@@ -704,8 +704,8 @@ class DASHTree:
         self,
         mol: Molecule,
         inDebye: bool = True,
-        chg_key: str | None = None,
-        chg_std_key: str | None = None,
+        chg_key: str = None,
+        chg_std_key: str = None,
         sngl_cnf=True,
         nconfs=10,
         pruneRmsThresh=0.5,

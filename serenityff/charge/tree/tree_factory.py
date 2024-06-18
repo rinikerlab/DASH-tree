@@ -1,12 +1,12 @@
 """Factory for dash Trees with different properties loaded."""
-from serenityff.charge.tree.dash_tree import DASHTree
+from serenityff.charge.tree.dash_tree import DASHTree, TreeType
 from serenityff.charge.tree.retrieve_data import DASH_PROPS_DIR
 
 
 class Forest:
     @staticmethod
     def get_MBIS_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
-        return DASHTree(preload=preload, verbose=verbose)
+        return DASHTree(preload=preload, verbose=verbose, tree_type=TreeType.DEFAULT)
 
     @staticmethod
     def get_AM1BCC_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
@@ -16,6 +16,7 @@ class Forest:
             verbose=verbose,
             default_value_column="AM1BCC",
             default_std_column="AM1BCC_std",
+            tree_type=TreeType.AM1BCC,
         )
 
     @staticmethod
@@ -25,6 +26,7 @@ class Forest:
             preload=preload,
             verbose=verbose,
             default_value_column="RESP1",
+            tree_type=TreeType.RESP,
         )
 
     @staticmethod
@@ -34,6 +36,7 @@ class Forest:
             preload=preload,
             verbose=verbose,
             default_value_column="RESP2",
+            tree_type=TreeType.RESP,
         )
 
     @staticmethod
@@ -43,6 +46,7 @@ class Forest:
             preload=preload,
             verbose=verbose,
             default_value_column="mulliken",
+            tree_type=TreeType.MULLIKEN,
         )
 
     @staticmethod
@@ -51,6 +55,7 @@ class Forest:
             tree_folder_path=DASH_PROPS_DIR,
             preload=preload,
             verbose=verbose,
+            tree_type=TreeType.CHARGES,
         )
 
     @staticmethod
@@ -60,6 +65,7 @@ class Forest:
             preload=preload,
             verbose=verbose,
             default_value_column="dual",
+            tree_type=TreeType.DUALDESCRIPTORS,
         )
 
     @staticmethod
@@ -69,6 +75,7 @@ class Forest:
             preload=preload,
             verbose=verbose,
             default_value_column="mbis_dipole_strength",
+            tree_type=TreeType.DIPOLE,
         )
 
     @staticmethod
@@ -79,6 +86,7 @@ class Forest:
             verbose=verbose,
             default_value_column="DFTD4:C6",
             default_std_column="DFTD4:C6_std",
+            tree_type=TreeType.C6,
         )
 
     @staticmethod
@@ -89,8 +97,14 @@ class Forest:
             verbose=verbose,
             default_value_column="DFTD4:polarizability",
             default_std_column="DFTD4:polarizability_std",
+            tree_type=TreeType.POLARIZABILITY,
         )
 
     @staticmethod
     def get_full_props_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
-        return DASHTree(tree_folder_path=DASH_PROPS_DIR, preload=preload, verbose=verbose)
+        return DASHTree(
+            tree_folder_path=DASH_PROPS_DIR,
+            preload=preload,
+            verbose=verbose,
+            tree_type=TreeType.FULL,
+        )

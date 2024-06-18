@@ -76,6 +76,7 @@ COLUMN_DICT = {
     21: "DFTD4:polarizability_std",
 }
 
+
 COLUMNS = {
     TreeType.DEFAULT: [0, 1, 2, 3, 4, 5, 6, 7],
     TreeType.MULLIKEN: [0, 1, 2, 3, 4, 5, 7, 8],
@@ -164,7 +165,7 @@ class DASHTree:
             print("Loading DASH tree data")
         # # import all files
         # if True:  # self.num_processes <= 1:
-        success = data_is_complete()
+        success = data_is_complete(self.tree_folder_path)
         if not success:
             success = get_additional_data()
         if not success:

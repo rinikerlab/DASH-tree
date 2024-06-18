@@ -1,5 +1,6 @@
 """Functionality to obtain the DASH properties data from ETH research archive."""
 import zipfile
+from enum import Enum, auto
 from pathlib import Path
 from urllib.request import urlretrieve
 
@@ -9,10 +10,29 @@ from serenityff.charge.utils.exceptions import DataDownloadError, DataExtraction
 ADDITIONAL_DATA_DIR = Path(__file__).parent.parent / "data" / "additional_data"
 ZIP_FILE = ADDITIONAL_DATA_DIR / "dash_data_download.zip"
 DASH_PROPS_DIR = ADDITIONAL_DATA_DIR / "dashProps"
-DATA_URL = ""
 
 
-def download_tree_data_from_archive(url: str = DATA_URL, file: Path = ZIP_FILE) -> None:
+class DataUrl(Enum):
+    DEFAULT = auto()
+    DASH_PROPS = auto()
+
+
+class DataPath(Enum):
+    DEFAULT = auto()
+    DASH_PROPS = auto()
+
+
+URL_DICT = {
+    DataUrl.DEFAULT: None,
+    DataUrl.DASH_PROPS: "https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/670546/dashProps.zip",
+}
+DATA_DICT = {
+    DataPath.DEFAULT: default_dash_tree_path,
+    DataPath.DASH_PROPS: DASH_PROPS_DIR,
+}
+
+
+def download_tree_data_from_archive(url: DataUrl = DataUrl.DASH_PROPS, file: Path = ZIP_FILE) -> None:
     """Download additional DASH Properties data.
 
     Gets the data uploaded to the ETH-research archive for the DASH-Props
@@ -24,7 +44,7 @@ def download_tree_data_from_archive(url: str = DATA_URL, file: Path = ZIP_FILE) 
     """
     try:
         print("Downloading data from ETH research archive...")
-        urlretrieve(url=url, filename=file)
+        urlretrieve(url=DataUrl[url], filename=file)
     except ValueError:
         raise DataDownloadError("The provided Url for the extra data doesn't exist.")
     except TypeError:
@@ -49,7 +69,7 @@ def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DI
         pass
 
 
-def data_is_complete(folder: Path = DASH_PROPS_DIR) -> bool:
+def data_is_complete(folder: DataPath = DataPath.DASH_PROPS) -> bool:
     """Check if all necessary files are in the according folder.
 
     Since the atom features dont change, the default tree files as well as the additional
@@ -63,8 +83,11 @@ def data_is_complete(folder: Path = DASH_PROPS_DIR) -> bool:
     Returns:
         bool: True if all files listed in the 'filelist.txt' are present.
     """
+    folder = DATA_DICT[folder]
     if not isinstance(folder, Path):
         folder = Path(folder)
+    if not folder.exists():
+        return False
     for suffix in ("*.gz", "*.h5"):
         default_files = set(file.name for file in default_dash_tree_path.glob(suffix))
         loaded_files = set(file.name for file in folder.glob(suffix))
@@ -74,10 +97,10 @@ def data_is_complete(folder: Path = DASH_PROPS_DIR) -> bool:
 
 
 def get_additional_data(
-    url: str = DATA_URL,
+    url: DataUrl = DataUrl.DASH_PROPS,
     zip_archive: Path = ZIP_FILE,
     add_data_folder: Path = ADDITIONAL_DATA_DIR,
-    extracted_folder: Path = DASH_PROPS_DIR,
+    extracted_folder: DataPath = DataPath.DASH_PROPS,
 ) -> bool:
     """Download and extract additional data from ETH research archive.
 

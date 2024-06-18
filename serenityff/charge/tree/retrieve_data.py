@@ -4,12 +4,14 @@ from enum import Enum, auto
 from pathlib import Path
 from urllib.request import urlretrieve
 
-from serenityff.charge.data import default_dash_tree_path
+from serenityff.charge.data import (
+    additional_data_dir,
+    dash_props_tree_path,
+    default_dash_tree_path,
+)
 from serenityff.charge.utils.exceptions import DataDownloadError, DataExtractionError
 
-ADDITIONAL_DATA_DIR = Path(__file__).parent.parent / "data" / "additional_data"
-ZIP_FILE = ADDITIONAL_DATA_DIR / "dash_data_download.zip"
-DASH_PROPS_DIR = ADDITIONAL_DATA_DIR / "dashProps"
+ZIP_FILE = additional_data_dir / "additional_data_download.zip"
 
 
 class DataUrl(Enum):
@@ -28,11 +30,11 @@ URL_DICT = {
 }
 DATA_DICT = {
     DataPath.DEFAULT: default_dash_tree_path,
-    DataPath.DASH_PROPS: DASH_PROPS_DIR,
+    DataPath.DASH_PROPS: dash_props_tree_path,
 }
 
 
-def download_tree_data_from_archive(url: DataUrl = DataUrl.DASH_PROPS, file: Path = ZIP_FILE) -> None:
+def download_tree_data_from_archive(url: str = URL_DICT[DataUrl.DASH_PROPS], file: Path = ZIP_FILE) -> None:
     """Download additional DASH Properties data.
 
     Gets the data uploaded to the ETH-research archive for the DASH-Props
@@ -44,14 +46,14 @@ def download_tree_data_from_archive(url: DataUrl = DataUrl.DASH_PROPS, file: Pat
     """
     try:
         print("Downloading data from ETH research archive...")
-        urlretrieve(url=DataUrl[url], filename=file)
+        urlretrieve(url=url, filename=file)
     except ValueError:
         raise DataDownloadError("The provided Url for the extra data doesn't exist.")
     except TypeError:
         raise DataDownloadError("URL for additional data cannot be None")
 
 
-def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DIR) -> None:
+def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = additional_data_dir) -> None:
     """
     Extract the Downloaded Zip archive to be readable by the DASH-Tree constructor.
 
@@ -69,7 +71,7 @@ def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = ADDITIONAL_DATA_DI
         pass
 
 
-def data_is_complete(folder: DataPath = DataPath.DASH_PROPS) -> bool:
+def data_is_complete(folder: Path = DATA_DICT[DataPath.DASH_PROPS]) -> bool:
     """Check if all necessary files are in the according folder.
 
     Since the atom features dont change, the default tree files as well as the additional
@@ -83,7 +85,6 @@ def data_is_complete(folder: DataPath = DataPath.DASH_PROPS) -> bool:
     Returns:
         bool: True if all files listed in the 'filelist.txt' are present.
     """
-    folder = DATA_DICT[folder]
     if not isinstance(folder, Path):
         folder = Path(folder)
     if not folder.exists():
@@ -99,7 +100,7 @@ def data_is_complete(folder: DataPath = DataPath.DASH_PROPS) -> bool:
 def get_additional_data(
     url: DataUrl = DataUrl.DASH_PROPS,
     zip_archive: Path = ZIP_FILE,
-    add_data_folder: Path = ADDITIONAL_DATA_DIR,
+    add_data_folder: Path = additional_data_dir,
     extracted_folder: DataPath = DataPath.DASH_PROPS,
 ) -> bool:
     """Download and extract additional data from ETH research archive.

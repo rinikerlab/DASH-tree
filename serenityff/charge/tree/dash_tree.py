@@ -11,7 +11,6 @@ from rdkit.Chem import AllChem
 from tqdm import tqdm
 
 from serenityff.charge.tree.retrieve_data import (
-    DATA_URL,
     data_is_complete,
     get_additional_data,
 )
@@ -27,7 +26,7 @@ from enum import Enum, auto
 from PIL import Image
 from rdkit.Chem.Draw import rdMolDraw2D
 
-from serenityff.charge.data import default_dash_tree_path
+from serenityff.charge.data import dash_props_tree_path, default_dash_tree_path
 from serenityff.charge.tree.atom_features import AtomFeatures
 from serenityff.charge.tree.dash_tools import (
     init_neighbor_dict,
@@ -168,11 +167,12 @@ class DASHTree:
         success = data_is_complete(self.tree_folder_path)
         if not success:
             success = get_additional_data()
+            self.tree_folder_path = dash_props_tree_path
         if not success:
             raise DataIncompleteError(
                 "The Additional Data was not downloaded and extracted Correctly. "
                 "Please make sure to be connected to the internet for the DASH tree to collect all the "
-                f"additional data from the ETHZ Research Collection {DATA_URL}."
+                "additional data from the ETHZ Research Collection ."
             )
 
         for i in range(self.atom_feature_type.get_number_of_features()):

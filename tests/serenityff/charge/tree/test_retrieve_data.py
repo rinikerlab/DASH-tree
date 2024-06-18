@@ -2,9 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from serenityff.charge.data import default_dash_tree_path
+from serenityff.charge.data import additional_data_dir, default_dash_tree_path
 from serenityff.charge.tree.retrieve_data import (
-    ADDITIONAL_DATA_DIR,
     data_is_complete,
     download_tree_data_from_archive,
     extract_data,
@@ -15,8 +14,8 @@ from tests._testfiles import TEST_ARCHIVE
 
 
 def test_paths() -> None:
-    assert "/serenityff/charge/data" in ADDITIONAL_DATA_DIR.as_posix()
-    assert (ADDITIONAL_DATA_DIR / ".gitkeep").exists()
+    assert "/serenityff/charge/data" in additional_data_dir.as_posix()
+    assert (additional_data_dir / ".gitkeep").exists()
 
 
 @pytest.mark.parametrize("url", [("invalidurl"), (None)])

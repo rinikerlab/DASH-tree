@@ -1,6 +1,6 @@
 """Factory for dash Trees with different properties loaded."""
+from serenityff.charge.data import dash_props_tree_path
 from serenityff.charge.tree.dash_tree import DASHTree, TreeType
-from serenityff.charge.tree.retrieve_data import DASH_PROPS_DIR
 
 
 class Forest:
@@ -11,7 +11,7 @@ class Forest:
     @staticmethod
     def get_AM1BCC_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             default_value_column="AM1BCC",
@@ -22,7 +22,7 @@ class Forest:
     @staticmethod
     def get_RESP1_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             default_value_column="RESP1",
@@ -32,7 +32,7 @@ class Forest:
     @staticmethod
     def get_RESP2_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             default_value_column="RESP2",
@@ -42,7 +42,7 @@ class Forest:
     @staticmethod
     def get_mulliken_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             default_value_column="mulliken",
@@ -52,16 +52,18 @@ class Forest:
     @staticmethod
     def get_charges_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             tree_type=TreeType.CHARGES,
         )
 
     @staticmethod
-    def get_dual_descriptor_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
+    def get_dual_descriptor_DASH_tree(
+        preload: bool = True, verbose: bool = True
+    ) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             default_value_column="dual",
@@ -71,7 +73,7 @@ class Forest:
     @staticmethod
     def get_dipole_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             default_value_column="mbis_dipole_strength",
@@ -81,7 +83,7 @@ class Forest:
     @staticmethod
     def get_C6_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             default_value_column="DFTD4:C6",
@@ -90,9 +92,11 @@ class Forest:
         )
 
     @staticmethod
-    def get_polarizability_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
+    def get_polarizability_DASH_tree(
+        preload: bool = True, verbose: bool = True
+    ) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             default_value_column="DFTD4:polarizability",
@@ -101,9 +105,11 @@ class Forest:
         )
 
     @staticmethod
-    def get_full_props_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
+    def get_full_props_DASH_tree(
+        preload: bool = True, verbose: bool = True
+    ) -> DASHTree:
         return DASHTree(
-            tree_folder_path=DASH_PROPS_DIR,
+            tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
             tree_type=TreeType.FULL,

@@ -64,9 +64,7 @@ def test_download_tree_data(tmp_zip: Path) -> None:
     assert tmp_zip.stat().st_size >= 500000000
 
 
-@pytest.mark.parametrize(
-    "zip_archive", [("notexisting"), (123), (None), Path(__file__)]
-)
+@pytest.mark.parametrize("zip_archive", [("notexisting"), (123), (None), Path(__file__)])
 def test_extract_data_fails(zip_archive: Any) -> None:
     """Test that extraction fails correctly by throwing a DataExtractionError.
 
@@ -87,9 +85,7 @@ def test_extract_data(tmp_dir: Path) -> None:
     assert data_is_complete(folder=tmp_dir)
 
 
-@pytest.mark.parametrize(
-    "folder, exception", [("faulty", None), (1, TypeError), (None, TypeError)]
-)
+@pytest.mark.parametrize("folder, exception", [("faulty", None), (1, TypeError), (None, TypeError)])
 def test_data_is_complete_fails(folder: Any, exception: Union[None, Exception]) -> None:
     """Test data_is_complete with different input that should fail.
 
@@ -134,8 +130,6 @@ def test_get_additional_data_from_archive(tmp_dir: Path) -> None:
     """
     zipfile = tmp_dir / "test.zip"
     dashpropsdir = tmp_dir / "dashProps"
-    assert get_additional_data(
-        zip_archive=zipfile, add_data_folder=tmp_dir, extracted_folder=dashpropsdir
-    )
+    assert get_additional_data(zip_archive=zipfile, add_data_folder=tmp_dir, extracted_folder=dashpropsdir)
     assert dashpropsdir.exists()
     assert data_is_complete(dashpropsdir)

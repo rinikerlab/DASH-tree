@@ -35,9 +35,7 @@ DATA_DICT = {
 }
 
 
-def download_tree_data_from_archive(
-    url: str = URL_DICT[DataUrl.DASH_PROPS], file: Path = ZIP_FILE
-) -> None:
+def download_tree_data_from_archive(url: str = URL_DICT[DataUrl.DASH_PROPS], file: Path = ZIP_FILE) -> None:
     """Download additional DASH Properties data.
 
     Gets the data uploaded to the ETH-research archive for the DASH-Props
@@ -56,9 +54,7 @@ def download_tree_data_from_archive(
         raise DataDownloadError("URL for additional data cannot be None")
 
 
-def extract_data(
-    zip_archive: Path = ZIP_FILE, folder: Path = additional_data_dir
-) -> None:
+def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = additional_data_dir) -> None:
     """
     Extract the Downloaded Zip archive to be readable by the DASH-Tree constructor.
 
@@ -127,9 +123,7 @@ def get_additional_data(
         extracted_folder = DATA_DICT[extracted_folder]
     if data_is_complete(folder=extracted_folder):
         return True
-    print(
-        "The DASH Tree is missing additional data and will install that. This Can take a few minutes..."
-    )
+    print("The DASH Tree is missing additional data and will install that. This Can take a few minutes...")
     download_tree_data_from_archive(url=url, file=zip_archive)
     extract_data(zip_archive=zip_archive, folder=add_data_folder)
     return data_is_complete(folder=extracted_folder)

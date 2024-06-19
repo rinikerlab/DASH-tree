@@ -59,9 +59,7 @@ class Forest:
         )
 
     @staticmethod
-    def get_dual_descriptor_DASH_tree(
-        preload: bool = True, verbose: bool = True
-    ) -> DASHTree:
+    def get_dual_descriptor_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
             tree_folder_path=dash_props_tree_path,
             preload=preload,
@@ -92,9 +90,7 @@ class Forest:
         )
 
     @staticmethod
-    def get_polarizability_DASH_tree(
-        preload: bool = True, verbose: bool = True
-    ) -> DASHTree:
+    def get_polarizability_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
             tree_folder_path=dash_props_tree_path,
             preload=preload,
@@ -105,9 +101,7 @@ class Forest:
         )
 
     @staticmethod
-    def get_full_props_DASH_tree(
-        preload: bool = True, verbose: bool = True
-    ) -> DASHTree:
+    def get_full_props_DASH_tree(preload: bool = True, verbose: bool = True) -> DASHTree:
         return DASHTree(
             tree_folder_path=dash_props_tree_path,
             preload=preload,

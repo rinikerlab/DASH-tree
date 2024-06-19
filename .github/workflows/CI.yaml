@@ -52,7 +52,7 @@ jobs:
       shell: bash -l {0}
       run: |
         python setup.py install
-        pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
+        pytest -v --color=yes --cov=serenityff --cov-report=xml serenityff/charge/tests/ tests/
 
   analyze:
     name: Analyze

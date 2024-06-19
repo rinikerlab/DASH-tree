@@ -1,9 +1,7 @@
 name: dash
 channels:
-  - defaults
   - conda-forge
-  - pytorch
-  - pyg
+  - defaults
 dependencies:
   - python
   - numpy

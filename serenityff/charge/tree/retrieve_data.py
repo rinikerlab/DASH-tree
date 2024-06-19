@@ -2,6 +2,7 @@
 import zipfile
 from enum import Enum, auto
 from pathlib import Path
+from typing import Union
 from urllib.request import urlretrieve
 
 from serenityff.charge.data import (
@@ -34,7 +35,9 @@ DATA_DICT = {
 }
 
 
-def download_tree_data_from_archive(url: str = URL_DICT[DataUrl.DASH_PROPS], file: Path = ZIP_FILE) -> None:
+def download_tree_data_from_archive(
+    url: str = URL_DICT[DataUrl.DASH_PROPS], file: Path = ZIP_FILE
+) -> None:
     """Download additional DASH Properties data.
 
     Gets the data uploaded to the ETH-research archive for the DASH-Props
@@ -53,7 +56,9 @@ def download_tree_data_from_archive(url: str = URL_DICT[DataUrl.DASH_PROPS], fil
         raise DataDownloadError("URL for additional data cannot be None")
 
 
-def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = additional_data_dir) -> None:
+def extract_data(
+    zip_archive: Path = ZIP_FILE, folder: Path = additional_data_dir
+) -> None:
     """
     Extract the Downloaded Zip archive to be readable by the DASH-Tree constructor.
 
@@ -65,7 +70,7 @@ def extract_data(zip_archive: Path = ZIP_FILE, folder: Path = additional_data_di
         with zipfile.ZipFile(zip_archive) as zip_ref:
             print("Extracting data...")
             zip_ref.extractall(folder)
-    except (FileNotFoundError, AttributeError):
+    except (FileNotFoundError, AttributeError, zipfile.BadZipFile):
         raise DataExtractionError("Zip to archive was not found.")
     except KeyboardInterrupt:
         print("Extraction was interrupted by user.")
@@ -98,10 +103,10 @@ def data_is_complete(folder: Path = DATA_DICT[DataPath.DASH_PROPS]) -> bool:
 
 
 def get_additional_data(
-    url: DataUrl = DataUrl.DASH_PROPS,
+    url: Union[DataUrl, str] = DataUrl.DASH_PROPS,
     zip_archive: Path = ZIP_FILE,
     add_data_folder: Path = additional_data_dir,
-    extracted_folder: DataPath = DataPath.DASH_PROPS,
+    extracted_folder: Union[DataPath] = DataPath.DASH_PROPS,
 ) -> bool:
     """Download and extract additional data from ETH research archive.
 
@@ -116,9 +121,15 @@ def get_additional_data(
     Raises:
         DataNotComplete: Throw when not all data files necessary where found.
     """
-    if data_is_complete(folder=DATA_DICT[extracted_folder]):
+    if isinstance(url, DataUrl):
+        url = URL_DICT[url]
+    if isinstance(extracted_folder, DataPath):
+        extracted_folder = DATA_DICT[extracted_folder]
+    if data_is_complete(folder=extracted_folder):
         return True
-    print("The DASH Tree is missing additional data and will install that. This Can take a few minutes...")
-    download_tree_data_from_archive(url=URL_DICT[url], file=zip_archive)
+    print(
+        "The DASH Tree is missing additional data and will install that. This Can take a few minutes..."
+    )
+    download_tree_data_from_archive(url=url, file=zip_archive)
     extract_data(zip_archive=zip_archive, folder=add_data_folder)
-    return data_is_complete(folder=DATA_DICT[extracted_folder])
+    return data_is_complete(folder=extracted_folder)

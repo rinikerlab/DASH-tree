@@ -119,10 +119,6 @@ def test_loading_off_handler_plugins(
         assert force_field_custom_offxml.get_parameter_handler(key)
 
 
-@pytest.mark.skipif(
-    condition=os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI"),
-    reason="Too slow for CI",
-)
 def test_plugin_charges_get_parameter_handler(
     force_field_with_plugins: SerenityFFChargeHandler,
     molecule,
@@ -140,10 +136,6 @@ def test_plugin_charges_get_parameter_handler(
     )
 
 
-@pytest.mark.skipif(
-    condition=os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI"),
-    reason="Too slow for CI",
-)
 def test_plugin_charges_register(
     force_field_with_plugins,
     molecule,
@@ -162,10 +154,6 @@ def test_plugin_charges_register(
     )
 
 
-@pytest.mark.skipif(
-    condition=os.getenv("GITHUB_ACTIONS") or os.getenv("GITLAB_CI"),
-    reason="Too slow for CI",
-)
 def test_custom_force_field_file_charges(
     force_field_custom_offxml: ForceField, molecule
 ) -> None:

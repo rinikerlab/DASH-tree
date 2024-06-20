@@ -11,9 +11,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     Args:
         parser (pytest.Parser): pytest parser.
     """
-    parser.addoption(
-        "--run-slow", action="store_true", default=False, help="Include slow tests."
-    )
+    parser.addoption("--run-slow", action="store_true", default=False, help="Include slow tests.")
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -25,9 +23,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "slow: mark test as slow to run")
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: Sequence[pytest.Item]
-) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: Sequence[pytest.Item]) -> None:
     """Skip slow tests if not included.
 
     Args:

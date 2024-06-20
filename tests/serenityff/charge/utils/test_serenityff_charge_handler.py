@@ -1,5 +1,4 @@
 """Test serenityff.charge.utils.serenityff_charge_handler.py."""
-import os
 from pathlib import Path
 
 import pytest
@@ -91,10 +90,7 @@ def test_handler_init(handler: SerenityFFChargeHandler) -> None:
     assert handler._SMIRNOFF_VERSIONS == ["0.3"]
     assert handler._ELEMENT_NAME == "SerenityFFCharge"
     assert handler._ELEMENT_CLASSNAME == "SerenityFFChargeHandler"
-    assert (
-        handler._ELEMENT_DESCRIPTION
-        == "A handler for the SerenityFFCharge parameter tag."
-    )
+    assert handler._ELEMENT_DESCRIPTION == "A handler for the SerenityFFCharge parameter tag."
     assert handler._ELEMENTS_PER_TYPE == 1
     assert handler.version == 0.3
 
@@ -154,9 +150,7 @@ def test_plugin_charges_register(
     )
 
 
-def test_custom_force_field_file_charges(
-    force_field_custom_offxml: ForceField, molecule
-) -> None:
+def test_custom_force_field_file_charges(force_field_custom_offxml: ForceField, molecule) -> None:
     assert allclose(
         force_field_custom_offxml.get_partial_charges(molecule),
         DASH_CHARGES_SOLUTION,

@@ -233,9 +233,7 @@ class DASHTree:
         Save all trees and data to the tree_folder_path with the file names {branch_idx}.gz and {branch_idx}.h5
         """
         if self.verbose:
-            print(
-                f"Saving DASH tree data to {len(self.tree_storage)} files in {self.tree_folder_path}"
-            )
+            print(f"Saving DASH tree data to {len(self.tree_storage)} files in {self.tree_folder_path}")
         for branch_idx in tqdm(self.tree_storage):
             self.save_tree_and_data(branch_idx)
 
@@ -252,9 +250,7 @@ class DASHTree:
         df_path = os.path.join(self.tree_folder_path, f"{branch_idx}.h5")
         self._save_tree_and_data(branch_idx, tree_path, df_path)
 
-    def _save_tree_and_data(
-        self, branch_idx: int, tree_path: str, df_path: str
-    ) -> None:
+    def _save_tree_and_data(self, branch_idx: int, tree_path: str, df_path: str) -> None:
         with gzip.open(tree_path, "wb") as f:
             pickle.dump(self.tree_storage[branch_idx], f)
         self.data_storage[branch_idx].to_hdf(df_path, key="df", mode="w")
@@ -274,38 +270,24 @@ class DASHTree:
         for child in current_node_children:
             child_tree_node = self.tree_storage[branch_idx][child]
             child_af = (child_tree_node[1], child_tree_node[2], child_tree_node[3])
-            for possible_atom_feature, possible_atom_idx in zip(
-                possible_new_atom_features, possible_new_atom_idxs
-            ):
+            for possible_atom_feature, possible_atom_idx in zip(possible_new_atom_features, possible_new_atom_idxs):
                 if possible_atom_feature == child_af:
                     return (child, possible_atom_idx)
         return (None, None)
 
     def _get_init_layer(self, mol: Molecule, atom: int, max_depth: int):
-        init_atom_feature = (
-            self.atom_feature_type.atom_features_from_molecule_w_connection_info(
-                mol, atom
-            )
-        )
-        branch_idx = init_atom_feature[
-            0
-        ]  # branch_idx is the key of the AtomFeature without connection info
+        init_atom_feature = self.atom_feature_type.atom_features_from_molecule_w_connection_info(mol, atom)
+        branch_idx = init_atom_feature[0]  # branch_idx is the key of the AtomFeature without connection info
         matched_node_path = [branch_idx, 0]
         # Special case for H -> only connect to heavy atom and ignore H
         if mol.GetAtomWithIdx(atom).GetAtomicNum() == 1:
             h_connected_heavy_atom = mol.GetAtomWithIdx(atom).GetNeighbors()[0].GetIdx()
-            init_atom_feature = (
-                self.atom_feature_type.atom_features_from_molecule_w_connection_info(
-                    mol, h_connected_heavy_atom
-                )
+            init_atom_feature = self.atom_feature_type.atom_features_from_molecule_w_connection_info(
+                mol, h_connected_heavy_atom
             )
-            child, _ = self._pick_subgraph_expansion_node(
-                0, branch_idx, [init_atom_feature], [h_connected_heavy_atom]
-            )
+            child, _ = self._pick_subgraph_expansion_node(0, branch_idx, [init_atom_feature], [h_connected_heavy_atom])
             matched_node_path.append(child)
-            atom_indices_in_subgraph = [
-                h_connected_heavy_atom
-            ]  # skip Hs as they are only treated implicitly
+            atom_indices_in_subgraph = [h_connected_heavy_atom]  # skip Hs as they are only treated implicitly
             max_depth -= 1  # reduce max_depth by 1 as we already added one node
         else:
             atom_indices_in_subgraph = [atom]
@@ -392,9 +374,7 @@ class DASHTree:
                 return matched_node_path, atom_indices_in_subgraph
             return matched_node_path
 
-    def get_atom_properties(
-        self, matched_node_path: list = None, mol: Molecule = None, atom: int = None
-    ):
+    def get_atom_properties(self, matched_node_path: list = None, mol: Molecule = None, atom: int = None):
         """
         Get the properties of a atom from a matched DASH tree subgraph (node path) or from a molecule
         and atom index (don't use both (mol +atom) and matched_node_path at the same time)
@@ -411,9 +391,7 @@ class DASHTree:
         """
         if matched_node_path is None:
             if mol is None or atom is None:
-                raise ValueError(
-                    "Either matched_node_path or mol + atom must be provided"
-                )
+                raise ValueError("Either matched_node_path or mol + atom must be provided")
             matched_node_path = self.match_new_atom(atom=atom, mol=mol)
         branch_idx = matched_node_path[0]
         atom = matched_node_path[-1]
@@ -461,9 +439,7 @@ class DASHTree:
         """
         if matched_node_path is None:
             if mol is None or atom is None:
-                raise ValueError(
-                    "Either matched_node_path or mol + atom must be provided"
-                )
+                raise ValueError("Either matched_node_path or mol + atom must be provided")
             matched_node_path = self.match_new_atom(
                 atom=atom,
                 mol=mol,
@@ -484,9 +460,7 @@ class DASHTree:
         for atom in reversed(matched_node_path):
             if not np.isnan(df.iloc[atom][property_name]):
                 return df.iloc[atom][property_name]
-        Warning(
-            f"No non NaN value found for {property_name} in hierarchy {matched_node_path}"
-        )
+        Warning(f"No non NaN value found for {property_name} in hierarchy {matched_node_path}")
         return np.nan
 
     def _get_allAtoms_nodePaths(
@@ -596,9 +570,7 @@ class DASHTree:
                 )
                 tree_raw_charges.append(float(chg_atom))
                 tmp_tree_std = float(chg_std_atom)
-                tree_charge_std.append(
-                    tmp_tree_std if tmp_tree_std > 0 else default_std_value
-                )
+                tree_charge_std.append(tmp_tree_std if tmp_tree_std > 0 else default_std_value)
                 tree_match_depth.append(len(nodePath) - 1)
             except Exception as e:
                 raise e
@@ -610,10 +582,7 @@ class DASHTree:
         elif norm_method == "symmetric":
             tot_charge_tree = sum(tree_raw_charges)
             tot_charge_mol = sum([x.GetFormalCharge() for x in mol.GetAtoms()])
-            return_list = [
-                x + (tot_charge_mol - tot_charge_tree) / len(tree_raw_charges)
-                for x in tree_raw_charges
-            ]
+            return_list = [x + (tot_charge_mol - tot_charge_tree) / len(tree_raw_charges) for x in tree_raw_charges]
         elif norm_method == "std_weighted":
             tot_charge_tree = sum(tree_raw_charges)
             tot_charge_mol = sum([x.GetFormalCharge() for x in mol.GetAtoms()])
@@ -623,9 +592,7 @@ class DASHTree:
                 for x, y in zip(tree_raw_charges, tree_charge_std)
             ]
         else:
-            raise ValueError(
-                "norm_method must be one of 'none', 'symmetric', 'std_weighted'"
-            )
+            raise ValueError("norm_method must be one of 'none', 'symmetric', 'std_weighted'")
         if verbose:
             print(f"Tree normalized charges: {return_list}")
         return {
@@ -634,15 +601,11 @@ class DASHTree:
             "match_depth": tree_match_depth,
         }
 
-    def _get_attention_sorted_neighbours_bondVectors(
-        self, mol, atom_idx, verbose=False
-    ):
+    def _get_attention_sorted_neighbours_bondVectors(self, mol, atom_idx, verbose=False):
         rdkit_neighbors = mol.GetAtomWithIdx(atom_idx).GetNeighbors()
         if verbose:
             print(f"rdkit_neighbors: {[n.GetIdx() for n in rdkit_neighbors]}")
-        node_path, atom_indices_in_subgraph = self.match_new_atom(
-            atom=atom_idx, mol=mol, return_atom_indices=True
-        )
+        node_path, atom_indices_in_subgraph = self.match_new_atom(atom=atom_idx, mol=mol, return_atom_indices=True)
         if verbose:
             print(f"node_path: {node_path}")
             print(f"atom_indices_in_subgraph: {atom_indices_in_subgraph}")
@@ -650,9 +613,7 @@ class DASHTree:
         if mol.GetAtomWithIdx(atom_idx).GetSymbol() == "H":
             neighbours.append(atom_indices_in_subgraph[0])
         else:
-            for node_idx, atom_idx_in_subgraph in zip(
-                node_path[1:], atom_indices_in_subgraph
-            ):
+            for node_idx, atom_idx_in_subgraph in zip(node_path[1:], atom_indices_in_subgraph):
                 tmp_node = self.tree_storage[node_path[0]][node_idx]
                 if tmp_node[2] == 0:
                     neighbours.append(atom_idx_in_subgraph)
@@ -667,8 +628,7 @@ class DASHTree:
         bond_vectors = []
         for neighbor in neighbours:
             bond_vectors.append(
-                mol.GetConformer().GetAtomPosition(atom_idx)
-                - mol.GetConformer().GetAtomPosition(neighbor)
+                mol.GetConformer().GetAtomPosition(atom_idx) - mol.GetConformer().GetAtomPosition(neighbor)
             )
         return bond_vectors
 
@@ -704,9 +664,7 @@ class DASHTree:
         # 2. Project dipole on bond vectors and pad to 3 dimensions
         projected_dipoles = []
         for bond_vector in bond_vectors_orthogonal:
-            projected_dipoles.append(
-                np.dot(dipole, bond_vector) / np.linalg.norm(bond_vector)
-            )
+            projected_dipoles.append(np.dot(dipole, bond_vector) / np.linalg.norm(bond_vector))
         projected_dipoles = np.pad(
             projected_dipoles,
             pad_width=(0, 3 - len(projected_dipoles)),
@@ -718,9 +676,7 @@ class DASHTree:
         projected_dipoles = [x * scale_factor for x in projected_dipoles]
         return projected_dipoles
 
-    def _get_dipole_from_bond_projection(
-        self, mol, atom_idx, projected_dipoles, verbose=False
-    ):
+    def _get_dipole_from_bond_projection(self, mol, atom_idx, projected_dipoles, verbose=False):
         bond_vectors = self._get_attention_sorted_neighbours_bondVectors(mol, atom_idx)
         dipole = np.zeros(3)
         for projected_dipole, bond_vector in zip(projected_dipoles, bond_vectors):
@@ -736,15 +692,9 @@ class DASHTree:
         prop_keys=["dipole_bond_1", "dipole_bond_2", "dipole_bond_3"],
     ):
         node_path = self.match_new_atom(atom=atom_idx, mol=mol)
-        x = self.get_property_noNAN(
-            matched_node_path=node_path, property_name=prop_keys[0]
-        )
-        y = self.get_property_noNAN(
-            matched_node_path=node_path, property_name=prop_keys[1]
-        )
-        z = self.get_property_noNAN(
-            matched_node_path=node_path, property_name=prop_keys[2]
-        )
+        x = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[0])
+        y = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[1])
+        z = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[2])
         dipole = self._get_dipole_from_bond_projection(mol, atom_idx, [x, y, z])
         return dipole
 
@@ -804,10 +754,7 @@ class DASHTree:
         # vec_sum = np.sum([chg * dipole_vec for chg, dipole_vec in zip(chgs, dipole_vecs)], axis=0)
         if sngl_cnf:
             vec_sum = np.sum(
-                [
-                    chg * np.array(mol.GetConformer().GetAtomPosition(i))
-                    for i, chg in enumerate(chgs)
-                ],
+                [chg * np.array(mol.GetConformer().GetAtomPosition(i)) for i, chg in enumerate(chgs)],
                 axis=0,
             )
             if add_atomic_dipoles:
@@ -818,10 +765,7 @@ class DASHTree:
             dipole = np.zeros(mol.GetNumConformers())
             for conf_i, conf in enumerate(mol.GetConformers()):
                 vec_sum = np.sum(
-                    [
-                        chg * np.array(conf.GetAtomPosition(i))
-                        for i, chg in enumerate(chgs)
-                    ],
+                    [chg * np.array(conf.GetAtomPosition(i)) for i, chg in enumerate(chgs)],
                     axis=0,
                 )
                 if add_atomic_dipoles:
@@ -844,11 +788,7 @@ class DASHTree:
         polarizabilities = []
         all_nodePaths = self._get_allAtoms_nodePaths(mol)
         for nodePath in all_nodePaths:
-            polarizabilities.append(
-                self.get_property_noNAN(
-                    matched_node_path=nodePath, property_name=prop_key
-                )
-            )
+            polarizabilities.append(self.get_property_noNAN(matched_node_path=nodePath, property_name=prop_key))
         polarizability = np.sum(polarizabilities)
         return polarizability
 
@@ -879,9 +819,7 @@ class DASHTree:
             try:
                 for p in properties_to_use:
                     try:
-                        prop = self.get_property_noNAN(
-                            matched_node_path=nodePath, property_name=p
-                        )
+                        prop = self.get_property_noNAN(matched_node_path=nodePath, property_name=p)
                         tmp_p.append(prop)
                     except Exception:
                         tmp_p.append(np.nan)
@@ -902,29 +840,15 @@ class DASHTree:
         for atom_idx in range(num_atoms):
             node_path = self.match_new_atom(atom=atom_idx, mol=mol)
             bidx = node_path[0]
-            tmp_mbis.append(
-                self.get_property_noNAN(
-                    matched_node_path=node_path, property_name="result"
-                )
-            )
-            tmp_dual.append(
-                self.get_property_noNAN(
-                    matched_node_path=node_path, property_name="dual"
-                )
-            )
+            tmp_mbis.append(self.get_property_noNAN(matched_node_path=node_path, property_name="result"))
+            tmp_dual.append(self.get_property_noNAN(matched_node_path=node_path, property_name="dual"))
             key = self.tree_storage[bidx][0][1]
             tmp_conj.append(self.atom_feature_type.afKey_2_afTuple[key][3])
         return_dict["DASH_max_abs_mbis"] = np.max(np.abs(tmp_mbis))
         return_dict["DASH_avg_abs_mbis"] = np.mean(np.abs(tmp_mbis))
-        return_dict["DASH_>03_abs_mbis"] = (
-            np.sum([1 if x > 0.3 else 0 for x in tmp_mbis]) / num_atoms
-        )
-        return_dict["DASH_dual_elec"] = (
-            np.sum([1 if x < -0.4 else 0 for x in tmp_dual]) / num_atoms
-        )
-        return_dict["DASH_dual_nucl"] = (
-            np.sum([1 if x > 0.4 else 0 for x in tmp_dual]) / num_atoms
-        )
+        return_dict["DASH_>03_abs_mbis"] = np.sum([1 if x > 0.3 else 0 for x in tmp_mbis]) / num_atoms
+        return_dict["DASH_dual_elec"] = np.sum([1 if x < -0.4 else 0 for x in tmp_dual]) / num_atoms
+        return_dict["DASH_dual_nucl"] = np.sum([1 if x > 0.4 else 0 for x in tmp_dual]) / num_atoms
         return_dict["DASH_conj"] = np.sum([1 if x else 0 for x in tmp_conj]) / num_atoms
         return_dict["DASH_num_atoms"] = num_atoms
         return return_dict
@@ -976,19 +900,11 @@ class DASHTree:
             attention_increment_threshold=attention_incremet_threshold,
             return_atom_indices=True,
         )
-        prop_per_node = [
-            self.data_storage[node_path[0]].iloc[i][property_name]
-            for i in node_path[1:]
-        ]
+        prop_per_node = [self.data_storage[node_path[0]].iloc[i][property_name] for i in node_path[1:]]
         if show_property_diff:
-            prop_change_per_node = [
-                prop_per_node[i + 1] - prop_per_node[i]
-                for i in range(len(prop_per_node) - 1)
-            ]
+            prop_change_per_node = [prop_per_node[i + 1] - prop_per_node[i] for i in range(len(prop_per_node) - 1)]
             prop_change_per_node = [prop_per_node[0]] + prop_change_per_node
-            text_per_atom = [
-                f"{i}: {change:.2f}" for i, change in enumerate(prop_change_per_node)
-            ]
+            text_per_atom = [f"{i}: {change:.2f}" for i, change in enumerate(prop_change_per_node)]
         else:
             text_per_atom = [f"{i}" for i in range(len(node_path))]
         if property_name == "result":
@@ -1017,9 +933,7 @@ def draw_mol_with_highlights_in_order(
     useSVG=False,
 ):
     color = (0, 0.6, 0.1)
-    alphas = [
-        1 - i / (len(highlight_atoms) + 4) for i in range(len(highlight_atoms) + 1)
-    ]
+    alphas = [1 - i / (len(highlight_atoms) + 4) for i in range(len(highlight_atoms) + 1)]
     athighlights = defaultdict(list)
     bthighlights = defaultdict(list)
     arads = {}
@@ -1044,13 +958,9 @@ def draw_mol_with_highlights_in_order(
     AllChem.Compute2DCoords(mol_pic)
     if plot_title is not None:
         dopts.legendFontSize = 30
-        d2d.DrawMoleculeWithHighlights(
-            mol_pic, plot_title, dict(athighlights), dict(bthighlights), arads, brads
-        )
+        d2d.DrawMoleculeWithHighlights(mol_pic, plot_title, dict(athighlights), dict(bthighlights), arads, brads)
     else:
-        d2d.DrawMoleculeWithHighlights(
-            mol_pic, "", dict(athighlights), dict(bthighlights), arads, brads
-        )
+        d2d.DrawMoleculeWithHighlights(mol_pic, "", dict(athighlights), dict(bthighlights), arads, brads)
     d2d.FinishDrawing()
     if useSVG:
         if not IPython:

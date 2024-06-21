@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Any, Union
 
@@ -17,6 +16,7 @@ from serenityff.charge.tree.retrieve_data import (
 )
 from serenityff.charge.utils.exceptions import DataDownloadError, DataExtractionError
 from tests._testfiles import TEST_ARCHIVE
+from tests._utils import are_in_CI
 
 
 @pytest.fixture()
@@ -49,7 +49,7 @@ def test_download_tree_data_from_archive_fails(url: Any) -> None:
 
 
 @pytest.mark.skipif(
-    condition=os.getenv("GITHUB_ACTIONS"),
+    condition=are_in_CI(),
     reason="Don't download Archive data on github CI.",
 )
 @pytest.mark.slow
@@ -118,7 +118,7 @@ def test_get_additional_data_already_existing() -> None:
 
 
 @pytest.mark.skipif(
-    condition=os.getenv("GITHUB_ACTIONS"),
+    condition=are_in_CI(),
     reason="Don't download Archive data on github CI.",
 )
 @pytest.mark.slow

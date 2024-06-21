@@ -1,5 +1,6 @@
-import pytest
 import os
+
+import pytest
 from numpy import allclose, array_equal
 from openff.toolkit.topology import Molecule
 from openff.toolkit.typing.engines.smirnoff import (
@@ -10,6 +11,7 @@ from openff.toolkit.typing.engines.smirnoff import (
 )
 
 from serenityff.charge.utils.serenityff_charge_handler import SerenityFFChargeHandler
+from tests._utils import are_in_CI
 
 
 @pytest.fixture
@@ -100,7 +102,7 @@ def test_off_handler_plugins(force_field_with_plugins, keys):
 
 
 @pytest.mark.skipif(
-    condition=any((os.getenv("GITHUB_ACTIONS"), os.getenv("GITLAB_CI"))),
+    condition=are_in_CI(),
     reason="This test is too slow for CI",
 )
 def test_off_handler_custom(force_field_custom_offxml, keys):
@@ -119,7 +121,7 @@ def test_off_handler_custom(force_field_custom_offxml, keys):
 
 
 @pytest.mark.skipif(
-    condition=any((os.getenv("GITHUB_ACTIONS"), os.getenv("GITLAB_CI"))),
+    condition=are_in_CI(),
     reason="This test is too slow for CI",
 )
 def test_plugin_charges_get(force_field_with_plugins, molecule, charges_amber, charges_serenity) -> None:
@@ -139,7 +141,7 @@ def test_plugin_charges_get(force_field_with_plugins, molecule, charges_amber, c
 
 
 @pytest.mark.skipif(
-    condition=any((os.getenv("GITHUB_ACTIONS"), os.getenv("GITLAB_CI"))),
+    condition=are_in_CI(),
     reason="This test is too slow for CI",
 )
 def test_plugin_charges_register(force_field_with_plugins, molecule, handler, charges_amber, charges_serenity) -> None:
@@ -159,7 +161,7 @@ def test_plugin_charges_register(force_field_with_plugins, molecule, handler, ch
 
 
 @pytest.mark.skipif(
-    condition=any((os.getenv("GITHUB_ACTIONS"), os.getenv("GITLAB_CI"))),
+    condition=are_in_CI(),
     reason="This test is too slow for CI",
 )
 def test_custom_charges(force_field_custom_offxml, molecule, charges_serenity) -> None:

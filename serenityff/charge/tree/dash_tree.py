@@ -437,6 +437,8 @@ class DASHTree:
         float
             The last non NaN value of the property in the hierarchy
         """
+        if property_name is None:
+            property_name = self.default_value_column
         if matched_node_path is None:
             if mol is None or atom is None:
                 raise ValueError("Either matched_node_path or mol + atom must be provided")

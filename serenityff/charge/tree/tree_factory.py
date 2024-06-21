@@ -25,7 +25,7 @@ class Forest:
             tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
-            default_value_column="RESP1",
+            default_value_column="resp1",
             tree_type=TreeType.RESP,
         )
 
@@ -35,7 +35,7 @@ class Forest:
             tree_folder_path=dash_props_tree_path,
             preload=preload,
             verbose=verbose,
-            default_value_column="RESP2",
+            default_value_column="resp2",
             tree_type=TreeType.RESP,
         )
 

@@ -1,10 +1,8 @@
 """
 Serenity Force Field.
 """
-
-from setuptools import find_packages, setup
 import sys
-import versioneer
+from setuptools import find_packages, setup
 
 needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
 pytest_runner = ["pytest-runner"] if needs_pytest else []
@@ -26,8 +24,8 @@ setup(
     long_description_content_type="text/markdown",
     url="http://github.com/rinikerlab/serenityff",
     setup_requires=[] + pytest_runner,
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    version="2.0.1",
+    cmdclass={},
     license="MIT",
     packages=find_packages(),
     # packages=find_namespace_packages(include=["serenityff/charge/*"]),

@@ -1,4 +1,3 @@
 ignore:
   - "serenityff/charge/data"
   - "serenityff/charge/examples"
-  - "serenityff/charge/_version.py"

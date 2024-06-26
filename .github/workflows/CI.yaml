@@ -44,15 +44,15 @@ jobs:
     - name: Install package
       shell: bash -l {0}
       run: |
-        python -m pip install . --no-deps
+        pip install . --no-deps
         conda list
 
 
     - name: Run tests
       shell: bash -l {0}
       run: |
-        python setup.py install
-        pytest -v --color=yes serenityff/charge/tests/ --cov=serenityff --cov-report=xml
+        pip install . --no-deps
+        pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow serenityff/charge/tests/ tests/
 
   analyze:
     name: Analyze

@@ -1,51 +1,110 @@
+import gzip
+import io
 import os
 import pickle
-import gzip
+from collections import defaultdict
+from enum import Enum, auto
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from PIL import Image
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem.Draw import rdMolDraw2D
+from tqdm import tqdm
 
-# from multiprocessing import Process, Manager
-# from numba import njit, objmode, types
-
-# from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-
-import io
+from serenityff.charge.data import dash_props_tree_path, default_dash_tree_path
+from serenityff.charge.tree.atom_features import AtomFeatures
+from serenityff.charge.tree.dash_tools import (
+    init_neighbor_dict,
+    new_neighbors,
+    new_neighbors_atomic,
+)
+from serenityff.charge.tree.retrieve_data import (
+    data_is_complete,
+    get_additional_data,
+)
+from serenityff.charge.utils.exceptions import DataIncompleteError
+from serenityff.charge.utils.rdkit_typing import Molecule
 
 try:
     import IPython.display
 except ImportError:
     pass
-from PIL import Image
-from rdkit.Chem.Draw import rdMolDraw2D
-from collections import defaultdict
 
-from serenityff.charge.tree.atom_features import AtomFeatures
-from serenityff.charge.data import default_dash_tree_path
-from serenityff.charge.utils.rdkit_typing import Molecule
-from serenityff.charge.tree.dash_tools import (
-    new_neighbors,
-    new_neighbors_atomic,
-    init_neighbor_dict,
-)
+
+class TreeType(Enum):
+    DEFAULT = auto()
+    AM1BCC = auto()
+    RESP = auto()
+    MULLIKEN = auto()
+    CHARGES = auto()
+    DUALDESCRIPTORS = auto()
+    C6 = auto()
+    POLARIZABILITY = auto()
+    DFTD4 = auto()
+    DIPOLE = auto()
+    FULL = auto()
+
+
+COLUMN_DICT = {
+    0: "level",
+    1: "atom_type",
+    2: "con_atom",
+    3: "con_type",
+    4: "max_attention",
+    5: "size",
+    6: "result",
+    7: "std",
+    8: "mulliken",
+    9: "resp1",
+    10: "resp2",
+    11: "AM1BCC",
+    12: "AM1BCC_std",
+    13: "dual",
+    14: "mbis_dipole_strength",
+    15: "dipole_bond_1",
+    16: "dipole_bond_2",
+    17: "dipole_bond_3",
+    18: "DFTD4:C6",
+    19: "DFTD4:C6_std",
+    20: "DFTD4:polarizability",
+    21: "DFTD4:polarizability_std",
+}
+
+
+COLUMNS = {
+    TreeType.DEFAULT: [0, 1, 2, 3, 4, 5, 6, 7],
+    TreeType.MULLIKEN: [0, 1, 2, 3, 4, 5, 7, 8],
+    TreeType.RESP: [0, 1, 2, 3, 4, 5, 7, 9, 10],
+    TreeType.AM1BCC: [0, 1, 2, 3, 4, 5, 11, 12],
+    TreeType.CHARGES: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    TreeType.DUALDESCRIPTORS: [0, 1, 2, 3, 4, 5, 7, 13],
+    TreeType.C6: [0, 1, 2, 3, 4, 5, 18, 19],
+    TreeType.POLARIZABILITY: [0, 1, 2, 3, 4, 5, 20, 21],
+    TreeType.DIPOLE: [0, 1, 2, 3, 4, 5, 7, 4, 15, 16, 17],
+    TreeType.FULL: list(COLUMN_DICT),
+}
 
 
 class DASHTree:
     def __init__(
         self,
-        tree_folder_path: str = default_dash_tree_path,
+        tree_folder_path: Path = default_dash_tree_path,
         preload: bool = True,
         verbose: bool = True,
         num_processes: int = 1,
+        default_value_column: str = "result",
+        default_std_column: str = "std",
+        tree_type: TreeType = TreeType.DEFAULT,
     ) -> None:
         """
         Class to handle DASH trees and data
 
         Parameters
         ----------
-        tree_folder_path : str
+        tree_folder_path : Path
             Path to folder containing DASH trees and data
         preload : bool
             If True, load all trees and data into memory, if False, load on demand
@@ -61,8 +120,26 @@ class DASHTree:
         self.tree_storage = {}
         self.data_storage = {}
         self.atom_feature_type = AtomFeatures
+        self.default_value_column = default_value_column
+        self.default_std_column = default_std_column
         if preload:
-            self.load_all_trees_and_data()
+            self.load_all_trees_and_data(tree_type=tree_type)
+
+    @property
+    def default_value_column(self) -> str:
+        return self._default_value_column
+
+    @property
+    def default_std_column(self) -> str:
+        return self._default_std_column
+
+    @default_value_column.setter
+    def default_value_column(self, value: str) -> None:
+        self._default_value_column = value
+
+    @default_std_column.setter
+    def default_std_column(self, value: str) -> None:
+        self._default_std_column = value
 
     ########################################
     #   Tree import/export functions
@@ -71,7 +148,10 @@ class DASHTree:
     # tree file format:
     # int(id_counter), int(atom_type), int(con_atom), int(con_type), float(oldNode.attention), []children
 
-    def load_all_trees_and_data(self) -> None:
+    def load_all_trees_and_data(
+        self,
+        tree_type: TreeType = TreeType.DEFAULT,
+    ) -> None:
         """
         Load all trees and data from the tree_folder_path, expects files named after the atom feature key and
         the file extension .gz for the tree and .h5 for the data
@@ -82,10 +162,26 @@ class DASHTree:
             print("Loading DASH tree data")
         # # import all files
         # if True:  # self.num_processes <= 1:
+        success = data_is_complete(self.tree_folder_path)
+        if not success:
+            success = get_additional_data()
+            self.tree_folder_path = dash_props_tree_path
+        if not success:
+            raise DataIncompleteError(
+                "The Additional Data was not downloaded and extracted Correctly. "
+                "Please make sure to be connected to the internet for the DASH tree to collect all the "
+                "additional data from the ETHZ Research Collection ."
+            )
+
         for i in range(self.atom_feature_type.get_number_of_features()):
             tree_path = os.path.join(self.tree_folder_path, f"{i}.gz")
             df_path = os.path.join(self.tree_folder_path, f"{i}.h5")
-            self.load_tree_and_data(tree_path, df_path, branch_idx=i)
+            self.load_tree_and_data(
+                tree_path,
+                df_path,
+                branch_idx=i,
+                tree_type=tree_type,
+            )
         # else:
         # Threads don't seem to work due to HDFstore key error
         #    with ThreadPoolExecutor(max_workers=self.num_processes) as executor:
@@ -96,7 +192,14 @@ class DASHTree:
         if self.verbose:
             print(f"Loaded {len(self.tree_storage)} trees and data")
 
-    def load_tree_and_data(self, tree_path: str, df_path: str, hdf_key: str = "df", branch_idx: int = None) -> None:
+    def load_tree_and_data(
+        self,
+        tree_path: str,
+        df_path: str,
+        tree_type: TreeType = TreeType.DEFAULT,
+        hdf_key: str = "df",
+        branch_idx: int = None,
+    ) -> None:
         """
         Load a tree and data from the tree_folder_path, expects files named after the atom feature key and
         the file extension .gz for the tree and .h5 for the data
@@ -118,7 +221,10 @@ class DASHTree:
             branch_idx = int(os.path.basename(tree_path).split(".")[0])
         with gzip.open(tree_path, "rb") as f:
             tree = pickle.load(f)
+        columns = [COLUMN_DICT[v] for v in COLUMNS[tree_type]]
         df = pd.read_hdf(df_path, key=hdf_key, mode="r")
+        columns_to_drop = [col for col in df.columns if col not in columns]
+        df.drop(columns_to_drop, axis=1, inplace=True)
         self.tree_storage[branch_idx] = tree
         self.data_storage[branch_idx] = df
 
@@ -219,9 +325,12 @@ class DASHTree:
             neighbor_dict = init_neighbor_dict(mol, af=self.atom_feature_type)
 
         # get layer 0, and init all relevant containers
-        branch_idx, matched_node_path, atom_indices_in_subgraph, max_depth = self._get_init_layer(
-            mol=mol, atom=atom, max_depth=max_depth
-        )
+        (
+            branch_idx,
+            matched_node_path,
+            atom_indices_in_subgraph,
+            max_depth,
+        ) = self._get_init_layer(mol=mol, atom=atom, max_depth=max_depth)
 
         # if data for branch is not preloaded, load it now
         if branch_idx not in self.tree_storage:
@@ -251,9 +360,10 @@ class DASHTree:
                 atom_indices_in_subgraph.append(atom)
                 node_attention = self.tree_storage[branch_idx][child][4]
                 cummulative_attention += node_attention
-                possible_new_atom_features_toAdd, possible_new_atom_idxs_toAdd = new_neighbors_atomic(
-                    neighbor_dict, atom_indices_in_subgraph, atom
-                )
+                (
+                    possible_new_atom_features_toAdd,
+                    possible_new_atom_idxs_toAdd,
+                ) = new_neighbors_atomic(neighbor_dict, atom_indices_in_subgraph, atom)
                 possible_new_atom_features.extend(possible_new_atom_features_toAdd)
                 possible_new_atom_idxs.extend(possible_new_atom_idxs_toAdd)
                 if cummulative_attention > attention_threshold:
@@ -327,6 +437,8 @@ class DASHTree:
         float
             The last non NaN value of the property in the hierarchy
         """
+        if property_name is None:
+            property_name = self.default_value_column
         if matched_node_path is None:
             if mol is None or atom is None:
                 raise ValueError("Either matched_node_path or mol + atom must be provided")
@@ -399,8 +511,8 @@ class DASHTree:
         attention_incremet_threshold: float = 0,
         verbose: bool = False,
         default_std_value: float = 0.1,
-        chg_key: str = "result",
-        chg_std_key: str = "stdDeviation",
+        chg_key: str = None,
+        chg_std_key: str = None,
         nodePathList=None,
     ):
         """
@@ -433,6 +545,10 @@ class DASHTree:
         dict
             Dictionary containing the partial charges, standard deviations and match depths of all atoms
         """
+        if chg_key is None:
+            chg_key = self.default_value_column
+        if chg_std_key is None:
+            chg_std_key = self.default_std_column
         return_list = []
         tree_raw_charges = []
         tree_charge_std = []
@@ -588,8 +704,8 @@ class DASHTree:
         self,
         mol: Molecule,
         inDebye: bool = True,
-        chg_key: str = "result",
-        chg_std_key: str = "std",
+        chg_key: str = None,
+        chg_std_key: str = None,
         sngl_cnf=True,
         nconfs=10,
         pruneRmsThresh=0.5,
@@ -602,6 +718,10 @@ class DASHTree:
         Get the dipole moment of a molecule by matching all atoms to DASH tree subgraphs and
         summing the dipole moments of the matched atoms
         """
+        if chg_key is None:
+            chg_key = self.default_value_column
+        if chg_std_key is None:
+            chg_std_key = self.default_std_column
         chgs = self.get_molecules_partial_charges(
             mol=mol,
             norm_method="std_weighted",

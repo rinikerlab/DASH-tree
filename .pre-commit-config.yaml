@@ -43,7 +43,7 @@ repos:
           "--max-line-length=120",
           # Ignore imports in init files
           "--per-file-ignores=
-            */__init__.py:F401,setup.py:E121
+            */__init__.py:F401,setup.py:E121,*/test_jnbs/props/euler_scripts/*.py:F401 E722 E711 E266,
             ",
           # ignore long comments (E501), as long lines are formatted by black
           # ignore Whitespace before ':' (E203)

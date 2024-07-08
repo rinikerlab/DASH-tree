@@ -692,12 +692,18 @@ class DASHTree:
         mol,
         atom_idx,
         prop_keys=["dipole_bond_1", "dipole_bond_2", "dipole_bond_3"],
+        atomic_dipole_magnitude_key=None,
     ):
         node_path = self.match_new_atom(atom=atom_idx, mol=mol)
         x = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[0])
         y = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[1])
         z = self.get_property_noNAN(matched_node_path=node_path, property_name=prop_keys[2])
         dipole = self._get_dipole_from_bond_projection(mol, atom_idx, [x, y, z])
+        if atomic_dipole_magnitude_key is not None:
+            dipole_magnitude = self.get_property_noNAN(
+                matched_node_path=node_path, property_name=atomic_dipole_magnitude_key
+            )
+            dipole = dipole / np.linalg.norm(dipole) * dipole_magnitude
         return dipole
 
     def get_molecular_dipole_moment(
@@ -712,7 +718,9 @@ class DASHTree:
         useExpTorsionAnglePrefs=False,
         useBasicKnowledge=False,
         add_atomic_dipoles=False,
+        atomic_dipole_magnitude_key=None,
         nodePathList=None,
+        return_dipole_vector=False,
     ):
         """
         Get the dipole moment of a molecule by matching all atoms to DASH tree subgraphs and
@@ -761,10 +769,13 @@ class DASHTree:
             )
             if add_atomic_dipoles:
                 for atom_idx in range(mol.GetNumAtoms()):
-                    vec_sum += self.get_atomic_dipole_vector(mol, atom_idx)
+                    vec_sum += self.get_atomic_dipole_vector(
+                        mol, atom_idx, atomic_dipole_magnitude_key=atomic_dipole_magnitude_key
+                    )
             dipole = np.linalg.norm(vec_sum)
         else:
             dipole = np.zeros(mol.GetNumConformers())
+            vec_sum = np.zeros((mol.GetNumConformers(), 3))
             for conf_i, conf in enumerate(mol.GetConformers()):
                 vec_sum = np.sum(
                     [chg * np.array(conf.GetAtomPosition(i)) for i, chg in enumerate(chgs)],
@@ -772,10 +783,15 @@ class DASHTree:
                 )
                 if add_atomic_dipoles:
                     for atom_idx in range(mol.GetNumAtoms()):
-                        vec_sum += self.get_atomic_dipole_vector(mol, atom_idx)
+                        vec_sum += self.get_atomic_dipole_vector(
+                            mol, atom_idx, atomic_dipole_magnitude_key=atomic_dipole_magnitude_key
+                        )
                 dipole[conf_i] = np.linalg.norm(vec_sum)
+                vec_sum[conf_i] = vec_sum
         if inDebye:
             dipole /= 0.393430307
+        if return_dipole_vector:
+            return vec_sum
         return dipole
 
     def get_molecular_polarizability(
@@ -906,14 +922,14 @@ class DASHTree:
         if show_property_diff:
             prop_change_per_node = [prop_per_node[i + 1] - prop_per_node[i] for i in range(len(prop_per_node) - 1)]
             prop_change_per_node = [prop_per_node[0]] + prop_change_per_node
-            text_per_atom = [f"{i}: {change:.2f}" for i, change in enumerate(prop_change_per_node)]
+            text_per_atom = [f"{i}: {change: .2f}" for i, change in enumerate(prop_change_per_node)]
         else:
             text_per_atom = [f"{i}" for i in range(len(node_path))]
         if property_name == "result":
             property_name = "Partial charge"
             if prop_unit is None:
                 prop_unit = "e"
-        plot_title = f"Atom: 0 ({atom} in mol). \nSum of all contributions: {property_name} = {prop_per_node[-1]:.2f} {prop_unit}"
+        plot_title = f"Atom: 0 ({atom} in mol). \nSum of all contributions: {property_name} = {prop_per_node[-1]: .2f} {prop_unit}"
         return draw_mol_with_highlights_in_order(
             mol=mol,
             highlight_atoms=match_indices,

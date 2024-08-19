@@ -5,7 +5,6 @@ channels:
   - pytorch
   - pyg
 dependencies:
-  - sphinx_rtd_theme
   - python
   - numpy
   - m2r
@@ -13,12 +12,10 @@ dependencies:
   - typing
   - mpmath
   - scipy
-  - nbsphinx
   - pytest
   - numba
   - sympy
   - pandas
-  - sphinx
   - rdkit
   - openff-toolkit=0.10.0
   - codecov

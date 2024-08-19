@@ -5,7 +5,7 @@ channels:
   - pytorch
   - pyg
 dependencies:
-  - sphinx_rtd_theme
+  #- sphinx_rtd_theme
   - python
   - numpy
   - m2r
@@ -14,13 +14,13 @@ dependencies:
   - pyarrow
   - mpmath
   - scipy
-  - nbsphinx
+  #- nbsphinx
   - pytest
   - numba
   - pytorch
   - sympy
   - pandas
-  - sphinx
+  #- sphinx
   - pyg>=2.2.0
   - rdkit
   - openff-toolkit=0.10.0

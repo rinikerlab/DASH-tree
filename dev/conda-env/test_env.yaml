@@ -7,7 +7,7 @@ channels:
   - defaults
 dependencies:
   # Base depends
-  - python = 3.11
+  - python = 3.9
   - pip
   ## Testing
   - pytest

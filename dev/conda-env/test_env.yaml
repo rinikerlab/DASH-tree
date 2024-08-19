@@ -7,7 +7,7 @@ channels:
   - defaults
 dependencies:
   # Base depends
-  - python = 3.11
+  - python = 3.10
   - pip
   ## Testing
   - pytest
@@ -37,4 +37,4 @@ dependencies:
   - rdkit
   ## Machine Learning
   - pytorch #= 2.0.1
-  - pyg #= 2.3.0
+  - pyg = 2.3.0

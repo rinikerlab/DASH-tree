@@ -117,6 +117,8 @@ def get_additional_data(
     Raises:
         DataNotComplete: Throw when not all data files necessary where found.
     """
+    if not add_data_folder.exists():
+        add_data_folder.mkdir()
     if isinstance(url, DataUrl):
         url = URL_DICT[url]
     if isinstance(extracted_folder, DataPath):

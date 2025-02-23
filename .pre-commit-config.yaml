@@ -50,7 +50,7 @@ repos:
           # ignore lambdas (E731)
           # ignore Line break occurred before a binary operator (W503)
           # needed to not remove * imports (for example in _all_blocks.py)
-          "--ignore=E501,E203, E731,W503,F405",
+          "--ignore=E501,E203,E231,E731,W503,F405",
         ]
 
   - repo: local

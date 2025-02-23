@@ -61,5 +61,5 @@ for mol_idx, mol in enumerate(mol_sup):
 used_time = time.time() - start
 df = pd.concat(df_list)
 df.to_csv(f"./df_{jobindex}.csv")
-print(f"runtime_tree={time.time()-start}")
+print(f"runtime_tree={time.time() - start}")
 print("all done")

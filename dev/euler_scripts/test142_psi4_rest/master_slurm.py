@@ -86,7 +86,10 @@ if __name__ == "__main__":
     num_errors = 0
     for mol_jb_number in range(1, 190000):
         if mol_jb_number % 100 == 0:
-            print(f"{datetime.now()} - {mol_jb_number/190000*100:.2f}% error={num_errors/190000*100:.2f}%", flush=True)
+            print(
+                f"{datetime.now()} - {mol_jb_number / 190000 * 100 :.2f}% error={num_errors / 190000 * 100 :.2f}%",
+                flush=True,
+            )
         # out_sdf_file = f"./outs/sdf_mbis_{mol_jb_number}.sdf"
         try:
             out_sdf_file = f"./outs/sdf_mbis_{mol_jb_number}.sdf"

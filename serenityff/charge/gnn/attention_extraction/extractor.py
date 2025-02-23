@@ -504,7 +504,7 @@ class Extractor:
         lsf_command = (
             f"bsub -n 1 -o logfiles/extraction.out -e logfiles/extraction.err "
             f'-W 120:00 -J "ext[1-{num_files}]" "./worker.sh {files.mlmodel} '
-            f'{os.getcwd()+"/sdf_data"} {files.property} {int(files.no_charge_correction)}" > id.txt'
+            f'{os.getcwd() + "/sdf_data"} {files.property} {int(files.no_charge_correction)}" > id.txt'
         )
         command_to_shell_file(lsf_command, "run_extraction.sh")
         os.system(lsf_command)
@@ -545,7 +545,7 @@ class Extractor:
             f'sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name="ext" '
             f"--array=1-{num_files} --mem-per-cpu=1024 --tmp=64000 "
             f'--output="logfiles/extraction.out" --error="logfiles/extraction.err" '
-            f'--open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd()+"/sdf_data"} '
+            f'--open-mode=append --wrap="./worker.sh {files.mlmodel} {os.getcwd() + "/sdf_data"} '
             f'{files.property} {int(files.no_charge_correction)}" > id.txt'
         )
         command_to_shell_file(slurm_command, "run_extraction.sh")

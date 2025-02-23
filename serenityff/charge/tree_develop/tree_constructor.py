@@ -262,7 +262,7 @@ class Tree_constructor:
         print(
             f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
         )
-        print(f"shifted mol has {self.sdf_suplier[mol_index+1].GetNumAtoms()} atoms")
+        print(f"shifted mol has {self.sdf_suplier[mol_index + 1].GetNumAtoms()} atoms")
         print("--------------------------------------------------")
         print(self.original_df.loc[self.original_df.mol_index == mol_index])
         print("--------------------------------------------------")

@@ -71,7 +71,7 @@ def get_graph_from_mol(
         if prop_name is None:
             raise ValueError("Property name can not be None when no_y == False.")
         if not mol.HasProp(prop_name):
-            raise ValueError(f"Property {prop_name} not found in molecule.")
+            raise ValueError(f"Property {prop_name} not found in molecule.")  # noqa E713
         tensor = torch.tensor([float(x) for x in mol.GetProp(prop_name).split("|")], dtype=torch.float)
         if torch.isnan(tensor).any():
             raise TypeError(f"Nan found in {prop_name}.")

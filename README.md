@@ -36,8 +36,8 @@ Content
     * Generate DASH tree (attention-based)
     * Tools for DASH tree
         * file I/O
-        * pruning 
-        * statistics 
+        * pruning
+        * statistics
         * assigning charges
     * Normalization of charges
 

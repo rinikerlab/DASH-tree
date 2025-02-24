@@ -1,12 +1,9 @@
 Welcome to DASH
 ==============================
 
-[//]: # (Badges)
-[![CI](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml/badge.svg)](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
-[![arXiv DASH](https://img.shields.io/badge/arXiv:DASH-2305.15981-b31b1b.svg)](https://doi.org/10.48550/arXiv.2305.15981)
-[![arXiv Props](https://img.shields.io/badge/chemrxiv:Props-2024_0ks0p-b31b1b.svg)](https://chemrxiv.org/engage/chemrxiv/article-details/6666e12112188379d8c44aa5)
-
+|**Status**| [![CI](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml/badge.svg)](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml) [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit) |
+| :------ | :------- |
+|**References**| [![DASH](https://img.shields.io/badge/DOI-10.1021/acs.jcim.3c00800-blue)](https://doi.org/10.1021/acs.jcim.3c00800) [![DASH Properties](https://img.shields.io/badge/DOI-10.1063/5.0218154-blue)](https://doi.org/10.1063/5.0218154) |
 
 
 Description

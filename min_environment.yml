@@ -9,8 +9,6 @@ dependencies:
   - numpy
   - m2r
   - conda-build
-  - typing
-  - mpmath
   - scipy
   - pytest
   - numba

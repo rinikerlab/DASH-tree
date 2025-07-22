@@ -10,9 +10,7 @@ dependencies:
   - numpy
   - m2r
   - conda-build
-  - typing
   - pyarrow
-  - mpmath
   - scipy
   #- nbsphinx
   - pytest

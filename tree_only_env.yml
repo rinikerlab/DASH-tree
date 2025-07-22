@@ -6,8 +6,6 @@ dependencies:
   - python
   - numpy
   - conda-build
-  - typing
-  - mpmath
   - pandas
   - rdkit
   - pytables

@@ -55,15 +55,21 @@ Content
 Installation
 -------------
 
-   This repository comes with a conda environment file. To install the environment, run the following command in the root directory of this repository:
+   This repository comes with multiple conda environment files:
+
+   - [`tree_only_env.yml`](tree_only_env.yml) : Only the Tree, no OpenFF
+   - [`min_environment.yml`](min_environment.yml) : Tree + OpenFF
+   - [`environment.yml`](environment.yml) : Tree + OpenFF + GNN Utilities
+
+   To install the environment, run the following command in the root directory of this repository:
 
    ```bash
-    conda env create -f min_environment.yml
+    conda env create -f tree_only_env.yml
     conda activate dash
     conda develop .
    ```
 
-This will create a conda environment with the correct packages. The environment contains the minimal dependencies required to use the tree. If the OpenFF plugin to automatically assign charge is required, use the file  `environment.yml` instead. This will create the environment, the DASH package and install the OpenFF plugin for partial charge assignment in OpenFF. The file `environment.yml` also contains all torch dependencies, used for DASH tree development.
+This will create a conda environment with the correct packages. The environment contains the minimal dependencies required to use the tree. If the OpenFF plugin to automatically assign charge is required, use the file  `min_environment.yml` instead. This will create the environment, the DASH package and install the OpenFF plugin for partial charge assignment in OpenFF. The file `environment.yml` also contains all PyTorch dependencies, used for DASH tree development.
 
 
 Usage

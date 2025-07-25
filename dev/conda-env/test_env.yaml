@@ -13,7 +13,7 @@ dependencies:
   - pytest
   - pytest-cov
   - codecov
-  - IPython
+  - ipython
   - pre-commit
   # Meta
   - conda-build
@@ -22,7 +22,7 @@ dependencies:
   - pytables
   - numpy
   - numba
-  # Chemie
+  # Cheminformatics
   - ambertools = 23.3
   - openff-toolkit = 0.10.0
   - rdkit

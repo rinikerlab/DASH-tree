@@ -5,28 +5,16 @@ channels:
   - pytorch
   - pyg
 dependencies:
-  #- sphinx_rtd_theme
-  - python
-  - numpy
-  - m2r
-  - conda-build
-  - pyarrow
-  - scipy
-  #- nbsphinx
-  - pytest
-  - numba
-  - pytorch
-  - sympy
-  - pandas
-  #- sphinx
-  - pyg>=2.2.0
-  - rdkit
-  - openff-toolkit=0.10.0
-  - codecov
-  - pandoc
-  - pytest-cov
-  - pytables
+  - python = 3.10
   - pip
-  - pre-commit
-  - ipykernel
-  - py3dmol
+  - conda-build
+  - ipython
+  - pandas
+  - pytables
+  - numpy
+  - numba
+  - ambertools = 23.3
+  - openff-toolkit = 0.10.0
+  - rdkit
+  - pytorch = 2.0.0
+  - pyg = 2.3.0

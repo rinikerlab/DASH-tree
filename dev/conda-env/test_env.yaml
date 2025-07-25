@@ -7,34 +7,25 @@ channels:
   - defaults
 dependencies:
   # Base depends
-  - python = 3.10.14
+  - python = 3.10
   - pip
-  ## Testing
+  # Dev
   - pytest
   - pytest-cov
   - codecov
-  ## Meta
   - IPython
-  - typing
   - pre-commit
-  - m2r
-  #- sphinx
-  #- nbsphinx
-  #- sphinx_rtd_theme
-  - pandoc
+  # Meta
   - conda-build
   # Science
-  - mpmath
   - pandas
   - pytables
-  - pyarrow
   - numpy
-  - sympy
-  - scipy
   - numba
-  ## Chemie
+  # Chemie
+  - ambertools = 23.3
   - openff-toolkit = 0.10.0
   - rdkit
-  ## Machine Learning
-  - pytorch #= 2.0.1
+  # Machine Learning
+  - pytorch = 2.0.0
   - pyg = 2.3.0

@@ -6,6 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "serenityff"
 version = "2.0.1"
 authors = [{ name = "rinikerlab", email = "mlehner@ethz.ch" }]
+maintainers = [
+    { name = "Niels Maeder", email = "maedern@ethz.ch" },
+    { name = "Marc Lehner", email = "mlehner@ethz.ch" },
+]
 description = "Serenity Force Field"
 readme = "README.md"
 license = { file = "LICENSE" }

@@ -39,3 +39,6 @@ where = ["serenityff"]
 
 [project.entry-points."openff.toolkit.plugins.handlers"]
 SerenityFFCharge = "serenityff.charge.utils.serenityff_charge_handler:SerenityFFChargeHandler"
+
+[tool.black]
+line-length = 120

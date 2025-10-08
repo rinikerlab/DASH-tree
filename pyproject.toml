@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "serenityff"
+version = "2.0.1"
+authors = [{ name = "rinikerlab", email = "mlehner@ethz.ch" }]
+description = "Serenity Force Field"
+readme = "README.md"
+license = { file = "LICENSE" }
+keywords = [
+    "molecular dynamics",
+    "force field",
+    "parametrization",
+    "nonbonded parameters",
+    "explainable ml",
+]
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "http://github.com/rinikerlab/serenityff"
+"Repository" = "http://github.com/rinikerlab/serenityff"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["serenityff"]
+
+[project.entry-points."openff.toolkit.plugins.handlers"]
+SerenityFFCharge = "serenityff.charge.utils.serenityff_charge_handler:SerenityFFChargeHandler"

@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "serenityff"
 version = "2.0.1"
-authors = [{ name = "rinikerlab", email = "mlehner@ethz.ch" }]
+authors = [{ name = "rinikerlab", email = "mlehner@proton.me" }]
 maintainers = [
     { name = "Niels Maeder", email = "maedern@ethz.ch" },
-    { name = "Marc Lehner", email = "mlehner@ethz.ch" },
+    { name = "Marc Lehner", email = "mlehner@proton.me" },
 ]
 description = "Serenity Force Field"
 readme = "README.md"
@@ -30,6 +30,8 @@ classifiers = [
 [project.urls]
 "Homepage" = "http://github.com/rinikerlab/serenityff"
 "Repository" = "http://github.com/rinikerlab/serenityff"
+"DASH" = "https://doi.org/10.1021/acs.jcim.3c00800"
+"DASH Properties" = "https://doi.org/10.1063/5.0218154"
 
 [tool.setuptools]
 include-package-data = true

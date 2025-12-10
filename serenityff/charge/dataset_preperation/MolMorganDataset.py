@@ -174,9 +174,9 @@ class MolMorganDataset:
                     if fp[val][0][1] < 1:  # fingerprints for radius 0
                         self._key_dict[0][val] += len(fp[val])
                 else:
-                    self._key_dict[2][
-                        val
-                    ] += 1  # counting appearances of different keys (with counting equivalent atoms as one)
+                    self._key_dict[2][val] += (
+                        1  # counting appearances of different keys (with counting equivalent atoms as one)
+                    )
                     if fp[val][0][1] < 2:  # fingerprints for radius 1
                         self._key_dict[1][val] += 1
                     if fp[val][0][1] < 1:  # fingerprints for radius 0
@@ -208,9 +208,9 @@ class MolMorganDataset:
                         if fp[val][0][1] < 1:  # fingerprints for radius 0
                             self._key_dict_nocharge[0][val] += len(fp[val])
                     else:
-                        self._key_dict_nocharge[2][
-                            val
-                        ] += 1  # counting appearances of different keys (with counting equivalent atoms as one)
+                        self._key_dict_nocharge[2][val] += (
+                            1  # counting appearances of different keys (with counting equivalent atoms as one)
+                        )
                         if fp[val][0][1] < 2:  # fingerprints for radius 1
                             self._key_dict_nocharge[1][val] += 1
                         if fp[val][0][1] < 1:  # fingerprints for radius 0
@@ -397,13 +397,13 @@ class MolMorganDataset:
                     key: (cnew.get(key, 0) - cold.get(key, 0)) / add.get(key, 0) for key in set(cold) | set(cnew)
                 }
                 c = {k: v for k, v in sorted(add_met.items(), key=lambda item: item[1], reverse=True)}  # sort by value
-                for (k, v) in t.items():  # go through all possible keys
+                for k, v in t.items():  # go through all possible keys
                     if k not in c.keys():  # when they were deleted in this iteration of shrinking ....
                         if k not in hold.keys():  # and they are not yet in included in new...
                             hold[k] = v  # add them
                             col[k] = i - 1  # and store the color depending on the iteration in which they were added
                             # This means elements that only appear once are added first and then the once that appear twice and so on --> they later keep the order
-            for (k, v) in t.items():  # finally add all keys that were left over
+            for k, v in t.items():  # finally add all keys that were left over
                 if k not in hold.keys():
                     hold[k] = v
                     col[k] = 4
@@ -710,9 +710,7 @@ class MolMorganDataset:
                 otherset == "none"
             ):  # If no other set is given. Reduce number of molecules in set to minimum needed to have all fingerprints at least as often as the cutoff.(If enough are there)
                 print("Removing redundants...")
-                for (
-                    mol
-                ) in (
+                for mol in (
                     self._mols
                 ):  # first step: Only keep molecules that contain at least one key appearing 'cutoff' times or less.
                     AllChem.GetMorganFingerprint(mol, 2, bitInfo=fp)

@@ -158,7 +158,7 @@ class Extractor:
                 "truth",
             ],
         )
-        out = output if output else f'{scratch}/{sdf_file.split(".")[0].split("/")[-1] + ".csv"}'
+        out = output if output else f"{scratch}/{sdf_file.split('.')[0].split('/')[-1] + '.csv'}"
         df.to_csv(
             path_or_buf=out,
             index=False,

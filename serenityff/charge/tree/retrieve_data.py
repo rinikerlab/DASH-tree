@@ -1,6 +1,7 @@
 # Copyright (C) 2024-2025 ETH Zurich, Niels Maeder and other DASH contributors.
 
 """Functionality to obtain the DASH properties data from ETH research archive."""
+
 import zipfile
 from enum import Enum, auto
 from pathlib import Path

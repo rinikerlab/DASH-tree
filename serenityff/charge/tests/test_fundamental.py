@@ -4,6 +4,7 @@
 
 Test most fundamental functionality of package
 """
+
 import sys
 
 import pytest

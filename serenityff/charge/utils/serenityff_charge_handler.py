@@ -17,7 +17,6 @@ from serenityff.charge.tree.dash_tree import DASHTree as Tree
 
 
 class SerenityFFChargeHandler(_NonbondedHandler, ToolkitWrapper):
-
     _TAGNAME = "SerenityFFCharge"
     _DEPENDENCIES = [ElectrostaticsHandler, LibraryChargeHandler, vdWHandler]
     _KWARGS = ["toolkit_registry"]
@@ -73,7 +72,6 @@ class SerenityFFChargeHandler(_NonbondedHandler, ToolkitWrapper):
         force = super().create_force(system, topology, **kwargs)
 
         for reference_molecule in topology.reference_molecules:
-
             for topology_molecule in topology._reference_molecule_to_topology_molecules[reference_molecule]:
                 partial_charges = self.assign_partial_charges(topology_molecule)
 

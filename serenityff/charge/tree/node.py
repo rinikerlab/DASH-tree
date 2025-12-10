@@ -131,9 +131,9 @@ class Node:
         # had to google that one to figure out how to do this:
         # https://math.stackexchange.com/questions/2971315/how-do-i-combine-standard-deviations-of-two-groups
         if self.count >= 3 and other.count >= 3:
-            std_term1 = (
-                (self.stdDeviation**2 * (self.count - 1)) + (other.stdDeviation**2 * (other.count - 1))
-            ) / (self.count + other.count - 1)
+            std_term1 = ((self.stdDeviation**2 * (self.count - 1)) + (other.stdDeviation**2 * (other.count - 1))) / (
+                self.count + other.count - 1
+            )
             std_term2 = (self.count * other.count * (self.result - other.result) ** 2) / (
                 (self.count + other.count) * (self.count + other.count - 1)
             )
@@ -189,7 +189,7 @@ class Node:
         #     child.prune(threshold)
 
         if hasattr(self, "stdDeviation") and self.stdDeviation != np.nan:
-            adjusted_threshold = threshold * ((self.level / 8))
+            adjusted_threshold = threshold * (self.level / 8)
             # adjusted_threshold = threshold
             if self.stdDeviation < adjusted_threshold:
                 for child in self.children:

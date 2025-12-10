@@ -40,5 +40,19 @@ include-package-data = true
 [project.entry-points."openff.toolkit.plugins.handlers"]
 SerenityFFCharge = "serenityff.charge.utils.serenityff_charge_handler:SerenityFFChargeHandler"
 
-[tool.black]
+[tool.ruff]
 line-length = 120
+
+[tool.ruff.lint]
+select = [
+
+    "E",   # pycodestyle error
+    "F",   # pyflakes
+    "I",   # isort
+    "W",   # pycodestyle warning
+]
+
+[tool.ruff.format]
+quote-style = "double"
+line-ending = "auto"
+indent-style = "space"

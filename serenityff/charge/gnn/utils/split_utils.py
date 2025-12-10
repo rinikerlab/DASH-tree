@@ -1,3 +1,5 @@
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 from math import ceil
 from typing import List, Optional, Sequence, Tuple
 

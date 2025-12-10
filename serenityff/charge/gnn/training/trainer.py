@@ -1,3 +1,5 @@
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 import contextlib
 import os
 from typing import Callable, List, Optional, OrderedDict, Sequence, Tuple, Union

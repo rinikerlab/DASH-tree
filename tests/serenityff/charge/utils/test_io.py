@@ -1,3 +1,5 @@
+# Copyright (C) 2024-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 """Testing `serenityff.charge.utils.io`."""
 
 from pathlib import Path

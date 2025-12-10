@@ -1,3 +1,5 @@
+# Copyright (C) 2023-2025 ETH Zurich, Marc Lehner and other DASH contributors.
+
 from rdkit import Chem
 
 from serenityff.charge.tree.atom_features import AtomFeatures

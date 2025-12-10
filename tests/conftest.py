@@ -1,3 +1,5 @@
+# Copyright (C) 2024-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 """Pytest configuration file."""
 
 from collections.abc import Sequence

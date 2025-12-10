@@ -1,5 +1,6 @@
 # Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
 
+
 class ExtractionError(Exception):
     """
     Error thrown if Feature extraction did not work properly.

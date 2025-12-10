@@ -1,18 +1,18 @@
 # Copyright (C) 2022-2025 ETH Zurich, Marc Lehner and other DASH contributors.
 
 import datetime
+import logging
+import os
 import pickle
 import random
-import os
-import logging
 import time
+from collections import defaultdict
 from typing import NoReturn
 
 import numpy as np
 import pandas as pd
 from rdkit import Chem
 from tqdm import tqdm
-from collections import defaultdict
 
 from serenityff.charge.tree.atom_features import (
     AtomFeatures,

@@ -1,12 +1,14 @@
 # Copyright (C) 2024-2025 ETH Zurich, Marc Lehner and other DASH contributors.
 
+from typing import Any, Tuple
+
+import numpy as np
+from rdkit import Chem
+
 from serenityff.charge.tree.atom_features import (
     AtomFeatures,
     get_connection_info_bond_type,
 )
-from typing import Any, Tuple
-import numpy as np
-from rdkit import Chem
 from serenityff.charge.utils import Molecule
 
 

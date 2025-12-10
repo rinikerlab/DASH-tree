@@ -1,11 +1,10 @@
 # Copyright (C) 2023-2025 ETH Zurich, Marc Lehner and other DASH contributors.
 
-import pickle
-import os
-from typing import Sequence
 import argparse
+import os
+import pickle
+from typing import Sequence
 
-from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.tree.tree_utils import (
     get_DASH_tree_from_DEV_tree,
 )
@@ -13,6 +12,7 @@ from serenityff.charge.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor_parallel_worker import (
     Tree_constructor_parallel_worker,
 )
+from serenityff.charge.utils import command_to_shell_file
 
 
 class Tree_constructor_singleJB_worker:

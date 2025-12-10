@@ -7,7 +7,6 @@ from warnings import warn
 
 from tqdm import tqdm
 
-
 try:
     from typing import Literal
 except ImportError:
@@ -18,8 +17,8 @@ from torch_geometric.loader import DataLoader
 
 from serenityff.charge.gnn.utils import (
     ChargeCorrectedNodeWiseAttentiveFP,
-    NodeWiseAttentiveFP,
     CustomData,
+    NodeWiseAttentiveFP,
     get_graph_from_mol,
     mols_from_sdf,
     split_data_Kfold,

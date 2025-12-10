@@ -12,6 +12,12 @@ import torch
 from rdkit import Chem
 from tqdm import tqdm
 
+from serenityff.charge.gnn.attention_extraction import Explainer
+from serenityff.charge.gnn.attention_extraction.bash_templates import (
+    CLEANER_CONTENT,
+    get_lsf_worker_content,
+    get_slurm_worker_content,
+)
 from serenityff.charge.gnn.utils import (
     ChargeCorrectedNodeWiseAttentiveFP,
     NodeWiseAttentiveFP,
@@ -19,12 +25,6 @@ from serenityff.charge.gnn.utils import (
 )
 from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.utils.exceptions import ExtractionError
-from serenityff.charge.gnn.attention_extraction import Explainer
-from serenityff.charge.gnn.attention_extraction.bash_templates import (
-    CLEANER_CONTENT,
-    get_lsf_worker_content,
-    get_slurm_worker_content,
-)
 
 
 class Extractor:

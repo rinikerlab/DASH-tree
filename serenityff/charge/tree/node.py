@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from copy import copy, deepcopy
 from typing import Dict, List
 
 import numpy as np
 import pandas as pd
-from copy import deepcopy, copy
 
 from serenityff.charge.tree.atom_features import AtomFeatures
 

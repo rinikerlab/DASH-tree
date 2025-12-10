@@ -7,10 +7,9 @@ import pytest
 from numpy import array_equal
 from rdkit import Chem
 from torch import device, load
+from torch.cuda import is_available
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
-from torch.cuda import is_available
-
 
 from serenityff.charge.gnn.training import Trainer
 from serenityff.charge.gnn.utils import (

@@ -44,8 +44,8 @@ SerenityFFCharge = "serenityff.charge.utils.serenityff_charge_handler:SerenityFF
 line-length = 120
 
 [tool.ruff.lint]
+fixable = ["I"]
 select = [
-
     "E",   # pycodestyle error
     "F",   # pyflakes
     "I",   # isort

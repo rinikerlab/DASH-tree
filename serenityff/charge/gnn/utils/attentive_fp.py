@@ -1,13 +1,12 @@
 # Copyright (C) 2023-2025 ETH Zurich, Marc Lehner and other DASH contributors.
 
-from typing import Optional, Any
 import math
+from typing import Any, Optional
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import GRUCell, Linear, Parameter
-
 from torch_geometric.nn import GATConv, MessagePassing, global_add_pool
 from torch_geometric.typing import Adj, OptTensor
 from torch_geometric.utils import softmax

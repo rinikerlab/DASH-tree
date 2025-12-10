@@ -1,8 +1,8 @@
 # Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
 
 from typing import List
-import numpy as np
 
+import numpy as np
 from openff.toolkit.typing.engines.smirnoff import (
     ElectrostaticsHandler,
     LibraryChargeHandler,

@@ -1,22 +1,22 @@
 # Copyright (C) 2022-2025 ETH Zurich, Jakob Teetz and other DASH contributors.
 
 import os
-import numpy
 import pickle
+
+import numpy
 
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 
-from typing import Optional
 from collections import defaultdict
-from rdkit import Chem
-from rdkit.Chem import Descriptors
-from rdkit.Chem import Draw
-from rdkit.Chem import AllChem
+from typing import Optional
+
 from matplotlib import lines
 from matplotlib import pyplot as plt
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors, Draw
 
 
 def shrink(KeyAppearanceDict: defaultdict, Cutoff: int) -> None:

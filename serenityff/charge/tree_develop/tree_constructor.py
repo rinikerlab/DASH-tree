@@ -1,3 +1,5 @@
+# Copyright (C) 2022-2025 ETH Zurich, Marc Lehner and other DASH contributors.
+
 import datetime
 import pickle
 import random

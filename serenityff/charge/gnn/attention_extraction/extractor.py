@@ -1,3 +1,5 @@
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 import argparse
 import os
 from math import ceil

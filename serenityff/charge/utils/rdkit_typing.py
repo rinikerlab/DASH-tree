@@ -1,4 +1,7 @@
-# typing tools for the use of rdkit
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
+"""Typing tools for the use of rdkit."""
+
 from rdkit import Chem
 
 Molecule = Chem.rdchem.Mol

@@ -1,3 +1,5 @@
+# Copyright (C) 2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 import numpy as np
 import pytest
 import torch as pt

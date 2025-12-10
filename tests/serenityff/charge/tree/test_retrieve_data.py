@@ -1,3 +1,5 @@
+# Copyright (C) 2024-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 from pathlib import Path
 from typing import Any, Union
 

@@ -1,3 +1,5 @@
+# Copyright (C) 2024-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 """Test serenityff.charge.utils.serenityff_charge_handler.py."""
 from pathlib import Path
 

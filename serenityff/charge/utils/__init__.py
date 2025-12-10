@@ -1,4 +1,6 @@
-# Classes and functions used by different submodules.
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
+"""Classes and functions used by different submodules."""
 
 from .exceptions import ExtractionError, NotInitializedError
 from .io import command_to_shell_file

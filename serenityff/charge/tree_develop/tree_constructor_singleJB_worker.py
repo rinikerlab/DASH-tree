@@ -1,3 +1,5 @@
+# Copyright (C) 2023-2025 ETH Zurich, Marc Lehner and other DASH contributors.
+
 import pickle
 import os
 from typing import Sequence

@@ -1,3 +1,5 @@
+# Copyright (C) 2023-2025 ETH Zurich, Marc Lehner and other DASH contributors.
+
 import traceback
 from typing import List
 import numpy as np

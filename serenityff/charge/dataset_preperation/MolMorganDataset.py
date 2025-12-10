@@ -1,3 +1,5 @@
+# Copyright (C) 2022-2025 ETH Zurich, Jakob Teetz and other DASH contributors.
+
 import os
 import numpy
 import pickle

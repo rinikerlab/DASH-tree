@@ -1,5 +1,6 @@
-"""
-Unit and regression dev for the serenityff package.
+# Copyright (C) 2022-2025 ETH Zurich, Marc Lehner and other DASH contributors.
+
+"""Unit and regression dev for the serenityff package.
 
 Test most fundamental functionality of package
 """

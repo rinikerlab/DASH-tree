@@ -27,4 +27,3 @@ repos:
         exclude: \.ipynb
       - id: ruff-format
         files: ^serenityff/|^tests/
-        exclude: \.ipynb

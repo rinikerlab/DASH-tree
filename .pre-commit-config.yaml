@@ -10,7 +10,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: check-added-large-files
@@ -20,7 +20,7 @@ repos:
         args: ["--unsafe"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.14.8
     hooks:
       - id: ruff
         files: ^serenityff/|^tests/

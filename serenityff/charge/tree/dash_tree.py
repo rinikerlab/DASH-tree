@@ -762,7 +762,8 @@ class DASHTree:
             for i in range(1, len(cids)):
                 mol.RemoveConformer(i)
         # center_of_mass = np.array(ComputeCentroid(mol.GetConformer()))
-        # dipole_vecs = [np.array(mol.GetConformer().GetAtomPosition(i)) - center_of_mass for i in range(mol.GetNumAtoms())]
+        # dipole_vecs = [np.array(mol.GetConformer().GetAtomPosition(i)) -
+        # center_of_mass for i in range(mol.GetNumAtoms())]
         # vec_sum = np.sum([chg * dipole_vec for chg, dipole_vec in zip(chgs, dipole_vecs)], axis=0)
         if sngl_cnf:
             vec_sum = np.sum(
@@ -910,7 +911,8 @@ class DASHTree:
         Returns
         -------
         Image
-            Image showing the molecule with the matched atoms highlighted and the contribution of each atom added to the subgraph
+            Image showing the molecule with the matched atoms highlighted and the contribution of each atom added to the
+            subgraph
         """
         node_path, match_indices = self.match_new_atom(
             atom,
@@ -931,7 +933,8 @@ class DASHTree:
             property_name = "Partial charge"
             if prop_unit is None:
                 prop_unit = "e"
-        plot_title = f"Atom: 0 ({atom} in mol). \nSum of all contributions: {property_name} = {prop_per_node[-1]: .2f} {prop_unit}"
+        plot_title = f"""Atom: 0 ({atom} in mol).
+        Sum of all contributions: {property_name} = {prop_per_node[-1]: .2f} {prop_unit}"""
         return draw_mol_with_highlights_in_order(
             mol=mol,
             highlight_atoms=match_indices,

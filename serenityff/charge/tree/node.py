@@ -115,8 +115,9 @@ class Node:
             self.add_child(child)
 
     def _update_statistics(self, other):
-        """
-        helper function to merge two nodes. Updates the statistics of the current node with the statistics of the other node
+        """Helper function to merge two nodes.
+
+        Updates the statistics of the current node with the statistics of the other node
 
         Parameters
         ----------

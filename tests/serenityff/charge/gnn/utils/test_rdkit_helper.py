@@ -33,6 +33,7 @@ def sample_mol_missing_prop():
     mol = Chem.MolFromSmiles("CCO")
     return mol
 
+
 @pytest.mark.max
 def test_get_mol_prop_as_pt_tensor_success(sample_mol_with_prop):
     """Test successful retrieval of property as a tensor."""

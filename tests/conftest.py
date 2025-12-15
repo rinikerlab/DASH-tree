@@ -12,9 +12,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         choices=("min", "med", "max"),
         help="Run tests for a specific environment tier.",
     )
-    parser.addoption(
-        "--run-slow", action="store_true", default=False, help="Include slow tests."
-    )
+    parser.addoption("--run-slow", action="store_true", default=False, help="Include slow tests.")
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -24,9 +22,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "slow: slow running tests")
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: Sequence[pytest.Item]
-) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: Sequence[pytest.Item]) -> None:
     tier = config.getoption("--tier")
     run_slow = config.getoption("--run-slow")
 
@@ -37,16 +33,10 @@ def pytest_collection_modifyitems(
         allowed_tiers.update({"med", "max"})
 
     for item in items:
-        item_tiers = {
-            mark.name
-            for mark in item.iter_markers()
-            if mark.name in {"min", "med", "max"}
-        }
+        item_tiers = {mark.name for mark in item.iter_markers() if mark.name in {"min", "med", "max"}}
 
         if item_tiers and not (item_tiers & allowed_tiers):
-            item.add_marker(
-                pytest.mark.skip(reason=f"Test requires higher tier than '{tier}'")
-            )
+            item.add_marker(pytest.mark.skip(reason=f"Test requires higher tier than '{tier}'"))
             continue
 
         if "slow" in item.keywords and not run_slow:

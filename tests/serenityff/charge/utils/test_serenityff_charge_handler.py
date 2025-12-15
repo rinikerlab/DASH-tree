@@ -58,6 +58,7 @@ FF_HANDLER_KEYS = [
     "SerenityFFCharge",
 ]
 
+
 @pytest.fixture()
 def handler() -> SerenityFFChargeHandler:
     return SerenityFFChargeHandler(version=0.3)

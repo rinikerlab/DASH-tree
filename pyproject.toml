@@ -34,8 +34,11 @@ classifiers = [
 "DASH Properties" = "https://doi.org/10.1063/5.0218154"
 
 [tool.setuptools]
-packages = ["serenityff"]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["serenityff*"]
 
 [project.entry-points."openff.toolkit.plugins.handlers"]
 SerenityFFCharge = "serenityff.charge.utils.serenityff_charge_handler:SerenityFFChargeHandler"

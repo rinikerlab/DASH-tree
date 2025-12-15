@@ -38,7 +38,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["serenityff*"]
+include = ["serenityff", "serenityff.*"]
 
 [project.entry-points."openff.toolkit.plugins.handlers"]
 SerenityFFCharge = "serenityff.charge.utils.serenityff_charge_handler:SerenityFFChargeHandler"

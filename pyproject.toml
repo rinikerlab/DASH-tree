@@ -34,7 +34,7 @@ classifiers = [
 "DASH Properties" = "https://doi.org/10.1063/5.0218154"
 
 [tool.setuptools]
-packages = ["serenityff"]
+packages = ["serenityff.charge"]
 include-package-data = true
 
 [project.entry-points."openff.toolkit.plugins.handlers"]

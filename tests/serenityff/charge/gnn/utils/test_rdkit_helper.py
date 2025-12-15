@@ -33,7 +33,7 @@ def sample_mol_missing_prop():
     mol = Chem.MolFromSmiles("CCO")
     return mol
 
-
+@pytest.mark.max
 def test_get_mol_prop_as_pt_tensor_success(sample_mol_with_prop):
     """Test successful retrieval of property as a tensor."""
     expected = pt.tensor([1.0, 2.5, -3.0], dtype=pt.float)
@@ -42,6 +42,7 @@ def test_get_mol_prop_as_pt_tensor_success(sample_mol_with_prop):
     assert pt.equal(result, expected)
 
 
+@pytest.mark.max
 def test_get_mol_prop_as_pt_tensor_raises_value_error_on_none_prop(
     sample_mol_missing_prop,
 ):
@@ -50,6 +51,7 @@ def test_get_mol_prop_as_pt_tensor_raises_value_error_on_none_prop(
         get_mol_prop_as_pt_tensor(None, sample_mol_missing_prop)
 
 
+@pytest.mark.max
 def test_get_mol_prop_as_pt_tensor_raises_value_error_on_missing_prop(
     sample_mol_missing_prop,
 ):
@@ -58,6 +60,7 @@ def test_get_mol_prop_as_pt_tensor_raises_value_error_on_missing_prop(
         get_mol_prop_as_pt_tensor("missing_prop", sample_mol_missing_prop)
 
 
+@pytest.mark.max
 def test_get_mol_prop_as_pt_tensor_raises_type_error_on_nan(
     sample_mol_with_nan_prop,
 ):
@@ -66,6 +69,7 @@ def test_get_mol_prop_as_pt_tensor_raises_type_error_on_nan(
         get_mol_prop_as_pt_tensor("test_prop_nan", sample_mol_with_nan_prop)
 
 
+@pytest.mark.max
 def test_get_mol_prop_as_np_array_success(sample_mol_with_prop):
     """Test successful retrieval of property as a numpy array."""
     expected = np.array([1.0, 2.5, -3.0])
@@ -74,6 +78,7 @@ def test_get_mol_prop_as_np_array_success(sample_mol_with_prop):
     np.testing.assert_array_equal(result, expected)
 
 
+@pytest.mark.max
 def test_get_mol_prop_as_np_array_raises_value_error_on_none_prop(
     sample_mol_missing_prop,
 ):
@@ -82,6 +87,7 @@ def test_get_mol_prop_as_np_array_raises_value_error_on_none_prop(
         get_mol_prop_as_np_array(None, sample_mol_missing_prop)
 
 
+@pytest.mark.max
 def test_get_mol_prop_as_np_array_raises_value_error_on_missing_prop(
     sample_mol_missing_prop,
 ):
@@ -90,6 +96,7 @@ def test_get_mol_prop_as_np_array_raises_value_error_on_missing_prop(
         get_mol_prop_as_np_array("missing_prop", sample_mol_missing_prop)
 
 
+@pytest.mark.max
 def test_get_mol_prop_as_np_array_raises_type_error_on_nan(
     sample_mol_with_nan_prop,
 ):

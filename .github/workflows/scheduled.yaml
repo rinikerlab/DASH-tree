@@ -6,37 +6,38 @@ on:
 
 jobs:
   test:
-    name: Test on ${{ matrix.os }}, Python ${{ matrix.python-version }}
-    runs-on: ${{ matrix.os }}
+    name: Run ${{ matrix.env-name }} environment
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ['3.10']
+        include:
+          - env-name: "min"
+            file: "tree_only_env.yml"
+            mark: "min"
+          - env-name: "med"
+            file: "min_environment.yml"
+            mark: "med"
+          - env-name: "max"
+            file: "environment.yml"
+            mark: "max"
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Additional info about the build
-      shell: bash
-      run: |
-        uname -a
-        df -h
-        ulimit -a
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: test-env
+          environment-file: ${{ matrix.file }}
 
-    - uses: mamba-org/setup-micromamba@v1
-      with:
-        create-args: >-
-          python=${{ matrix.python-version }}
-        init-shell: bash
-        environment-file:  dev/conda-env/test_env.yaml
+      - name: End-to-End Install
+        shell: bash -l {0}
+        run: |
+          conda install -y pytest pytest-cov
+          pip install git+https://github.com/rinikerlab/DASH-tree.git@${{ github.sha }}"
 
-    - name: Install package
-      shell: bash -l {0}
-      run: |
-        pip install . --no-deps
-        conda list
-
-    - name: Run tests
-      shell: bash -l {0}
-      run: |
-        pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow serenityff/charge/tests/ tests/
+      - name: Run Tests
+        shell: bash -l {0}
+        run: |
+          pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow -- "${{ matrix.mark }}" serenityff/charge/tests/ tests/

@@ -104,6 +104,7 @@ def graph(cwd) -> CustomData:
     )
 
 
+@pytest.mark.max
 def test_getter_setter(explainer) -> None:
     with pytest.raises(TypeError):
         explainer.gnn_explainer = "asdf"
@@ -111,11 +112,13 @@ def test_getter_setter(explainer) -> None:
     return
 
 
+@pytest.mark.max
 def test_load(model, statedict) -> None:
     assert all(a == b for a, b in zip(model.state_dict(), statedict))
     return
 
 
+@pytest.mark.max
 def test_explain_atom(explainer, graph) -> None:
     explainer.gnn_explainer.explain_node(
         node_idx=0,
@@ -150,6 +153,7 @@ def test_explain_atom(explainer, graph) -> None:
     return
 
 
+@pytest.mark.max
 def test_extractor_properties(extractor, model, model_path, statedict_path, explainer) -> None:
     extractor._set_model(model)
     assert isinstance(extractor.model, ChargeCorrectedNodeWiseAttentiveFP)
@@ -166,6 +170,7 @@ def test_extractor_properties(extractor, model, model_path, statedict_path, expl
     assert isinstance(extractor.model, NodeWiseAttentiveFP)
 
 
+@pytest.mark.max
 def test_split_sdf(cwd, sdf_path) -> None:
     Extractor._split_sdf(
         sdf_file=sdf_path,
@@ -178,6 +183,7 @@ def test_split_sdf(cwd, sdf_path) -> None:
     return
 
 
+@pytest.mark.max
 def test_job_id(cwd) -> None:
     with open(f"{cwd}/id.txt", "w") as f:
         f.write("sdcep ab ein \n sdf <12345> saoeb <sd>")
@@ -187,11 +193,13 @@ def test_job_id(cwd) -> None:
     return
 
 
+@pytest.mark.max
 def test_mol_from_sdf(sdf_path):
     mol = mols_from_sdf(sdf_file=sdf_path)[0]
     assert mol.GetNumBonds() == 19
 
 
+@pytest.mark.max
 def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> None:
     with pytest.raises(ValueError):
         get_graph_from_mol(mol=mol, index=0, sdf_property_name=None)
@@ -209,6 +217,7 @@ def test_graph_from_mol(mol, num_atoms, num_bonds, formal_charge, smiles) -> Non
     return
 
 
+@pytest.mark.max
 @pytest.mark.parametrize("sdf_prop", [(None), ("MBIScharge")])
 def test_graph_from_mol_no_y(mol, num_atoms, num_bonds, formal_charge, smiles, sdf_prop) -> None:
     graph = get_graph_from_mol(mol=mol, index=0, sdf_property_name=sdf_prop, no_y=True)
@@ -223,6 +232,7 @@ def test_graph_from_mol_no_y(mol, num_atoms, num_bonds, formal_charge, smiles, s
     return
 
 
+@pytest.mark.max
 def test_arg_parser(args, sdf_path, statedict_path) -> None:
     args = Extractor._parse_filenames(args)
     assert args.sdffile == sdf_path
@@ -230,6 +240,7 @@ def test_arg_parser(args, sdf_path, statedict_path) -> None:
     return
 
 
+@pytest.mark.max
 def test_script_writing(cwd) -> None:
     Extractor._write_worker(directory=cwd)
     Extractor._write_cleaner(directory=cwd)
@@ -239,11 +250,13 @@ def test_script_writing(cwd) -> None:
     return
 
 
+@pytest.mark.max
 def test_explainer_initialization(extractor, model) -> None:
     extractor._initialize_expaliner(model=model, epochs=1)
     return
 
 
+@pytest.mark.max
 def test_command_to_shell_file(cwd) -> None:
     command_to_shell_file("echo Hello World", f"{cwd}/test.sh")
     os.path.isfile(f"{cwd}/test.sh")
@@ -253,6 +266,7 @@ def test_command_to_shell_file(cwd) -> None:
     os.remove(f"{cwd}/test.sh")
 
 
+@pytest.mark.max
 def test_csv_handling(cwd, sdf_path, extractor, model):
     extractor._initialize_expaliner(model=model, epochs=1)
     outfile = f"{cwd}/sdftest/combined.csv"
@@ -268,6 +282,7 @@ def test_csv_handling(cwd, sdf_path, extractor, model):
     rmtree(f"{cwd}/sdftest")
 
 
+@pytest.mark.max
 def test_run_extraction_local(extractor, statedict_path, cwd, sdf_path) -> None:
     extractor.run_extraction_local(
         sdf_file=sdf_path,

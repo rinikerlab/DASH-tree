@@ -58,7 +58,6 @@ FF_HANDLER_KEYS = [
     "SerenityFFCharge",
 ]
 
-
 @pytest.fixture()
 def handler() -> SerenityFFChargeHandler:
     return SerenityFFChargeHandler(version=0.3)
@@ -79,6 +78,7 @@ def molecule() -> Molecule:
     return Molecule.from_smiles("CCO")
 
 
+@pytest.mark.med
 def test_handler_init(handler: SerenityFFChargeHandler) -> None:
     assert handler._TAGNAME == "SerenityFFCharge"
     assert handler._DEPENDENCIES == [
@@ -100,6 +100,7 @@ def test_handler_init(handler: SerenityFFChargeHandler) -> None:
     assert handler.attention_threshold == 10
 
 
+@pytest.mark.med
 def test_singleton() -> None:
     instance1 = SerenityFFChargeHandler(version=0.3)
     instance2 = SerenityFFChargeHandler(version=0.3)
@@ -107,6 +108,7 @@ def test_singleton() -> None:
     assert instance1 is instance2
 
 
+@pytest.mark.med
 def test_loading_off_handler_plugins(
     force_field_custom_offxml: ForceField, force_field_with_plugins: ForceField
 ) -> None:
@@ -117,6 +119,7 @@ def test_loading_off_handler_plugins(
         assert force_field_custom_offxml.get_parameter_handler(key)
 
 
+@pytest.mark.med
 def test_plugin_charges_get_parameter_handler(
     force_field_with_plugins: SerenityFFChargeHandler,
     molecule,
@@ -134,6 +137,7 @@ def test_plugin_charges_get_parameter_handler(
     )
 
 
+@pytest.mark.med
 def test_plugin_charges_register(
     force_field_with_plugins,
     molecule,
@@ -152,6 +156,7 @@ def test_plugin_charges_register(
     )
 
 
+@pytest.mark.med
 def test_custom_force_field_file_charges(force_field_custom_offxml: ForceField, molecule) -> None:
     assert allclose(
         force_field_custom_offxml.get_partial_charges(molecule),

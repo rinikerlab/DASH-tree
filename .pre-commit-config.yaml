@@ -3,8 +3,8 @@ ci:
     [pre-commit.ci] auto fixes from pre-commit.com hooks
     for more information, see https://pre-commit.ci
   autofix_prs: true
-  autoupdate_branch: ''
-  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
   autoupdate_schedule: weekly
   submodules: false
 
@@ -14,7 +14,7 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: check-added-large-files
-        args: ['--maxkb=100000']
+        args: ["--maxkb=100000"]
       - id: end-of-file-fixer
       - id: check-yaml
         args: ["--unsafe"]

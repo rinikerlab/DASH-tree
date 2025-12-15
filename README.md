@@ -1,7 +1,7 @@
 Welcome to DASH
 ==============================
 
-|**Status**| [![CI](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml/badge.svg)](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml) [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit) |
+|**Status**| [![CI](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml/badge.svg)](https://github.com/rinikerlab/DASH-tree/actions/workflows/CI.yaml) [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit) [![RDKit](https://img.shields.io/badge/Powered%20by-RDKit-3838ff.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAFVBMVEXc3NwUFP8UPP9kZP+MjP+0tP////9ZXZotAAAAAXRSTlMAQObYZgAAAAFiS0dEBmFmuH0AAAAHdElNRQfmAwsPGi+MyC9RAAAAQElEQVQI12NgQABGQUEBMENISUkRLKBsbGwEEhIyBgJFsICLC0iIUdnExcUZwnANQWfApKCK4doRBsKtQFgKAQC5Ww1JEHSEkAAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMi0wMy0xMVQxNToyNjo0NyswMDowMDzr2J4AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjItMDMtMTFUMTU6MjY6NDcrMDA6MDBNtmAiAAAAAElFTkSuQmCC)](https://www.rdkit.org/) |
 | :------ | :------- |
 |**References**| [![DASH](https://img.shields.io/badge/DOI-10.1021/acs.jcim.3c00800-blue)](https://doi.org/10.1021/acs.jcim.3c00800) [![DASH Properties](https://img.shields.io/badge/DOI-10.1063/5.0218154-blue)](https://doi.org/10.1063/5.0218154) |
 

@@ -1,3 +1,5 @@
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 from pathlib import Path
 
 default_dash_tree_path = Path(__file__).parent / "default_dash_tree"

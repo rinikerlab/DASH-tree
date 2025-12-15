@@ -1,3 +1,6 @@
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
+
 def command_to_shell_file(command: str, filename: str) -> None:
     """
     Writes a string to a .sh file

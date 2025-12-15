@@ -1,3 +1,5 @@
+# Copyright (C) 2024-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 """Factory for dash Trees with different properties loaded."""
 from serenityff.charge.data import dash_props_tree_path
 from serenityff.charge.tree.dash_tree import DASHTree, TreeType

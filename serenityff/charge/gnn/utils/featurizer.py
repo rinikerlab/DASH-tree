@@ -1,5 +1,7 @@
-"""_
-This file is necessary to eliminate the packages dependecy on deepchem.
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
+"""Necessary to eliminate the packages dependecy on deepchem.
+
 Most of the functionality is adapted from deepchem.
 https://github.com/deepchem/deepchem/tree/master/deepchem/feat
 """

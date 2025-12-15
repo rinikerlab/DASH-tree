@@ -1,3 +1,5 @@
+# Copyright (C) 2022-2025 ETH Zurich, Marc Lehner and other DASH contributors.
+
 from typing import Tuple, Union
 
 import numpy as np

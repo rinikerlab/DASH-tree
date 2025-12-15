@@ -1,3 +1,5 @@
+# Copyright (C) 2022-2025 ETH Zurich, Niels Maeder and other DASH contributors.
+
 from .custom_data import CustomData
 from .featurizer import MolGraphConvFeaturizer
 from .model import ChargeCorrectedNodeWiseAttentiveFP, NodeWiseAttentiveFP

@@ -37,6 +37,7 @@ classifiers = [
 include-package-data = true
 
 [tool.setuptools.packages.find]
+where = ["."]
 include = ["serenityff*"]
 
 [project.entry-points."openff.toolkit.plugins.handlers"]

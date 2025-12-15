@@ -43,7 +43,7 @@ jobs:
     - name: Run tests
       shell: bash -l {0}
       run: |
-        pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow serenityff/charge/tests/ tests/
+        pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow --tier max serenityff/charge/tests/ tests/
 
   analyze:
     name: Analyze

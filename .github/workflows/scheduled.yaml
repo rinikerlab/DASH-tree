@@ -40,4 +40,4 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow -- "${{ matrix.mark }}" serenityff/charge/tests/ tests/
+          pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow --tier "${{ matrix.mark }}" serenityff/charge/tests/ tests/

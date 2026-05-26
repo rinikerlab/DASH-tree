@@ -1,6 +1,7 @@
 # Copyright (C) 2024-2025 ETH Zurich, Niels Maeder and other DASH contributors.
 
 """Functionality to obtain the DASH properties data from ETH research archive."""
+
 import zipfile
 from enum import Enum, auto
 from pathlib import Path
@@ -29,7 +30,7 @@ class DataPath(Enum):
 
 URL_DICT = {
     DataUrl.DEFAULT: None,
-    DataUrl.DASH_PROPS: "https://www.research-collection.ethz.ch/bitstreams/5a2f3c94-beb6-431f-b646-62aa8519acbd/download",
+    DataUrl.DASH_PROPS: "https://www.research-collection.ethz.ch/server/api/core/bitstreams/5a2f3c94-beb6-431f-b646-62aa8519acbd/content",
 }
 DATA_DICT = {
     DataPath.DEFAULT: default_dash_tree_path,

@@ -10,6 +10,7 @@ dependencies:
   - python = 3.10
   - pip
   # Dev
+  - setuptools < 82.0.0
   - pytest
   - pytest-cov
   - codecov

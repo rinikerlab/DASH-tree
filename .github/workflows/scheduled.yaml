@@ -1,0 +1,43 @@
+name: scheduled-tests
+
+on:
+  schedule:
+    - cron: "0 2 * * 6"
+
+jobs:
+  test:
+    name: Run ${{ matrix.env-name }} environment
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env-name: "min"
+            file: "tree_only_env.yml"
+            mark: "min"
+          - env-name: "med"
+            file: "min_environment.yml"
+            mark: "med"
+          - env-name: "max"
+            file: "environment.yml"
+            mark: "max"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: test-env
+          environment-file: ${{ matrix.file }}
+
+      - name: End-to-End Install
+        shell: bash -l {0}
+        run: |
+          conda install -y pytest pytest-cov
+          pip install git+https://github.com/rinikerlab/DASH-tree.git@${{ github.sha }}"
+
+      - name: Run Tests
+        shell: bash -l {0}
+        run: |
+          pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow --tier "${{ matrix.mark }}" serenityff/charge/tests/ tests/

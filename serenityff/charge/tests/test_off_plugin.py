@@ -88,6 +88,7 @@ chg_rtol = 0.4
 chg_atol = 0.4
 
 
+@pytest.mark.med
 def test_handler_functions(handler):
     assert handler.check_handler_compatibility(handler) is None
     assert handler._TAGNAME == "SerenityFFCharge"
@@ -95,6 +96,7 @@ def test_handler_functions(handler):
     assert handler._KWARGS == ["toolkit_registry"]
 
 
+@pytest.mark.med
 def test_off_handler_plugins(force_field_with_plugins, keys):
     keys.append("SerenityFFCharge")
     for key in keys:
@@ -103,6 +105,7 @@ def test_off_handler_plugins(force_field_with_plugins, keys):
         force_field_with_plugins.get_parameter_handler("faulty")
 
 
+@pytest.mark.med
 @pytest.mark.skipif(
     condition=are_in_CI(),
     reason="This test is too slow for CI",
@@ -122,6 +125,7 @@ def test_off_handler_custom(force_field_custom_offxml, keys):
 # ------------------------------------------------
 
 
+@pytest.mark.med
 @pytest.mark.skipif(
     condition=are_in_CI(),
     reason="This test is too slow for CI",
@@ -142,6 +146,7 @@ def test_plugin_charges_get(force_field_with_plugins, molecule, charges_amber, c
     )
 
 
+@pytest.mark.med
 @pytest.mark.skipif(
     condition=are_in_CI(),
     reason="This test is too slow for CI",
@@ -162,6 +167,7 @@ def test_plugin_charges_register(force_field_with_plugins, molecule, handler, ch
     )
 
 
+@pytest.mark.med
 @pytest.mark.skipif(
     condition=are_in_CI(),
     reason="This test is too slow for CI",

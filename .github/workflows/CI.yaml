@@ -7,11 +7,6 @@ on:
   pull_request:
     branches:
       - "main"
-  #schedule:
-  #  # Nightly tests run on master by default:
-  #  #   Scheduled workflows run on the latest commit on the default or base branch.
-  #  #   (from https://help.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events-schedule)
-  #  - cron: "0 0 * * *"
 
 jobs:
   test:
@@ -19,8 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest] #[ubuntu-latest, macOS-latest]
-        python-version: ['3.10'] #[3.7, 3.8, 3.9, 3.10, 3.11, 3.12]
+        os: [ubuntu-latest]
+        python-version: ['3.10']
 
     steps:
     - uses: actions/checkout@v4
@@ -32,10 +27,8 @@ jobs:
         df -h
         ulimit -a
 
-
     - uses: mamba-org/setup-micromamba@v1
       with:
-        #python-version: ${{ matrix.python-version }}
         create-args: >-
           python=${{ matrix.python-version }}
         init-shell: bash
@@ -47,12 +40,10 @@ jobs:
         pip install . --no-deps
         conda list
 
-
     - name: Run tests
       shell: bash -l {0}
       run: |
-        pip install . --no-deps
-        pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow serenityff/charge/tests/ tests/
+        pytest -v --color=yes --cov=serenityff --cov-report=xml --run-slow --tier max serenityff/charge/tests/ tests/
 
   analyze:
     name: Analyze

@@ -85,6 +85,7 @@ def trainer(model, optimizer):
     return trainer
 
 
+@pytest.mark.max
 def test_init_and_forward_model(model, graph) -> None:
     model = model
     model.train()
@@ -99,6 +100,7 @@ def test_init_and_forward_model(model, graph) -> None:
     return
 
 
+@pytest.mark.max
 def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, model_path, statedict) -> None:
     # test init
     assert trainer.device == device("cuda") if is_available() else device("cpu")
@@ -147,6 +149,7 @@ def test_initialize_trainer(trainer, model, sdf_path, pt_path, statedict_path, m
     return
 
 
+@pytest.mark.max
 def test_prepare_train_data(trainer, sdf_path):
     with pytest.warns(Warning):
         trainer.prepare_training_data()
@@ -158,6 +161,7 @@ def test_prepare_train_data(trainer, sdf_path):
     return
 
 
+@pytest.mark.max
 def test_train_model(trainer, sdf_path) -> None:
     trainer.gen_graphs_from_sdf(sdf_path)
     trainer.prepare_training_data(train_ratio=0.5)
@@ -173,6 +177,7 @@ def test_train_model(trainer, sdf_path) -> None:
     return
 
 
+@pytest.mark.max
 def test_prediction(trainer, graph, molecule) -> None:
 
     a = trainer.predict(graph)
@@ -198,6 +203,7 @@ def test_prediction(trainer, graph, molecule) -> None:
     return
 
 
+@pytest.mark.max
 def test_on_gpu(trainer) -> None:
 
     assert trainer._on_gpu == is_available()

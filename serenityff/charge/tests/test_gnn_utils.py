@@ -126,6 +126,7 @@ def node_features() -> np.ndarray:
     )
 
 
+@pytest.mark.max
 def test_get_split_numbers() -> None:
     assert [1, 0] == get_split_numbers(N=1, train_ratio=0.5)
     assert [1, 1] == get_split_numbers(N=2, train_ratio=0.5)
@@ -136,6 +137,7 @@ def test_get_split_numbers() -> None:
     return
 
 
+@pytest.mark.max
 def test_random_split(data) -> None:
     train, test = split_data_random(data_list=data, train_ratio=0.5)
     assert len(train) == 6
@@ -143,6 +145,7 @@ def test_random_split(data) -> None:
     return
 
 
+@pytest.mark.max
 def test_kfold_split(data) -> None:
     train1, test1 = split_data_Kfold(data, n_splits=2, split=0)
     train2, test2 = split_data_Kfold(data, n_splits=2, split=1)
@@ -151,6 +154,7 @@ def test_kfold_split(data) -> None:
     return
 
 
+@pytest.mark.max
 def test_initialization() -> None:
     featurizer = Featurizer()
     featurizer = MolecularFeaturizer()
@@ -159,6 +163,7 @@ def test_initialization() -> None:
     return
 
 
+@pytest.mark.max
 def test_one_hot_encode(atoms, allowable_set) -> None:
     assert one_hot_encode(atoms[0].GetSymbol(), allowable_set) == [1.0, 0.0, 0.0]
     assert one_hot_encode(atoms[0].GetSymbol(), allowable_set, include_unknown_set=True) == [1.0, 0.0, 0.0, 0.0]
@@ -166,6 +171,7 @@ def test_one_hot_encode(atoms, allowable_set) -> None:
     return
 
 
+@pytest.mark.max
 def test_hbond_constructor(mol) -> None:
     factory = _ChemicalFeaturesFactory.get_instance()
     import os
@@ -180,12 +186,14 @@ def test_hbond_constructor(mol) -> None:
     return
 
 
+@pytest.mark.max
 def test_H_bonding(mol, atoms) -> None:
     hbond_infos = construct_hydrogen_bonding_info(mol)
     assert get_atom_hydrogen_bonding_one_hot(atoms[11], hbond_infos) == [1.0, 1.0]
     return
 
 
+@pytest.mark.max
 def test_degree(atoms) -> None:
     assert np.where(get_atom_total_degree_one_hot(atoms[20])) == np.array([[1]])
     assert np.where(get_atom_total_degree_one_hot(atoms[11])) == np.array([[2]])
@@ -194,6 +202,7 @@ def test_degree(atoms) -> None:
     return
 
 
+@pytest.mark.max
 def test_atom_feature(mol, atoms, allowable_set) -> None:
     hbond_infos = construct_hydrogen_bonding_info(mol)
     feat = _construct_atom_feature(
@@ -206,6 +215,7 @@ def test_atom_feature(mol, atoms, allowable_set) -> None:
     return
 
 
+@pytest.mark.max
 def test_bond_feat(bonds) -> None:
     np.testing.assert_array_equal(np.where(_construct_bond_feature(bonds[0])), np.array([[3, 4, 5, 6]]))
     np.testing.assert_array_equal(np.where(_construct_bond_feature(bonds[6])), np.array([[0, 4, 6]]))
@@ -214,6 +224,7 @@ def test_bond_feat(bonds) -> None:
     return
 
 
+@pytest.mark.max
 def test_feature_vector_generation(smiles, mol, allowable_set, empty_set) -> None:
     featurizer = MolGraphConvFeaturizer(use_edges=True)
 
@@ -231,6 +242,7 @@ def test_feature_vector_generation(smiles, mol, allowable_set, empty_set) -> Non
     return
 
 
+@pytest.mark.max
 def test_graph_data_basics(node_features, edge_index, edge_features, node_pos_features) -> None:
     # Trigger all __init__() failures.
     with pytest.raises(TypeError):
@@ -255,6 +267,7 @@ def test_graph_data_basics(node_features, edge_index, edge_features, node_pos_fe
     return
 
 
+@pytest.mark.max
 def test_getters(
     graph_data,
     custom_graph_data,
@@ -285,6 +298,7 @@ def test_getters(
     return
 
 
+@pytest.mark.max
 def test_to_pyg(
     custom_graph_data,
     node_features,
@@ -301,6 +315,7 @@ def test_to_pyg(
     return
 
 
+@pytest.mark.max
 def test_custom_data_attributes(custom_data) -> None:
     data = custom_data
     assert data.smiles == "abc"
@@ -321,6 +336,7 @@ def test_custom_data_attributes(custom_data) -> None:
     return
 
 
+@pytest.mark.max
 def test_base_featurizer():
     featurizer = Featurizer()
     datapoints = [1]
@@ -332,6 +348,7 @@ def test_base_featurizer():
     assert np.array_equal(features, np.asarray([np.array([])]))
 
 
+@pytest.mark.max
 def test_molecular_featurizer(mol, smiles):
     featurizer = MolecularFeaturizer()
     featurizer.featurize([mol])
@@ -340,6 +357,7 @@ def test_molecular_featurizer(mol, smiles):
     featurizer.featurize(smiles)
 
 
+@pytest.mark.max
 def test_exceptions():
     with pytest.raises(NotInitializedError):
         raise NotInitializedError("msg")

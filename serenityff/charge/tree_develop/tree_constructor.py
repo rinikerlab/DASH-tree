@@ -1,18 +1,18 @@
 # Copyright (C) 2022-2025 ETH Zurich, Marc Lehner and other DASH contributors.
 
 import datetime
+import logging
+import os
 import pickle
 import random
-import os
-import logging
 import time
+from collections import defaultdict
 from typing import NoReturn
 
 import numpy as np
 import pandas as pd
 from rdkit import Chem
 from tqdm import tqdm
-from collections import defaultdict
 
 from serenityff.charge.tree.atom_features import (
     AtomFeatures,
@@ -54,7 +54,8 @@ class Tree_constructor:
         II) sanitize the dataframe
         III) split the dataframe into a train and test set (randomly or by indices provided)
         IV) create all adjacency matrices and atom features for all molecules
-        V) prepare everything for the tree building (seperate functions "create_tree_level_0" and "build_tree" are needed for the actual tree building)
+        V) prepare everything for the tree building (seperate functions "create_tree_level_0" and "build_tree" are
+        needed for the actual tree building)
 
         Parameters
         ----------
@@ -262,7 +263,8 @@ class Tree_constructor:
         self, mol_index, number_of_atoms_in_mol_df, number_of_atoms_in_mol_sdf
     ) -> NoReturn:
         print(
-            f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df and {number_of_atoms_in_mol_sdf} atoms in sdf"
+            f"Molecule {mol_index} has {number_of_atoms_in_mol_df} atoms in df "
+            f"and {number_of_atoms_in_mol_sdf} atoms in sdf"
         )
         print(f"shifted mol has {self.sdf_suplier[mol_index + 1].GetNumAtoms()} atoms")
         print("--------------------------------------------------")
@@ -289,7 +291,8 @@ class Tree_constructor:
         self.original_df.drop(indices_to_drop, inplace=True)
         if self.verbose:
             print(
-                f"Number of wrong charged mols: {len(self.wrong_charged_mols_list)} of {len(self.original_df.mol_index.unique())} mols"
+                "Number of wrong charged mols: "
+                f"{len(self.wrong_charged_mols_list)} of {len(self.original_df.mol_index.unique())} mols"
             )
 
     def _check_charges(self, element, charge, indices_to_drop, df_with_mol_index, mol_index) -> None:

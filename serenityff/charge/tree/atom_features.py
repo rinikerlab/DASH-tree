@@ -1,6 +1,7 @@
 # Copyright (C) 2022-2025 ETH Zurich, Marc Lehner and other DASH contributors.
 
 from typing import Any, Tuple
+
 import numpy as np
 from rdkit import Chem
 
@@ -34,9 +35,9 @@ class AtomFeatures:
         > IsConjugated (True or False)
         > Number of Hydrogens (e.g. 0, 1, 2, ...) (includeNeighbors=True)
 
-    It has a single atom form, or a form with the connection information like the relative index of the connected atom and the bond type.
-    a atom with connection information can be called for example with the function atom_features_from_molecule_w_connection_info() and a
-    example would be:
+    It has a single atom form, or a form with the connection information like the relative index of the connected atom
+    and the bond type. a atom with connection information can be called for example with the function
+    atom_features_from_molecule_w_connection_info() and a example would be:
     [(6, 3, 0, False, 0), 0, 1]
     Wich is a carbon atom with 3 bonds, 0 formal charge, not aromatic and 0 hydrogens connected to an atom
     with index 0 via a single bond.

@@ -6,12 +6,9 @@ import numpy as np
 import pandas as pd
 from numba import njit
 
-
 from serenityff.charge.tree.atom_features import AtomFeatures
-
-from serenityff.charge.tree_develop.develop_node import DevelopNode
-
 from serenityff.charge.tree.dash_tree import DASHTree
+from serenityff.charge.tree_develop.develop_node import DevelopNode
 
 
 def get_possible_atom_features(mol, connected_atoms):

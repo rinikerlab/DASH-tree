@@ -12,6 +12,12 @@ import torch
 from rdkit import Chem
 from tqdm import tqdm
 
+from serenityff.charge.gnn.attention_extraction import Explainer
+from serenityff.charge.gnn.attention_extraction.bash_templates import (
+    CLEANER_CONTENT,
+    get_lsf_worker_content,
+    get_slurm_worker_content,
+)
 from serenityff.charge.gnn.utils import (
     ChargeCorrectedNodeWiseAttentiveFP,
     NodeWiseAttentiveFP,
@@ -19,12 +25,6 @@ from serenityff.charge.gnn.utils import (
 )
 from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.utils.exceptions import ExtractionError
-from serenityff.charge.gnn.attention_extraction import Explainer
-from serenityff.charge.gnn.attention_extraction.bash_templates import (
-    CLEANER_CONTENT,
-    get_lsf_worker_content,
-    get_slurm_worker_content,
-)
 
 
 class Extractor:
@@ -158,7 +158,7 @@ class Extractor:
                 "truth",
             ],
         )
-        out = output if output else f'{scratch}/{sdf_file.split(".")[0].split("/")[-1] + ".csv"}'
+        out = output if output else f"{scratch}/{sdf_file.split('.')[0].split('/')[-1] + '.csv'}"
         df.to_csv(
             path_or_buf=out,
             index=False,
@@ -316,7 +316,7 @@ class Extractor:
             > -s, --sdffile:    .SDF file containing a list of molecules\
                 you want a prediction and attention extaction for.
             > -p, --property:  Name of the property in the sdf to explain. Defaults to 'MBIScharge'.
-            > --no-charge-correction: if flag is present, the model is not physics informed (i.e. not charge corrected.).
+            > --no-charge-correction: if flag is present, the model is not physics informed (not charge corrected.).
 
         Returns:
             argparse.Namespace: Namespace containing necessary strings.
@@ -558,7 +558,8 @@ class Extractor:
         slurm_command = (
             f"sbatch -n 1 --cpus-per-task=1 --time=120:00:00 --job-name='clean_up' "
             f"--mem-per-cpu=1024 --output='logfiles/cleanup.out' --error='logfiles/cleanup.err' "
-            f"--open-mode=append --dependency=afterok:{id} --wrap='./cleaner.sh {num_files} {batch_size} {files.sdffile}'"
+            f"--open-mode=append --dependency=afterok:{id} --wrap='./cleaner.sh "
+            f"{num_files} {batch_size} {files.sdffile}'"
         )
         os.system(slurm_command)
         command_to_shell_file(slurm_command, "run_cleanup.sh")

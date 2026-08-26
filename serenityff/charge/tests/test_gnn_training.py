@@ -7,10 +7,9 @@ import pytest
 from numpy import array_equal
 from rdkit import Chem
 from torch import device, load
+from torch.cuda import is_available
 from torch.nn.functional import mse_loss
 from torch.optim import Adam
-from torch.cuda import is_available
-
 
 from serenityff.charge.gnn.training import Trainer
 from serenityff.charge.gnn.utils import (
@@ -174,7 +173,6 @@ def test_train_model(trainer, sdf_path) -> None:
 
 
 def test_prediction(trainer, graph, molecule) -> None:
-
     a = trainer.predict(graph)
     b = trainer.predict(molecule)
     c = trainer.predict([graph])
@@ -199,5 +197,4 @@ def test_prediction(trainer, graph, molecule) -> None:
 
 
 def test_on_gpu(trainer) -> None:
-
     assert trainer._on_gpu == is_available()

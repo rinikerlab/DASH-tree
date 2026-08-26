@@ -10,14 +10,13 @@ import pytest
 import torch
 from rdkit import Chem
 
+from serenityff.charge.gnn.attention_extraction import Explainer, Extractor
+from serenityff.charge.gnn.attention_extraction.explainer import GNNExplainer
 from serenityff.charge.gnn.utils import (
     ChargeCorrectedNodeWiseAttentiveFP,
+    CustomData,
     get_graph_from_mol,
 )
-from serenityff.charge.gnn.attention_extraction import Extractor
-from serenityff.charge.gnn.attention_extraction import Explainer
-from serenityff.charge.gnn.attention_extraction.explainer import GNNExplainer
-from serenityff.charge.gnn.utils import CustomData
 from serenityff.charge.gnn.utils.model import NodeWiseAttentiveFP
 from serenityff.charge.gnn.utils.rdkit_helper import mols_from_sdf
 from serenityff.charge.utils import Molecule, command_to_shell_file

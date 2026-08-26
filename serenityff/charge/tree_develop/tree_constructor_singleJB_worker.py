@@ -1,11 +1,10 @@
 # Copyright (C) 2023-2025 ETH Zurich, Marc Lehner and other DASH contributors.
 
-import pickle
-import os
-from typing import Sequence
 import argparse
+import os
+import pickle
+from typing import Sequence
 
-from serenityff.charge.utils import command_to_shell_file
 from serenityff.charge.tree.tree_utils import (
     get_DASH_tree_from_DEV_tree,
 )
@@ -13,6 +12,7 @@ from serenityff.charge.tree_develop.develop_node import DevelopNode
 from serenityff.charge.tree_develop.tree_constructor_parallel_worker import (
     Tree_constructor_parallel_worker,
 )
+from serenityff.charge.utils import command_to_shell_file
 
 
 class Tree_constructor_singleJB_worker:
@@ -47,11 +47,23 @@ class Tree_constructor_singleJB_worker:
         out_folder = "tree_out"
         if not os.path.exists(out_folder):
             os.makedirs(out_folder)
-        command = f"#SBATCH -n 1\n#SBATCH --cpus-per-task=64\n#SBATCH --time=120:00:00\n#SBATCH --job-name='t_{AF_idx}'\n#SBATCH --nodes=1\n#SBATCH --mem-per-cpu=8000\n#SBATCH --tmp=50000\n#SBATCH --output='t_{AF_idx}.out'\n#SBATCH --error='t_{AF_idx}.err'\n#SBATCH --open-mode=append"
+        command = f"""#SBATCH -n 1
+        #SBATCH --cpus-per-task=64
+        #SBATCH --time=120:00:00
+        #SBATCH --job-name='t_{AF_idx}'
+        #SBATCH --nodes=1
+        #SBATCH --mem-per-cpu=8000
+        #SBATCH --tmp=50000
+        #SBATCH --output='t_{AF_idx}.out'
+        #SBATCH --error='t_{AF_idx}.err'
+        #SBATCH --open-mode=append"""
         # copy all the files to the $TMPDIR directory
         command += f"cp {Tree_constructor_parallel_worker_path} $TMPDIR/{local_tree_constructor}"
         command += "cd $TMPDIR"
-        command += f"python serenityff/charge/tree_develop/tree_constructor_singleJB_worker.py -p {local_tree_constructor} -a {AF_idx}"
+        command += (
+            "python serenityff/charge/tree_develop/tree_constructor_singleJB_worker.py "
+            r"-p {local_tree_constructor} -a {AF_idx}"
+        )
         command += f"cp {AF_idx}.pkl {sub_folder}/tree_out/"
         command_to_shell_file(command, f"singleJB_{AF_idx}.sh")
         os.system(f"sbatch < singleJB_{AF_idx}.sh")

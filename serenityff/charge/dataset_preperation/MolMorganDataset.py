@@ -1,22 +1,22 @@
 # Copyright (C) 2022-2025 ETH Zurich, Jakob Teetz and other DASH contributors.
 
 import os
-import numpy
 import pickle
+
+import numpy
 
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 
-from typing import Optional
 from collections import defaultdict
-from rdkit import Chem
-from rdkit.Chem import Descriptors
-from rdkit.Chem import Draw
-from rdkit.Chem import AllChem
+from typing import Optional
+
 from matplotlib import lines
 from matplotlib import pyplot as plt
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors, Draw
 
 
 def shrink(KeyAppearanceDict: defaultdict, Cutoff: int) -> None:
@@ -49,8 +49,8 @@ def ddict2dict(d: defaultdict) -> dict:
 
 class MolMorganDataset:
     """
-    Storage of Morgan fingerprints of a molecule dataset (stored in sdf-file). Used to compare to other MolMorganDatasets on a fingerprint count level. And other helpful
-    tools for data cleaning, management and merging.
+    Storage of Morgan fingerprints of a molecule dataset (stored in sdf-file). Used to compare to other
+    MolMorganDatasets on a fingerprint count level. And other helpful tools for data cleaning, management and merging.
     """
 
     def __init__(
@@ -60,13 +60,18 @@ class MolMorganDataset:
         ConsiderEquivalentKeysOnce: bool = True,
         FilterForChargedMolecules: Optional[Literal["atom", "molecule", "none"]] = "molecule",
     ) -> None:
-        """Initializes a new MolMorganDataset and reads in the data from a pickle file, if available, or calculates it new.
+        """Initializes a new MolMorganDataset and reads in the data from a pickle file, if available, or calculates it
+        new.
 
         Args:
             DataPath (str): path to sdf file
-            UseOldData (bool, optional): If False, data will be calculated new, even if a pickle file is available. Defaults to True.
-            ConsiderEquivalentKeysOnce (bool, optional): If False, counts total appearances of fingerprint per molecule. Otherwise each fingerprint is just counted once. Defaults to True.
-            FilterForChargedMolecules (Literal, optional): For 'atom' ignores all molecules that contain a charged atom. For 'molecule' ignores all molecules with a formal charge. For 'none' takes all molecules. Default set to 'molecule'
+            UseOldData (bool, optional): If False, data will be calculated new, even if a pickle file is available.
+            Defaults to True.
+            ConsiderEquivalentKeysOnce (bool, optional): If False, counts total appearances of fingerprint per molecule.
+            Otherwise each fingerprint is just counted once. Defaults to True.
+            FilterForChargedMolecules (Literal, optional): For 'atom' ignores all molecules that contain a charged atom.
+            For 'molecule' ignores all molecules with a formal charge. For 'none' takes all molecules. Default set to
+            'molecule'
         """
         self._data_path = DataPath
         self._folder_path = os.path.split(self._data_path)[0]
@@ -110,12 +115,17 @@ class MolMorganDataset:
         ConsiderEquivalentKeysOnce: bool = True,
         FilterForChargedMolecules: Optional[Literal["atom", "molecule", "none"]] = "molecule",
     ) -> None:
-        """Read in data from pickle file if present. Otherwise calls CalcData function to calculate data and store it in a pickle file.
+        """Read in data from pickle file if present. Otherwise calls CalcData function to calculate data and store it
+        in a pickle file.
 
         Args:
-            UseOldData (bool, optional): If False, data will be calculated new, even if a pickle file is available. Defaults to True.
-            ConsiderEquivalentKeysOnce (bool, optional): If False, counts total appearances of fingerprint per molecule. Otherwise each fingerprint is just counted once. Defaults to True.
-            FilterForChargedMolecules (Literal, optional): For 'atom' ignores all molecules that contain a charged atom. For 'molecule' ignores all molecules with a formal charge. For 'none' takes all molecules. Default set to 'molecule'
+            UseOldData (bool, optional): If False, data will be calculated new, even if a pickle file is available.
+            Defaults to True.
+            ConsiderEquivalentKeysOnce (bool, optional): If False, counts total appearances of fingerprint per molecule.
+            Otherwise each fingerprint is just counted once. Defaults to True.
+            FilterForChargedMolecules (Literal, optional): For 'atom' ignores all molecules that contain a charged atom.
+            For 'molecule' ignores all molecules with a formal charge. For 'none' takes all molecules. Default set to
+            'molecule'
         """
         if UseOldData and os.path.isfile(self._saved_path):
             print("loaded stored data for " + self._filename)
@@ -144,11 +154,15 @@ class MolMorganDataset:
         ConsiderEquivalentKeysOnce: bool = True,
         FilterForChargedMolecules: Optional[Literal["atom", "molecule", "none"]] = "molecule",
     ) -> None:
-        """Calculate various data for the MolMorganDataset(Appearances of Morgan fingerprints(radius 2), number of charged/uncharged/total molecules, molarweights) and write them into a pickle file
+        """Calculate various data for the MolMorganDataset(Appearances of Morgan fingerprints(radius 2), number of
+        charged/uncharged/total molecules, molarweights) and write them into a pickle file
 
         Args:
-            ConsiderEquivalentKeysOnce (bool, optional): If False, counts total appearances of fingerprint per molecule. Otherwise each fingerprint is just counted once. Defaults to True.
-            FilterForChargedMolecules (Literal, optional): For 'atom' ignores all molecules that contain a charged atom. For 'molecule' ignores all molecules with a formal charge. For 'none' takes all molecules. Default set to 'molecule'
+            ConsiderEquivalentKeysOnce (bool, optional): If False, counts total appearances of fingerprint per molecule.
+            Otherwise each fingerprint is just counted once. Defaults to True.
+            FilterForChargedMolecules (Literal, optional): For 'atom' ignores all molecules that contain a charged atom.
+            For 'molecule' ignores all molecules with a formal charge. For 'none' takes all molecules. Default set to
+            'molecule'
         """
 
         prevID = 0
@@ -161,7 +175,8 @@ class MolMorganDataset:
         for m in self._mols:  # loop over all molecules in MolMorganDataset
             if bool(m.HasProp("CHEMBL_ID")):
                 if prevID == m.GetProp("CHEMBL_ID"):
-                    self._num_mol += 1  # count amount of molecules. Conformers inlcuded so it later matches the index of molecule list
+                    self._num_mol += 1  # count amount of molecules. Conformers inlcuded so it later matches the index
+                    # of molecule list
                     continue
             AllChem.GetMorganFingerprint(m, 2, bitInfo=fp)
             for val in list(fp):  # loop over fingerprints of the molecule
@@ -174,9 +189,9 @@ class MolMorganDataset:
                     if fp[val][0][1] < 1:  # fingerprints for radius 0
                         self._key_dict[0][val] += len(fp[val])
                 else:
-                    self._key_dict[2][
-                        val
-                    ] += 1  # counting appearances of different keys (with counting equivalent atoms as one)
+                    self._key_dict[2][val] += (
+                        1  # counting appearances of different keys (with counting equivalent atoms as one)
+                    )
                     if fp[val][0][1] < 2:  # fingerprints for radius 1
                         self._key_dict[1][val] += 1
                     if fp[val][0][1] < 1:  # fingerprints for radius 0
@@ -208,9 +223,9 @@ class MolMorganDataset:
                         if fp[val][0][1] < 1:  # fingerprints for radius 0
                             self._key_dict_nocharge[0][val] += len(fp[val])
                     else:
-                        self._key_dict_nocharge[2][
-                            val
-                        ] += 1  # counting appearances of different keys (with counting equivalent atoms as one)
+                        self._key_dict_nocharge[2][val] += (
+                            1  # counting appearances of different keys (with counting equivalent atoms as one)
+                        )
                         if fp[val][0][1] < 2:  # fingerprints for radius 1
                             self._key_dict_nocharge[1][val] += 1
                         if fp[val][0][1] < 1:  # fingerprints for radius 0
@@ -289,7 +304,8 @@ class MolMorganDataset:
                     int(numpy.ceil(max(weight))) + int(numpy.ceil(max(weight))) % 2,
                     2,
                 ),
-            )  # make bin width of 2 as it produces substructure for uneven weights otherwise. %2 terms to ensure range is dividable by 2
+            )  # make bin width of 2 as it produces substructure for uneven weights otherwise. %2 terms to ensure range
+            # is dividable by 2
             plt.xlabel("Molecular weight [u]")
             plt.ylabel("Counts")
             plt.title("Weight distribution of dataset " + self._filename)
@@ -323,11 +339,13 @@ class MolMorganDataset:
         return intersect  # return list of smiles that are present in both sets
 
     def compare(self, otherset, UseChargedMolecules: bool = False) -> None:
-        """Compares the appearance of morgan fingerprints in MolMorganDatasets and plots them according to the metric (#set1 - #set2)/(#set1 + #set2)
+        """Compares the appearance of morgan fingerprints in MolMorganDatasets and plots them according to the metric
+        (#set1 - #set2)/(#set1 + #set2)
 
         Args:
             otherset (MolMorganDataset): Used for comparison
-            UseChargedMolecules (bool, optional): If False, excludes fingerprints from charged molecules. Defaults to False.
+            UseChargedMolecules (bool, optional): If False, excludes fingerprints from charged molecules. Defaults to
+            False.
         """
         print("comparing... ")
         self._sort = defaultdict(
@@ -378,7 +396,8 @@ class MolMorganDataset:
                 key: (ownkeys.get(key, 0) - otherkeys.get(key, 0))
                 / added.get(
                     key, 0
-                )  # create dictionary with the calculated metric to measure the difference in the data set: 1 == only appear in new set; -1 == only in old set
+                )  # create dictionary with the calculated metric to measure the difference in the data set: 1 == only
+                # appear in new set; -1 == only in old set
                 for key in set(otherkeys) | set(ownkeys)
             }
             t = {
@@ -397,13 +416,14 @@ class MolMorganDataset:
                     key: (cnew.get(key, 0) - cold.get(key, 0)) / add.get(key, 0) for key in set(cold) | set(cnew)
                 }
                 c = {k: v for k, v in sorted(add_met.items(), key=lambda item: item[1], reverse=True)}  # sort by value
-                for (k, v) in t.items():  # go through all possible keys
+                for k, v in t.items():  # go through all possible keys
                     if k not in c.keys():  # when they were deleted in this iteration of shrinking ....
                         if k not in hold.keys():  # and they are not yet in included in new...
                             hold[k] = v  # add them
                             col[k] = i - 1  # and store the color depending on the iteration in which they were added
-                            # This means elements that only appear once are added first and then the once that appear twice and so on --> they later keep the order
-            for (k, v) in t.items():  # finally add all keys that were left over
+                            # This means elements that only appear once are added first and then the once that appear
+                            # twice and so on --> they later keep the order
+            for k, v in t.items():  # finally add all keys that were left over
                 if k not in hold.keys():
                     hold[k] = v
                     col[k] = 4
@@ -559,13 +579,17 @@ class MolMorganDataset:
     def missings(
         self, otherset, radius: int = 0, UseChargedMolecules: bool = False, DrawMolecules: bool = False
     ) -> list:
-        """Finds the fingerprints are missing that appear in other dataset and prints from how many molecules they origin(this number can be further reduced)
+        """Finds the fingerprints are missing that appear in other dataset and prints from how many molecules they
+        origin(this number can be further reduced)
 
         Args:
             otherset (Dataset): Used for comparison
-            radius (int, optional): Radius (maximum of 2) for which the missing fingerprints are calculated. Defaults to 0.
-            UseChargedMolecules (bool, optional): If False, excludes fingerprints that come from charged molecules. Defaults to False.
-            DrawMolecules (bool, optional): If True, prints a Grid-Image of molecules with missing fingerprints sorted by number of missing fingerprints. Defaults to False.
+            radius (int, optional): Radius (maximum of 2) for which the missing fingerprints are calculated. Defaults to
+            1.
+            UseChargedMolecules (bool, optional): If False, excludes fingerprints that come from charged molecules.
+            Defaults to False.
+            DrawMolecules (bool, optional): If True, prints a Grid-Image of molecules with missing fingerprints sorted
+            by number of missing fingerprints. Defaults to False.
         Returns:
             List of molecules if DrawMolecules false, otherwise returns a image
         """
@@ -632,7 +656,8 @@ class MolMorganDataset:
         if DrawMolecules:
             self._missingmols = [
                 x for x in self._missingmols if Descriptors.ExactMolWt(x) <= 750
-            ]  # only use molecules smaller than 750u. If large ones are included all molecules will be scaled accordingly and are hard to see
+            ]  # only use molecules smaller than 750u. If large ones are included all molecules will be scaled
+            # accordingly and are hard to see
             if len(self._missingmols) != 0:
                 grid_img = Draw.MolsToGridImage(
                     self._missingmols, molsPerRow=5, subImgSize=(500, 500), highlightAtomLists=highlights
@@ -679,8 +704,9 @@ class MolMorganDataset:
 
     def reduce(self, NewSetName: str, otherset: str = "none", cutoff: int = 5) -> None:
         """Without other set: Deletes molecules with only reduntant fingerprints, that appear more often than the cutoff
-        With other set: Adds molecules from other set so that all fingerprints are represented at least as often as the cutoff, if possible.
-        (Both use a greedy approach: Molecules that have the highest amount of desired fingerprints are added first.)
+        With other set: Adds molecules from other set so that all fingerprints are represented at least as often as the
+        cutoff, if possible.  (Both use a greedy approach: Molecules that have the highest amount of desired
+        fingerprints are added first.)
 
         Args:
             NewSetName (str): Name of new file
@@ -708,18 +734,18 @@ class MolMorganDataset:
         with Chem.SDWriter(outputpath) as w:
             if (
                 otherset == "none"
-            ):  # If no other set is given. Reduce number of molecules in set to minimum needed to have all fingerprints at least as often as the cutoff.(If enough are there)
+            ):  # If no other set is given. Reduce number of molecules in set to minimum needed to have all fingerprints
+                # at least as often as the cutoff.(If enough are there)
                 print("Removing redundants...")
-                for (
-                    mol
-                ) in (
+                for mol in (
                     self._mols
                 ):  # first step: Only keep molecules that contain at least one key appearing 'cutoff' times or less.
                     AllChem.GetMorganFingerprint(mol, 2, bitInfo=fp)
                     for key in fp:
                         if (
                             self._key_dict[2][key] < cutoff
-                        ):  # if any key in molecule appears in total less than cutoff, mark as usefull. They are needed no matter what!
+                        ):  # if any key in molecule appears in total less than cutoff, mark as usefull. They are needed
+                            # no matter what!
                             usefull = 1
                     if usefull == 1:  # write usefull molecules to new file
                         if (
@@ -755,7 +781,8 @@ class MolMorganDataset:
                 AllChem.GetMorganFingerprint(mol, 2, bitInfo=fp)
                 for key in fp:
                     if keydictnew[key] < cutoff:
-                        news += 1  # count how many keys from each molecule in leftovers has, that are desired for new set(that are still under cutoff)
+                        news += 1  # count how many keys from each molecule in leftovers has, that are desired for new
+                        # set(that are still under cutoff)
                     ranking[i] = news
                 news = 0
             ranking = {

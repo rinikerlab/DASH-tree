@@ -4,8 +4,7 @@ from math import ceil
 from typing import List, Optional, Sequence, Tuple
 
 import torch
-from sklearn.model_selection import KFold
-from sklearn.model_selection import GroupShuffleSplit
+from sklearn.model_selection import GroupShuffleSplit, KFold
 
 from .custom_data import CustomData
 

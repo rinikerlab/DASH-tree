@@ -7,7 +7,6 @@ from warnings import warn
 
 from tqdm import tqdm
 
-
 try:
     from typing import Literal
 except ImportError:
@@ -18,8 +17,8 @@ from torch_geometric.loader import DataLoader
 
 from serenityff.charge.gnn.utils import (
     ChargeCorrectedNodeWiseAttentiveFP,
-    NodeWiseAttentiveFP,
     CustomData,
+    NodeWiseAttentiveFP,
     get_graph_from_mol,
     mols_from_sdf,
     split_data_Kfold,
@@ -241,13 +240,14 @@ class Trainer:
         verbose: bool = verbose,
         sdf_property_name: str = "MBIScharge",
     ) -> None:
-        """
-        Creates pytorch geometric graphs using the custom featurizer for all molecules in a sdf file. 'MolFileAlias' in the sdf is taken
-        as the ground truth value, generate your input sdf file accordingly.
+        """Creates pytorch geometric graphs using the custom featurizer for all molecules in a sdf file.
+
+        'MolFileAlias' in the sdf is taken as the ground truth value, generate your input sdf file accordingly.
 
         Args:
             sdf_file (str): path to .sdf file holding the molecules.
-            allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
+            allowable_set (Optional[List[int]], optional): Allowable atom types. Defaults to
+            [ "C", "N", "O", "F", "P", "S", "Cl", "Br", "I", "H", ].
         """
         mols = mols_from_sdf(sdf_file)
         self.data = [
@@ -285,11 +285,13 @@ class Trainer:
         split: Optional[int] = 0,
         seed: Optional[int] = None,
     ) -> None:
-        """
-        Splits training data into test data and eval data. At the moment, random, kfold and smiles split are implemented.
+        """Splits training data into test data and eval data.
+
+        At the moment, random, kfold and smiles split are implemented.
 
         Args:
-            split_type (Optional[Literal[&quot;random&quot;, &quot;kfold&quot;]], optional): What split type you want. Defaults to "random".
+            split_type (Optional[Literal[&quot;random&quot;, &quot;kfold&quot;]], optional): What split type you want.
+            Defaults to "random".
             train_ratio (Optional[float], optional): ratio of train/eval in random split. Defaults to 0.8.
             n_splits (Optional[int], optional): number of splits in the kfold split. Defaults to 5.
             split (Optional[int], optional): which of the n_splits you want. Defaults to 0.

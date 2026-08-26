@@ -1,6 +1,7 @@
 # Copyright (C) 2024-2025 ETH Zurich, Niels Maeder and other DASH contributors.
 
 """Utilitary functions for running the pytests."""
+
 import json
 import os
 from pathlib import Path

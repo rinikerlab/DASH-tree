@@ -16,6 +16,7 @@ dependencies:
   - codecov
   - ipython
   - pre-commit
+  - ruff
   # Meta
   - conda-build
   # Science

@@ -4,10 +4,10 @@ from typing import List, Optional, Tuple
 
 from torch import Tensor
 from torch.nn import Module
-
 from torch_geometric.explain.algorithm.gnn_explainer import (
     GNNExplainer_ as GNNExplainer,
 )
+
 from serenityff.charge.gnn.utils import CustomData
 
 

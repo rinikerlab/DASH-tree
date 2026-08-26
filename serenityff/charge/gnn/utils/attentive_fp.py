@@ -1,13 +1,12 @@
 # Copyright (C) 2023-2025 ETH Zurich, Marc Lehner and other DASH contributors.
 
-from typing import Optional, Any
 import math
+from typing import Any, Optional
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import GRUCell, Linear, Parameter
-
 from torch_geometric.nn import GATConv, MessagePassing, global_add_pool
 from torch_geometric.typing import Adj, OptTensor
 from torch_geometric.utils import softmax
@@ -77,7 +76,6 @@ class GATEConv(MessagePassing):
         ptr: OptTensor,
         size_i: Optional[int],
     ) -> Tensor:
-
         x_j = F.leaky_relu_(self.lin1(torch.cat([x_j, edge_attr], dim=-1)))
         alpha_j = (x_j * self.att_l).sum(dim=-1)
         alpha_i = (x_i * self.att_r).sum(dim=-1)
